@@ -1314,11 +1314,11 @@ function cadNuvemHtml() {
   return `<div class="card"><h3>☁️ Sincronização em nuvem <span id="syncStatusBox"></span></h3>
     <p class="help mb">Este aparelho está no <b>modo local</b>: os dados ficam salvos só neste navegador. Para trabalhar em equipe (corretores em qualquer aparelho, pedidos de reserva em tempo real, login por usuário), o app usa o <b>Supabase</b>.</p>
     <ol class="steps mb">
-      <li>Crie o projeto em <a href="https://supabase.com" target="_blank">supabase.com</a> e rode o arquivo <code>gestao/supabase/schema.sql</code> no SQL Editor.</li>
+      <li>Crie o projeto em <a href="https://supabase.com" target="_blank">supabase.com</a> e rode o arquivo <code>supabase/schema.sql</code> no SQL Editor.</li>
       <li>Em <b>Project Settings › API</b>, copie a <b>Project URL</b> e a chave <b>anon public</b>.</li>
-      <li>Preencha os dois valores em <code>gestao/config.js</code> e publique. O app passa a abrir com tela de login; crie sua conta e a empresa.</li>
+      <li>Preencha os dois valores em <code>config.js</code> e publique. O app passa a abrir com tela de login; crie sua conta e a empresa.</li>
     </ol>
-    <p class="help">O guia completo está em <code>gestao/supabase/README.md</code>.</p></div>
+    <p class="help">O guia completo está em <code>supabase/README.md</code>.</p></div>
     <div class="card"><h3>🔗 Link para os corretores (modo local)</h3>
     <p class="help mb">Abre direto na área do corretor. Sem a nuvem, cada aparelho tem os próprios dados; use apenas para demonstração.${db.config.codigoCorretor ? ' O código de acesso configurado será solicitado.' : ''}</p>
     <div class="code-box" id="linkCorretor">${esc(link)}</div>

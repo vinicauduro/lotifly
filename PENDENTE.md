@@ -5,6 +5,27 @@ sua conferência. Atualizada em 23/09/2026: menu lateral (seção 7l) e cadastro
 
 ---
 
+## 00. Mudança para o repositório próprio (29/09)
+
+O sistema saiu da pasta `gestao/` do repositório `agenda-corretor` e ganhou o repositório
+dele, **`vinicauduro/lotifly`**, com todo o histórico. O endereço passa a ser
+**https://vinicauduro.github.io/lotifly/**.
+
+- [ ] Ativar o GitHub Pages do repositório novo (Settings › Pages › Deploy from a branch ›
+      `main` / root).
+- [ ] No Supabase, em **Authentication › URL Configuration**, trocar o *Site URL* para
+      `https://vinicauduro.github.io/lotifly/` e acrescentar essa mesma URL em *Redirect
+      URLs*. Sem isso, o link de confirmação de e-mail e o de recuperar senha voltam para o
+      endereço antigo. Convites usam o endereço da página e já funcionam.
+- [ ] Quem instalou o app no celular ou no computador: abrir o endereço novo e instalar de
+      novo. O endereço antigo passa a redirecionar para o novo.
+
+Os dados não se perdem. Os da nuvem ficam no Supabase, que é o mesmo. Os do modo local ficam
+no navegador, e o endereço novo continua em `vinicauduro.github.io`, que o navegador trata
+como o mesmo site.
+
+---
+
 ## 0. Antes de tudo
 
 - [x] ~~Rodar o `schema.sql`~~ — feito por você em 17/09, já com a separação do perfil

@@ -266,7 +266,7 @@ function normalizeDB(data) {
   return d;
 }
 
-// configuração da nuvem (gestao/config.js); sem ela o app roda só neste dispositivo
+// configuração da nuvem (config.js); sem ela o app roda só neste dispositivo
 const GL_CFG = window.GL_CONFIG || {};
 const CLOUD_ENABLED = !!(GL_CFG.supabaseUrl && GL_CFG.supabaseAnonKey && window.supabase && window.supabase.createClient);
 
