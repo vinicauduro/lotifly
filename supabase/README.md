@@ -20,7 +20,7 @@ com PIN do administrador e dados só no navegador.
    - Para começar sem confirmação de e-mail (mais simples), desative *Confirm email*.
      Com a confirmação ativada, o usuário recebe um link antes de conseguir entrar.
    - Em **Authentication › URL Configuration** defina:
-     - *Site URL*: `https://vinicauduro.github.io/Lotifly/`
+     - *Site URL*: `https://vinicauduro.github.io/lotifly/`
      - *Redirect URLs*: a mesma URL acima (e `http://localhost:8765/` se for testar local).
 
 4. **Chaves.** Em **Project Settings › API** copie a *Project URL* e a chave **anon public**

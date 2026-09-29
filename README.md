@@ -4,7 +4,7 @@ Gestão para loteadora, incorporadora e imobiliária: imóveis e empreendimentos
 contratos, clientes, recebíveis, cobrança, boletos e remessa bancária, contas a pagar,
 índices de correção e relatórios.
 
-- **No ar:** https://vinicauduro.github.io/Lotifly/
+- **No ar:** https://vinicauduro.github.io/lotifly/
 - **Nuvem (Supabase):** guia em [`supabase/README.md`](supabase/README.md). O banco é criado e
   atualizado rodando [`supabase/schema.sql`](supabase/schema.sql) no SQL Editor.
 - **O que falta testar e as decisões pendentes:** [`PENDENTE.md`](PENDENTE.md).
