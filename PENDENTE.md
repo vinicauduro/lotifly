@@ -9,12 +9,12 @@ sua conferência. Atualizada em 23/09/2026: menu lateral (seção 7l) e cadastro
 
 O sistema saiu da pasta `gestao/` do repositório `agenda-corretor` e ganhou o repositório
 dele, **`vinicauduro/lotifly`**, com todo o histórico. O endereço passa a ser
-**https://vinicauduro.github.io/lotifly/**.
+**https://vinicauduro.github.io/Lotifly/**.
 
-- [ ] Ativar o GitHub Pages do repositório novo (Settings › Pages › Deploy from a branch ›
-      `main` / root).
+- [x] ~~Ativar o GitHub Pages~~ — feito por você em 29/09. O endereço tem o **L maiúsculo**
+      (`/Lotifly/`), como o nome do repositório: com minúsculas o GitHub não abre.
 - [ ] No Supabase, em **Authentication › URL Configuration**, trocar o *Site URL* para
-      `https://vinicauduro.github.io/lotifly/` e acrescentar essa mesma URL em *Redirect
+      `https://vinicauduro.github.io/Lotifly/` e acrescentar essa mesma URL em *Redirect
       URLs*. Sem isso, o link de confirmação de e-mail e o de recuperar senha voltam para o
       endereço antigo. Convites usam o endereço da página e já funcionam.
 - [ ] Quem instalou o app no celular ou no computador: abrir o endereço novo e instalar de
