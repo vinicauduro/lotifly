@@ -473,3 +473,20 @@ details.qualif[open] > summary, details.ver-tabela[open] > summary { margin-bott
 .chart-tip div { display: flex; align-items: center; gap: 6px; }
 .chart-tip div span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
 .chart-tip .tip-total { margin-top: 4px; padding-top: 4px; border-top: 1px solid #e2e8f0; color: #52514e; }
+/* ===== página do contrato ===== */
+.ct-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ct-acoes .btn { flex: none; }
+.ct-cab { padding-bottom: 14px; }
+.ct-num { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #334155; }
+.ct-num .badge { margin-left: auto; }
+.ct-titulo { font-size: 1.25rem; font-weight: 800; margin: 6px 0 4px; color: #0f172a; }
+.ct-titulo .muted { font-weight: 600; font-size: 1rem; }
+.ct-kpis { margin: 12px 0 10px; }
+.ct-parte { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ct-parte:last-child { border-bottom: 0; }
+.ct-qualif { font-size: 0.86rem; color: #334155; margin: 6px 0 2px; line-height: 1.5; }
+.ct-acoes-linha { white-space: nowrap; }
+.ct-nº { font-size: 0.72rem; font-weight: 800; color: var(--primary); background: #e0ecf6; border-radius: 6px; padding: 1px 6px; margin-right: 2px; }
+.ct-linha-tempo { display: flex; flex-direction: column; gap: 12px; }
+.ct-ev { display: flex; gap: 10px; align-items: flex-start; font-size: 0.86rem; }
+.ct-ev-ic { width: 28px; height: 28px; border-radius: 50%; background: #f1f5f9; display: grid; place-items: center; flex: none; }
