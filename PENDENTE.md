@@ -13,10 +13,10 @@ dele, **`vinicauduro/lotifly`**, com todo o histórico. O endereço passa a ser
 
 - [x] ~~Ativar o GitHub Pages~~ — feito por você em 29/09. O repositório foi renomeado para
       `lotifly`, em minúsculas, e o endereço acompanha: `/lotifly/`.
-- [ ] No Supabase, em **Authentication › URL Configuration**, trocar o *Site URL* para
-      `https://vinicauduro.github.io/lotifly/` e acrescentar essa mesma URL em *Redirect
-      URLs*. Sem isso, o link de confirmação de e-mail e o de recuperar senha voltam para o
-      endereço antigo. Convites usam o endereço da página e já funcionam.
+- [x] ~~Conferir que o endereço novo abre~~ — conferido por você em 01/10.
+- [x] ~~Trocar no Supabase o *Site URL* e as *Redirect URLs* para
+      `https://vinicauduro.github.io/lotifly/`~~ — feito por você em 01/10. Confirmação de
+      e-mail e recuperação de senha já voltam para o endereço novo.
 - [ ] Quem instalou o app no celular ou no computador: abrir o endereço novo e instalar de
       novo. O endereço antigo passa a redirecionar para o novo.
 
