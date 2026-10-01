@@ -654,6 +654,53 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7t. Fase 2: o contrato como página, com número (01/10)
+
+**Número do contrato.** Cada contrato tem um número sequencial por ano: 0001/2026,
+0002/2026… A contagem recomeça a cada ano, pelo ano da data da venda.
+
+- Venda nova recebe o número sozinha, na hora de salvar.
+- Na nuvem, quem dá o número é o banco: duas pessoas registrando venda ao mesmo tempo nunca
+  recebem o mesmo, e o banco recusa número repetido.
+- Os contratos que você já tem aparecem com um aviso em **Todos os contratos**: um clique
+  e eles são numerados na ordem da data da venda.
+- Contrato antigo que já tinha número no papel: o ✏️ ao lado do número deixa trocar. Os
+  próximos continuam a partir do maior número do ano, então nada se repete.
+- O número aparece na lista, entra na busca e vira um campo do modelo de contrato:
+  `{{contrato.numero}}` (em Configurações › Modelos de documento, grupo Documento).
+
+**Página do contrato.** Clicar num contrato, em qualquer tela, abre a página dele no lugar
+da janela:
+
+- **No topo:** número, imóvel, comprador, situação e quatro números (valor, recebido, a
+  receber e em atraso), com as ações: Editar, Antecipar/quitar, Contrato, Extrato, enviar
+  resumo pelo WhatsApp e Excluir.
+- **Resumo:** os dados da venda e a correção monetária.
+- **Partes:** a qualificação de cada comprador e vendedor, como sai no contrato, com o que
+  falta e o botão para a ficha do cliente; e o corretor.
+- **Parcelas:** a tabela com pagar, estornar, boleto e editar. Registrar um pagamento não
+  tira você da página.
+- **Documentos:** contrato, extrato, resumo por WhatsApp e boletos.
+- **Histórico:** a venda, cada pagamento, boleto registrado, cobrança, comissão paga e as
+  alterações, do mais novo para o mais antigo.
+- O botão de voltar leva para onde você estava: Todos os contratos, Cobrança, Clientes, A
+  receber…
+
+Para conferir:
+
+- [ ] Rodar o `schema.sql` (coluna do número, contador por ano e a função que dá o número).
+- [ ] Em **Todos os contratos**, clicar em **Numerar agora** e conferir a ordem.
+- [ ] Abrir um contrato e passar pelas cinco abas; registrar um pagamento pela aba Parcelas.
+- [ ] Se quiser o número impresso no contrato, pôr `{{contrato.numero}}` no seu modelo.
+
+Fica para a próxima rodada: o **novo contrato em passos** (imóvel, compradores, vendedor,
+valores, parcelas, conferência), no lugar do formulário único de hoje.
+
+`test35` cobre tudo isso, inclusive o número vindo do banco na nuvem; o teste de banco
+confere a sequência, o ano, o número à mão, o número repetido e a permissão.
+
+---
+
 ## 7s. Início da empresa (29/09)
 
 Pedido seu: o Início é da empresa, não do empreendimento. Saíram o filtro de empreendimento,

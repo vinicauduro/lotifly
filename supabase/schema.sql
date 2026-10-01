@@ -482,6 +482,7 @@ begin
   delete from public.modelos where org_id = p_org;
   delete from public.vendedores where org_id = p_org;
   delete from public.clientes where org_id = p_org;
+  delete from public.contratos_seq where org_id = p_org;
   delete from public.categorias where org_id = p_org;
   delete from public.vitrines where org_id = p_org;
   delete from public.loteamentos where org_id = p_org;
@@ -795,6 +796,40 @@ create policy leads_write on public.leads for all to authenticated using (public
 -- leads ficam onde estão, sem uso, para não apagar dado de ninguém.
 drop function if exists public.vitrine_dados(text);
 drop function if exists public.registrar_lead(text, jsonb);
+
+-- ---------------------------------------------------------------------
+-- 5d. Número do contrato: sequencial por ano (0041/2026)
+--     O número é dado pelo banco, numa função que trava a linha do contador do ano:
+--     duas pessoas registrando venda ao mesmo tempo nunca recebem o mesmo número.
+--     O contador nunca fica abaixo do maior número já usado no ano, então um número
+--     digitado à mão (contrato antigo, que já tinha número no papel) não se repete.
+-- ---------------------------------------------------------------------
+alter table public.vendas add column if not exists numero_contrato text not null default '';
+create unique index if not exists vendas_numero_contrato_idx on public.vendas (org_id, numero_contrato) where numero_contrato <> '';
+
+create table if not exists public.contratos_seq (
+  org_id uuid not null references public.organizacoes(id) on delete cascade,
+  ano    int  not null,
+  ultimo int  not null default 0,
+  primary key (org_id, ano)
+);
+alter table public.contratos_seq enable row level security;
+-- sem política: ninguém lê nem escreve direto, só pela função abaixo
+
+create or replace function public.proximo_numero_contrato(p_org uuid, p_ano int)
+returns int language plpgsql security definer set search_path = public as $$
+declare v_max int; v_n int;
+begin
+  if not public.eh_financeiro(p_org) then raise exception 'Sem permissão'; end if;
+  if p_ano is null or p_ano < 1900 or p_ano > 2999 then raise exception 'Ano inválido'; end if;
+  select coalesce(max(split_part(numero_contrato, '/', 1)::int), 0) into v_max
+    from public.vendas
+   where org_id = p_org and numero_contrato ~ '^[0-9]{1,6}/[0-9]{4}$' and split_part(numero_contrato, '/', 2) = p_ano::text;
+  insert into public.contratos_seq (org_id, ano, ultimo) values (p_org, p_ano, v_max + 1)
+  on conflict (org_id, ano) do update set ultimo = greatest(public.contratos_seq.ultimo, v_max) + 1
+  returning ultimo into v_n;
+  return v_n;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- 6. Permissões de execução

@@ -15,7 +15,7 @@ const DOC_CAMPOS = [
   ['Corretor', [['corretor.nome', 'Nome'], ['corretor.creci', 'CRECI'], ['corretor.telefone', 'Telefone'], ['corretor.imobiliaria', 'Imobiliária']]],
   ['Pagamento', [['pagamento.valorTotal', 'Valor total'], ['pagamento.valorTotalExtenso', 'Valor por extenso'], ['pagamento.entrada', 'Entrada'], ['pagamento.entradaExtenso', 'Entrada por extenso'], ['pagamento.dataEntrada', 'Data da entrada'], ['pagamento.nParcelas', 'Nº de parcelas'], ['pagamento.valorParcela', 'Valor da parcela'], ['pagamento.valorParcelaExtenso', 'Parcela por extenso'], ['pagamento.juros', 'Juros (% a.m.)'], ['pagamento.primeiroVencimento', '1º vencimento'], ['pagamento.saldo', 'Saldo financiado'], ['pagamento.reforcos', 'Reforços'], ['pagamento.indice', 'Índice de correção'], ['pagamento.indiceBase', 'Mês base do índice'], ['pagamento.resumo', 'Resumo em uma linha'], ['pagamento.tabela', 'Tabela de parcelas']]],
   ['Assinaturas', [['assinaturas.vendedores', 'Linhas dos vendedores'], ['assinaturas.compradores', 'Linhas dos compradores e cônjuges']]],
-  ['Documento', [['doc.data', 'Data'], ['doc.dataExtenso', 'Data por extenso'], ['doc.cidadeData', 'Cidade e data'], ['doc.validade', 'Validade da proposta']]]
+  ['Documento', [['contrato.numero', 'Número do contrato'], ['doc.data', 'Data'], ['doc.dataExtenso', 'Data por extenso'], ['doc.cidadeData', 'Cidade e data'], ['doc.validade', 'Validade da proposta']]]
 ];
 
 // ---------------------------------------------------------------- valores por extenso
@@ -118,6 +118,7 @@ function docContexto(o) {
     'pagamento.reforcos': reforcosTxt,
     'pagamento.resumo': [p.entrada ? `entrada de ${fmtMoney(p.entrada)}` : '', parcelasTxt, reforcosTxt ? (iguais ? reforcosTxt : `reforços de ${reforcosTxt}`) : ''].filter(Boolean).join(' + '),
     'pagamento.tabela': docTabelaParcelas(p),
+    'contrato.numero': (o.venda || {}).numeroContrato || '',
     'doc.data': fmtDate(hoje), 'doc.dataExtenso': dataExtenso(hoje), 'doc.cidadeData': `${cidade ? cidade + ', ' : ''}${dataExtenso(hoje)}`,
     'doc.validade': o.validade || ''
   };

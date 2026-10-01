@@ -17,6 +17,7 @@ function renderAdminTab() {
   else if (tab === 'reservas') { if (!bloqueia('reservas.aprovar', 'reservas')) { renderAReservas(); fabShow('novaReservaEscolhendoEmp()'); } }
   else if (tab === 'corretores') renderCorretoresAdmin();
   else if (tab === 'clientes') { if (!abaPermitida('clientes')) $('#av-clientes').innerHTML = semPermissaoHtml('clientes'); else { renderClientes(); if (podeEditarClientes()) fabShow('abrirClienteForm()'); } }
+  else if (tab === 'contrato') { if (!abaPermitida('vendas')) $('#av-contrato').innerHTML = semPermissaoHtml('contratos'); else renderContrato(); }
   else if (tab === 'vendas') { if (!bloqueia('vendas.criar', 'contratos')) { renderAVendas(); if (pode('vendas.criar')) fabShow('novaVendaEscolhendoEmp()'); } }
   else if (tab === 'recebiveis') { if (!bloqueia('financeiro.ver', 'recebíveis')) renderRecebiveis(); }
   else if (tab === 'cobranca') { if (!bloqueia('cobranca.ver', 'cobrança')) renderCobranca(); }
@@ -641,10 +642,13 @@ function renderAVendas() {
   const f = state.filters.avendas = state.filters.avendas || { sub: 'vendas', status: 'all', busca: '' };
   if (f.sub === 'comissoes') { renderComissoes(v, f); return; }
   const all = vendasDo(esc0).sort((a, b) => (b.dataVenda || '').localeCompare(a.dataVenda || ''));
-  const list = all.filter(x => (f.status === 'all' || x.status === f.status) && (!f.busca || x.cliente.nome.toLowerCase().includes(f.busca.toLowerCase()) || imovelLabel(x).toLowerCase().includes(f.busca.toLowerCase())));
+  const b = (f.busca || '').toLowerCase();
+  const list = all.filter(x => (f.status === 'all' || x.status === f.status) && (!b || x.cliente.nome.toLowerCase().includes(b) || imovelLabel(x).toLowerCase().includes(b) || String(x.numeroContrato || '').includes(b)));
+  const nSemNumero = all.filter(x => !x.numeroContrato).length;
   const ativas = all.filter(x => x.status !== 'distrato');
   const tot = ativas.reduce((s, x) => s + num(x.valorTotal), 0);
   v.innerHTML = `
+    ${nSemNumero && (pode('vendas.editar') || pode('vendas.criar')) ? `<div class="alert info" onclick="numerarContratosAntigos()"><span><b>${nSemNumero} contrato(s) sem número.</b> Numerar na ordem da data da venda? <u>Numerar agora</u></span><span>›</span></div>` : ''}
     <div class="subtabs"><div class="chip active">💰 Vendas</div><div class="chip" onclick="state.filters.avendas.sub='comissoes';renderAVendas()">🤝 Comissões</div></div>
     <div class="kpi-grid cols3">
       <div class="kpi c-blue"><div class="lbl">Vendas</div><div class="val">${ativas.length}</div><div class="sub">${fmtMoneyShort(tot)}</div></div>
@@ -652,42 +656,16 @@ function renderAVendas() {
       <div class="kpi c-primary"><div class="lbl">Ticket médio</div><div class="val">${fmtMoneyShort(ativas.length ? tot / ativas.length : 0)}</div></div>
     </div>
     <div class="chips">${[['all', 'Todas'], ['ativa', 'Ativas'], ['quitada', 'Quitadas'], ['distrato', 'Distratos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.avendas.status='${k}';renderAVendas()">${l}<span class="n">${k === 'all' ? all.length : all.filter(x => x.status === k).length}</span></div>`).join('')}</div>
-    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="🔎 Cliente ou imóvel" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()">＋ Nova venda</button></div>
+    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="🔎 Cliente, imóvel ou nº do contrato" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()">＋ Nova venda</button></div>
     ${list.length ? list.map(x => vendaCardHtml(x)).join('') : `<div class="empty"><div class="ic">💰</div><p>Nenhuma venda registrada.<br>Converta uma reserva ou registre uma venda direta.</p></div>`}`;
 }
 function vendaCardHtml(x) {
   const r = vendaResumo(x); const pct = r.total ? Math.round(r.pago / r.total * 100) : 0;
   return `<div class="item ${x.status === 'distrato' ? 'cancelada' : x.status}" onclick="abrirVendaAdmin('${x.id}')">
-    <div class="info"><div class="title">${esc(imovelLabel(x))} · ${esc(x.cliente.nome)}${!escopoAtual() ? ` <span class="tiny muted">· ${esc((getLoteamento(x.loteamentoId) || {}).nome || '')}</span>` : ''}</div>
+    <div class="info"><div class="title">${x.numeroContrato ? `<span class="ct-nº">Nº ${esc(x.numeroContrato)}</span> ` : ''}${esc(imovelLabel(x))} · ${esc(x.cliente.nome)}${!escopoAtual() ? ` <span class="tiny muted">· ${esc((getLoteamento(x.loteamentoId) || {}).nome || '')}</span>` : ''}</div>
       <div class="meta"><span>📅 ${fmtDate(x.dataVenda)}</span><span>· 🧑‍💼 ${esc(x.corretor.nome)}</span><span>· ${x.nParcelas}× ${fmtMoney(x.valorParcela)}</span>${r.atrasado ? `<span style="color:var(--danger)">· ${fmtMoney(r.atrasado)} em atraso</span>` : ''}</div>
       ${x.status !== 'distrato' ? `<div class="progress"><div style="width:${pct}%"></div></div><div class="tiny muted">${r.nPagas}/${r.n} parcelas · ${fmtMoney(r.pago)} recebido (${pct}%)</div>` : ''}</div>
     <div class="side"><div class="value">${fmtMoney(x.valorTotal)}</div><span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${statusLabel(x.status)}</span></div></div>`;
-}
-function abrirVendaAdmin(id) {
-  const x = getVenda(id); if (!x) return; const l = getLote(x.loteId); const r = vendaResumo(x); const c = x.cliente; const recs = recebiveisDe(x.id);
-  const body = `
-    <div class="row-between mb"><div><div class="price-big">${fmtMoney(x.valorTotal)}</div><div class="price-sub">Recebido ${fmtMoney(r.pago)} · Restante ${fmtMoney(r.restante)}${r.atrasado ? ` · <span style="color:var(--danger)">Atrasado ${fmtMoney(r.atrasado)}</span>` : ''}</div></div><span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}" style="font-size:0.75rem">${statusLabel(x.status)}</span></div>
-    <div class="progress mb"><div style="width:${r.total ? Math.round(r.pago / r.total * 100) : 0}%"></div></div>
-    <div class="detail-grid">
-      <div><div class="k">Imóvel</div><div class="v">${esc(imovelLabel(x))}</div></div><div><div class="k">Data da venda</div><div class="v">${fmtDate(x.dataVenda)}</div></div>
-      <div><div class="k">Cliente</div><div class="v">${esc(c.nome)}${(x.compradoresExtras || []).length ? ` <span class="tiny muted">e mais ${(x.compradoresExtras || []).length}</span>` : ''}${temConjuge(c) && (c.conjuge || {}).nome ? `<div class="tiny muted">com ${esc(c.conjuge.nome)}</div>` : ''}</div></div><div><div class="k">CPF/CNPJ</div><div class="v">${esc(fmtCPF(c.cpf)) || '—'}</div></div>
-      <div><div class="k">Telefone</div><div class="v"><a href="${waLink(c.telefone, '')}" target="_blank">${esc(fmtPhone(c.telefone))}</a></div></div><div><div class="k">E-mail</div><div class="v">${esc(c.email) || '—'}</div></div>
-      <div class="full"><div class="k">Endereço</div><div class="v">${esc([c.endereco, c.cidade].filter(Boolean).join(' · ')) || '—'}</div></div>
-      <div><div class="k">Corretor</div><div class="v">${esc(x.corretor.nome)}${x.corretor.creci ? ' · ' + esc(x.corretor.creci) : ''}</div></div><div><div class="k">Comissão</div><div class="v">${fmtMoney(x.comissaoValor)} (${fmtNum(x.comissaoPct, 1)}%) <span class="badge ${x.comissaoPaga ? 'paga' : 'pendente'}">${x.comissaoPaga ? 'paga' : 'a pagar'}</span></div></div>
-      <div><div class="k">Entrada</div><div class="v">${fmtMoney(x.entrada)}</div></div><div><div class="k">Parcelas</div><div class="v">${x.nParcelas}× ${fmtMoney(x.valorParcela)}${x.baloes && x.baloes.length ? ` + ${x.baloes.length} reforço(s)` : ''}</div></div>
-      ${(x.compradoresExtras || []).length ? `<div class="full"><div class="k">Demais compradores</div><div class="v">${esc(nomesDasPartes(x.compradoresExtras))}</div></div>` : ''}
-      ${(x.vendedoresExtras || []).length || x.vendedorId ? `<div class="full"><div class="k">Vendedor no contrato</div><div class="v">${esc(nomesDasPartes(todosVendedores(x)))}</div></div>` : ''}
-      ${x.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(x.obs)}</div></div>` : ''}
-    </div>
-    ${correcaoResumoVenda(x)}
-    <h3 class="small" style="margin:8px 0 6px;font-weight:800">📆 Parcelas</h3>
-    <div class="table-wrap"><table class="tbl"><thead><tr><th>Parcela</th><th>Venc.</th><th class="num">Valor</th><th class="num">Pago</th><th>Status</th><th></th></tr></thead>
-    <tbody>${recs.map(rc => { const st = recStatus(rc); return `<tr><td>${esc(rc.descricao)}</td><td>${fmtDate(rc.vencimento)}</td><td class="num">${fmtMoney(recValor(rc))}${recCorrecao(rc) > 0.005 ? `<br><span class="tiny muted">base ${fmtMoney(rc.valor)}</span>` : ''}</td><td class="num">${rc.valorPago ? fmtMoney(rc.valorPago) + (rc.dataPagamento ? `<br><span class="tiny muted">${fmtDate(rc.dataPagamento)}</span>` : '') : '—'}</td><td><span class="badge ${st}">${statusLabel(st)}</span>${st === 'atrasado' ? `<br><span class="tiny" style="color:var(--danger)">atual. ${fmtMoney(recAtualizado(rc))}</span>` : ''}</td><td>${x.status !== 'distrato' ? (!pode('financeiro.baixar') ? '' : st === 'pago' ? `<button class="btn-icon" title="Estornar" onclick="estornarPagamento('${rc.id}','${x.id}')">↩</button>` : `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${rc.id}','${x.id}')">💵</button>`) : ''} <button class="btn-icon" title="Boleto" onclick="abrirBoleto('${rc.id}')">🏦</button> <button class="btn-icon" title="Editar parcela" onclick="editarRecebivel('${rc.id}','${x.id}')">✏️</button></td></tr>`; }).join('')}</tbody>
-    <tfoot><tr><td colspan="2">Total</td><td class="num">${fmtMoney(r.total)}</td><td class="num">${fmtMoney(r.pago)}</td><td colspan="2"></td></tr></tfoot></table></div>`;
-  let footer = `${pode('vendas.editar') ? `<button class="btn btn-secondary" onclick="abrirVendaForm('${x.id}')">✏️ Editar</button>` : ''}<button class="btn btn-outline" onclick="imprimirExtrato('${x.id}')">🖨️ Extrato</button><button class="btn btn-outline" onclick="gerarContratoVenda('${x.id}')">📄 Contrato</button>${x.status !== 'distrato' && vendaResumo(x).restante > 0.005 && pode('financeiro.antecipar') ? `<button class="btn btn-success" onclick="abrirAntecipacao('${x.id}')">💸 Antecipar / quitar</button>` : ''}`;
-  if (c.telefone) footer += `<a class="btn btn-wa" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">💬 Enviar resumo</a>`;
-  if (pode('vendas.distrato')) footer += `<button class="btn btn-outline-danger" onclick="excluirVenda('${x.id}')">🗑️ Excluir contrato</button>`;
-  openModal({ title: `💰 Venda · ${esc(imovelShort(x))}`, body, footer, wide: true });
 }
 /* Venda nova a partir da aba global: primeiro o empreendimento, depois o formulário. */
 /* No banco, imóvel e lote novos são do dono e do administrador; o financeiro registra a
@@ -941,8 +919,12 @@ function salvarVenda(id, reservaId) {
     logAct(`Venda registrada: ${imovelLabel(venda)} — ${venda.cliente.nome} — ${fmtMoney(total)}`);
   } else logAct(`Venda editada: ${imovelLabel(venda)} — ${venda.cliente.nome}`);
   atualizarStatusVenda(venda.id);
-  closeModal(); renderCurrent(); toast('✅', x ? 'Venda atualizada' : 'Venda registrada', imovelLabel(venda));
-  if (!x) perguntarContrato(venda.id);
+  toast('✅', x ? 'Venda atualizada' : 'Venda registrada', imovelLabel(venda));
+  if (x) { closeModal(); renderCurrent(); return; }
+  /* Venda nova: ganha o número, abre a página dela e pergunta se já gera o contrato. */
+  abrirContrato(venda.id);
+  numerarVenda(venda.id);
+  perguntarContrato(venda.id);
 }
 /* Registrada a venda, o passo seguinte é sempre o contrato. Perguntar aqui poupa o usuário
    de procurar o botão, e a tela do contrato ainda é conferível antes de imprimir. */
