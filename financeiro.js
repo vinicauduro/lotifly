@@ -13,6 +13,12 @@ function mostrarRecebiveis(st) {
   if (st) f.status = st;
   switchTab('recebiveis');
 }
+/* A carteira inteira em aberto: todos os meses e todos os empreendimentos, para a lista
+   bater com o número do Início. */
+function mostrarCarteira() {
+  const f = filtroRec(); f.status = 'aberto'; f.mes = 'all'; state.escopo = '';
+  switchTab('recebiveis');
+}
 function abrirPainelCobranca() { filtroRec(); switchTab('cobranca'); }
 function renderRecebiveis() {
   const esc0 = escopoAtual(); const v = $('#av-recebiveis');

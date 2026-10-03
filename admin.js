@@ -117,9 +117,13 @@ function fabShow(action) { const f = $('#fab'); f.classList.add('show'); f.setAt
 function inicioMes() {
   const m = mesAtual(), hoje = todayStr();
   const vendasMes = db.vendas.filter(x => x.status !== 'distrato' && monthKey(x.dataVenda) === m);
-  const recsMes = db.recebiveis.filter(r => monthKey(r.vencimento) === m);
+  /* Parcela de contrato distratado não é dinheiro a receber: fica fora de todos os números. */
+  const recs = recebiveisDo('');
+  const recsMes = recs.filter(r => monthKey(r.vencimento) === m);
   const custosMes = db.custos.filter(c => c.status !== 'pago' && monthKey(c.vencimento || c.dataCompetencia) === m);
-  const atrasados = db.recebiveis.filter(r => recStatus(r) === 'atrasado');
+  const atrasados = recs.filter(r => recStatus(r) === 'atrasado');
+  /* Carteira: tudo que ainda falta receber, de todos os meses e contratos. */
+  const carteira = recs.filter(r => recRestante(r) > 0.005);
   return {
     vendas: vendasMes.length, vendido: vendasMes.reduce((s, x) => s + num(x.valorTotal), 0),
     previsto: recsMes.reduce((s, r) => s + recValor(r), 0),
@@ -128,17 +132,19 @@ function inicioMes() {
     aPagar: custosMes.reduce((s, c) => s + num(c.valor), 0), nPagar: custosMes.length,
     pagarVencido: custosMes.filter(c => c.vencimento && c.vencimento < hoje).length,
     atrasado: atrasados.reduce((s, r) => s + recRestante(r), 0), nAtrasados: atrasados.length,
-    clientesAtraso: new Set(atrasados.map(r => r.vendaId)).size
+    clientesAtraso: new Set(atrasados.map(r => r.vendaId)).size,
+    carteira: carteira.reduce((s, r) => s + recRestante(r), 0), nCarteira: carteira.length,
+    contratosCarteira: new Set(carteira.map(r => r.vendaId)).size
   };
 }
 /* Mês a mês, das parcelas que venceram naquele mês: quanto entrou, quanto ficou em atraso
    e, no mês corrente, quanto ainda vai vencer. */
 function recebimentosPorMes(n) {
-  const hoje = todayStr(); const out = [];
+  const hoje = todayStr(); const out = []; const recs = recebiveisDo('');
   let m = mesAtual(); const meses = [m];
   for (let i = 1; i < n; i++) { m = mesAnterior(m); meses.unshift(m); }
   meses.forEach(mes => {
-    const rs = db.recebiveis.filter(r => monthKey(r.vencimento) === mes);
+    const rs = recs.filter(r => monthKey(r.vencimento) === mes);
     let recebido = 0, atraso = 0, aVencer = 0;
     rs.forEach(r => {
       recebido += Math.min(num(r.valorPago), recValor(r));
@@ -171,9 +177,10 @@ function renderPainel() {
   const tot = serie.reduce((a, x) => ({ vencido: a.vencido + x.vencido, atraso: a.atraso + x.atraso }), { vencido: 0, atraso: 0 });
   v.innerHTML = `
     ${alerts}
-    <div class="kpi-grid">
+    <div class="kpi-grid cols5">
       <div class="kpi c-blue" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoneyShort(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
       <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoneyShort(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
+      <div class="kpi c-green" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoneyShort(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
       <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoneyShort(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s) ›</div></div>
       <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoneyShort(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
     </div>
