@@ -117,6 +117,10 @@ h1, h2, h3, h4 { line-height: 1.25; }
 .card p.help { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
 .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
 @media (min-width: 720px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } .kpi-grid.cols3 { grid-template-columns: repeat(3, 1fr); } }
+/* Cinco indicadores: no celular o último ocupa a linha inteira; em tela média, 3 + 2; larga, os 5 lado a lado. */
+@media (max-width: 719px) { .kpi-grid.cols5 > :last-child { grid-column: 1 / -1; } }
+@media (min-width: 720px) { .kpi-grid.cols5 { grid-template-columns: repeat(6, 1fr); } .kpi-grid.cols5 > * { grid-column: span 2; } .kpi-grid.cols5 > :nth-child(n+4) { grid-column: span 3; } }
+@media (min-width: 1180px) { .kpi-grid.cols5 { grid-template-columns: repeat(5, 1fr); } .kpi-grid.cols5 > *, .kpi-grid.cols5 > :nth-child(n+4) { grid-column: auto; } }
 .kpi { background: var(--card); border-radius: var(--radius); padding: 12px 14px; border: 1px solid var(--border); box-shadow: 0 1px 6px rgba(15,23,42,0.05); }
 .kpi .lbl { font-size: 0.68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .kpi .val { font-size: 1.2rem; font-weight: 800; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

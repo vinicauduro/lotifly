@@ -654,6 +654,30 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7u. Início: Total a receber (03/10)
+
+Pedido seu: mais um indicador no Início, o **Total a receber** — a carteira inteira em
+aberto, somando todos os meses e todos os contratos (o que já venceu e não foi pago, mais o
+que ainda vai vencer). Embaixo aparece em quantos contratos esse dinheiro está.
+
+Clicando nele, abre **A receber** já em "Em aberto" e "Todos os meses", da empresa inteira,
+e a soma da lista bate com o número do Início.
+
+Achado no caminho, já corrigido: parcelas de contrato **distratado** ainda entravam no
+"Em atraso", no "A receber no mês" e no gráfico de inadimplência. Agora ficam fora de todos
+os números do Início, como já acontecia em A receber e na Cobrança.
+
+No computador os cinco números ficam lado a lado; em tela média, três em cima e dois
+embaixo; no celular, dois por linha e o último na linha inteira.
+
+- [ ] Conferir o Total a receber com o saldo da carteira que você conhece.
+- [ ] Clicar nele e ver a lista de todas as parcelas em aberto.
+
+`test34` ganhou uma parcela de distrato e uma parcela futura no cenário, e confere o total,
+o atalho e a lista.
+
+---
+
 ## 7t. Fase 2: o contrato como página, com número (01/10)
 
 **Número do contrato.** Cada contrato tem um número sequencial por ano: 0001/2026,
@@ -711,7 +735,7 @@ Agora o Início tem:
 
 - **No topo, o que precisa de alguém**: reservas esperando, parcelas em atraso e contas
   vencidas.
-- **Quatro números do mês**, todos clicáveis:
+- **Quatro números do mês** (hoje cinco, veja 7u), todos clicáveis:
   - **Vendas do mês**, em valor e contratos (leva a Todos os contratos);
   - **A receber no mês**, com quanto já entrou do previsto (leva a A receber);
   - **Em atraso**, em valor, parcelas e contratos (leva a Cobrança);
