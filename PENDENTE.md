@@ -654,6 +654,33 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7v. Recibo de pagamento (05/10)
+
+Pedido seu: gerar recibo nas parcelas, na própria tela de pagamento.
+
+- Na janela **Registrar pagamento** há agora o botão **🧾 Confirmar e gerar recibo**, ao
+  lado do Confirmar. Ele registra o pagamento e já abre o recibo **desse pagamento**: num
+  pagamento parcial, o recibo é só do que entrou e diz quanto ainda falta na parcela.
+- Para reemitir depois, toda parcela com pagamento tem o botão **🧾** na aba **Parcelas** do
+  contrato e na lista **A receber**. Esse recibo é do total já pago na parcela.
+- O recibo traz: valor em número e por extenso, todos os compradores com CPF/CNPJ, a parcela
+  e o vencimento, o número do contrato, o imóvel, a data e a forma de pagamento, a observação,
+  a cidade e a data por extenso, e uma linha de assinatura para cada vendedor do contrato.
+- Como o contrato, dá para **clicar no texto e corrigir** antes de imprimir ou salvar em PDF,
+  e há o botão **Enviar** para mandar a confirmação por WhatsApp ao cliente (o PDF você anexa
+  na conversa).
+
+Quem assina é o **vendedor do contrato** (o mesmo do contrato). Se em algum caso quem recebe
+for a imobiliária em nome do proprietário, me avise que eu ponho essa opção.
+
+- [ ] Registrar um pagamento com "Confirmar e gerar recibo" e conferir o texto.
+- [ ] Salvar em PDF e ver se o nome do arquivo e o layout servem.
+
+`test36` cobre o pagamento parcial, o total, a impressão, o WhatsApp, os botões na página do
+contrato e na lista, e a tela no celular.
+
+---
+
 ## 7u. Início: Total a receber (03/10)
 
 Pedido seu: mais um indicador no Início, o **Total a receber** — a carteira inteira em
