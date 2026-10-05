@@ -68,7 +68,7 @@ function recRowHtml(r) {
     <div class="info"><div class="title">${v ? esc(v.cliente.nome) : '—'} <span class="tiny muted">· ${v ? esc(imovelShort(v)) : ''}</span></div>
       <div class="meta"><span>${esc(r.descricao)}</span><span>· vence ${fmtDate(r.vencimento)}</span>${recCorrecao(r) > 0.005 && st !== 'pago' ? `<span title="Correção pelo índice do contrato">· base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</span>` : ''}${st === 'atrasado' ? `<span style="color:var(--danger)">· ${daysBetween(r.vencimento, todayStr())} dias · atualizado ${fmtMoney(recAtualizado(r))}</span>` : ''}${st === 'pago' && r.dataPagamento ? `<span>· pago em ${fmtDate(r.dataPagamento)}${r.forma ? ' (' + esc(r.forma) + ')' : ''}</span>` : ''}${st === 'parcial' ? `<span>· pago ${fmtMoney(r.valorPago)}, resta ${fmtMoney(rest)}</span>` : ''}</div></div>
     <div class="side"><div class="value">${fmtMoney(st === 'pago' ? r.valorPago : rest)}</div><span class="badge ${st}">${statusLabel(st)}</span>
-      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && v && v.status !== 'distrato' && pode('financeiro.baixar') ? `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${r.id}')">💵</button>` : ''}${pode('financeiro.baixar') ? `<button class="btn-icon" title="Editar" onclick="editarRecebivel('${r.id}')">✏️</button>` : ''}</div></div></div>`;
+      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && v && v.status !== 'distrato' && pode('financeiro.baixar') ? `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${r.id}')">💵</button>` : ''}${num(r.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${r.id}')">🧾</button>` : ''}${pode('financeiro.baixar') ? `<button class="btn-icon" title="Editar" onclick="editarRecebivel('${r.id}')">✏️</button>` : ''}</div></div></div>`;
 }
 function abrirPagamento(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
@@ -78,18 +78,19 @@ function abrirPagamento(id, voltarVendaId) {
     <div class="frow"><div class="fg"><label>Valor recebido (R$) *</label><input type="number" id="pgValor" step="0.01" value="${Math.round(rest * 100) / 100}"></div><div class="fg"><label>Data do pagamento *</label><input type="date" id="pgData" value="${todayStr()}"></div></div>
     <div class="frow"><div class="fg"><label>Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div><div class="fg"><label>&nbsp;</label>${atual > rest + 0.01 ? `<button class="btn btn-outline btn-sm" onclick="setVal('pgValor',${Math.round(atual * 100) / 100})">Usar valor c/ juros</button>` : ''}</div></div>
     <div class="fg"><label>Observação</label><input type="text" id="pgObs" value="${esc(r.obsPagamento || '')}"></div>`;
-  openModal({ title: '💵 Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-success" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
+  openModal({ title: '💵 Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">🧾 Confirmar e gerar recibo</button><button class="btn btn-success" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
 }
-function salvarPagamento(id, voltarVendaId) {
+function salvarPagamento(id, voltarVendaId, comRecibo) {
   if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', 'Seu perfil não registra pagamentos.', true); return; }
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
   const valor = num(val('pgValor')), data = val('pgData');
   if (!valor || !data) { toast('⚠️', 'Informe valor e data', '', true); return; }
+  const forma = val('pgForma'), obs = val('pgObs');
   const novoPago = num(r.valorPago) + valor;
   // se pagou a mais (juros/multa), registra o valor efetivamente recebido e considera quitada
   const devido = recValor(r);
   const quitou = novoPago >= devido - 0.005;
-  const upd = Object.assign({}, r, { valorPago: novoPago, dataPagamento: data, forma: val('pgForma'), obsPagamento: val('pgObs'),
+  const upd = Object.assign({}, r, { valorPago: novoPago, dataPagamento: data, forma, obsPagamento: obs,
     valorCorrigido: quitou ? Math.round(Math.max(devido, novoPago) * 100) / 100 : (r.valorCorrigido || null) });
   upsert('recebiveis', upd);
   atualizarStatusVenda(r.vendaId);
@@ -98,6 +99,8 @@ function salvarPagamento(id, voltarVendaId) {
   toast('✅', 'Pagamento registrado', fmtMoney(valor));
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
+  /* O recibo é deste pagamento, não do total já pago na parcela. */
+  if (comRecibo) gerarRecibo(id, { valor, data, forma, obs });
 }
 function estornarPagamento(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
@@ -107,6 +110,39 @@ function estornarPagamento(id, voltarVendaId) {
   logAct(`Pagamento estornado: ${r.descricao}`);
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
+}
+/* Recibo de pagamento de parcela. Sem "pg", é o recibo do que a parcela já tem pago (para
+   reemitir depois); com "pg", é só do pagamento que acabou de ser registrado. Quem recebe e
+   assina é o vendedor do contrato; quem paga são os compradores. */
+function reciboDados(id, pg) {
+  const r = db.recebiveis.find(x => x.id === id); if (!r) return null;
+  const v = getVenda(r.vendaId); if (!v) return null;
+  pg = pg || { valor: num(r.valorPago), data: r.dataPagamento || todayStr(), forma: r.forma || '', obs: r.obsPagamento || '' };
+  const lot = getLoteamento(v.loteamentoId) || {};
+  return { r, v, pg, valor: num(pg.valor), resta: recRestante(r), compradores: todosCompradores(v), vendedores: todosVendedores(v),
+    cidade: db.config.cidade || lot.cidade || '' };
+}
+function reciboHtml(d) {
+  const { r, v, pg } = d;
+  const pessoa = p => `<b>${esc(p.nome)}</b>${p.cpf ? `, ${onlyDigits(p.cpf).length === 14 ? 'CNPJ' : 'CPF'} ${esc(fmtCPF(p.cpf))}` : ''}`;
+  const lista = ps => ps.length <= 1 ? ps.map(pessoa).join('') : ps.slice(0, -1).map(pessoa).join('; ') + ' e ' + pessoa(ps[ps.length - 1]);
+  const plural = d.vendedores.length > 1;
+  return `<h2>Recibo</h2>
+    <p style="text-align:right;font-size:1.05rem"><b>${fmtMoney(d.valor)}</b></p>
+    <p>${plural ? 'Recebemos' : 'Recebi'} de ${lista(d.compradores)} a importância de <b>${fmtMoney(d.valor)}</b> (${moedaExtenso(d.valor)}), referente ao pagamento da <b>${esc(r.descricao)}</b>, com vencimento em ${fmtDate(r.vencimento)}, do contrato${v.numeroContrato ? ` nº ${esc(v.numeroContrato)}` : ''} de compra e venda de ${esc(imovelLabel(v))}.</p>
+    <p>Pagamento feito em ${fmtDate(pg.data)}${pg.forma ? `, por ${esc(pg.forma)}` : ''}.${d.resta > 0.005 ? ` Pagamento parcial: permanece em aberto nesta parcela o valor de ${fmtMoney(d.resta)}.` : ''}</p>
+    ${pg.obs ? `<p>${esc(pg.obs)}</p>` : ''}
+    <p>Pelo que ${plural ? 'damos' : 'dou'} plena quitação do valor recebido.</p>
+    <p style="text-align:right;margin-top:18px">${esc(d.cidade ? d.cidade + ', ' : '')}${dataExtenso(pg.data)}.</p>
+    ${d.vendedores.map(p => `<p style="text-align:center;margin-top:40px">______________________________________<br>${esc(p.nome)}${p.cpf ? `<br>${onlyDigits(p.cpf).length === 14 ? 'CNPJ' : 'CPF'} ${esc(fmtCPF(p.cpf))}` : ''}</p>`).join('')}`;
+}
+function gerarRecibo(id, pg) {
+  const d = reciboDados(id, pg); if (!d) return;
+  if (!(d.valor > 0)) { toast('⚠️', 'Parcela sem pagamento', 'Registre o pagamento antes de gerar o recibo.', true); return; }
+  const c = d.v.cliente || {};
+  const texto = `Olá, ${c.nome || ''}! Confirmamos o recebimento de ${fmtMoney(d.valor)} referente à ${d.r.descricao}${d.v.numeroContrato ? ` do contrato nº ${d.v.numeroContrato}` : ''}, pago em ${fmtDate(d.pg.data)}. Obrigado!`;
+  docPreview({ titulo: '🧾 Recibo de pagamento', html: reciboHtml(d), arquivo: `Recibo ${d.r.descricao} ${c.nome || ''}`.replace(/[\\/:*?"'<>|]/g, '-'),
+    whatsTexto: c.telefone ? waLink(c.telefone, texto) : '' });
 }
 function editarRecebivel(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
