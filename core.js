@@ -547,7 +547,7 @@ const Cloud = {
     if (!TABLE_COLS[col]) return;
     const k = col + ':' + rec.id, seq = this._seq[k] = (this._seq[k] || 0) + 1;
     let error;
-    try { ({ error } = await this.client.from(tabelaDe(col)).upsert(toRow(col, rec), { onConflict: 'org_id,id' })); } catch (e) { error = e; }
+    try { ({ error } = await this.client.from(tabelaDe(col)).upsert(toRow(col, rec), opcoesUpsert(col))); } catch (e) { error = e; }
     if (this._seq[k] !== seq) return;
     if (error) { this.marcarPendente('upsert', col, rec.id, rec, error.message || error); if (!quieto) this.erro(error, col); }
     else this.limparPendente(col, rec.id);
@@ -575,7 +575,7 @@ const Cloud = {
       for (const t of Object.keys(TABLE_COLS)) {
         const rows = db[t].map(r => toRow(t, r));
         for (let i = 0; i < rows.length; i += 400) {
-          const { error } = await this.client.from(tabelaDe(t)).upsert(rows.slice(i, i + 400), { onConflict: 'org_id,id' });
+          const { error } = await this.client.from(tabelaDe(t)).upsert(rows.slice(i, i + 400), opcoesUpsert(t));
           if (error) throw new Error(t + ': ' + error.message);
         }
       }
@@ -611,6 +611,13 @@ const Cloud = {
 };
 /* O motivo em português, com o que fazer. O caso mais comum é o banco ainda sem as colunas de
    uma versão nova do aplicativo, porque o schema.sql não foi rodado de novo. */
+/* O histórico só aceita inclusão: ninguém pode reescrever o que foi registrado, então o banco
+   não tem regra de alteração para ele. Um reenvio do mesmo registro — a primeira tentativa
+   chegou, mas a resposta se perdeu — virava "alteração" e era recusado para sempre. No
+   histórico, registro que já está lá é ignorado. */
+function opcoesUpsert(col) {
+  return col === 'log' ? { onConflict: 'org_id,id', ignoreDuplicates: true } : { onConflict: 'org_id,id' };
+}
 function motivoFalhaNuvem(msg) {
   const m = String(msg || '');
   if (/column|schema cache|does not exist|relation/i.test(m)) return 'O banco está sem os campos novos desta versão: rode o schema.sql no Supabase e depois clique em Tentar de novo.';
@@ -626,7 +633,7 @@ function renderPendentes() {
     if (!ps.length) { el.innerHTML = ''; return; }
     const rot = p => { const r = p.rec || {}; const nome = r.nome || r.descricao || (r.cliente && r.cliente.nome) || ''; return `${COL_NOMES[p.col] || p.col}${nome ? ' “' + nome + '”' : ''}${p.op === 'remove' ? ' (exclusão)' : ''}`; };
     el.innerHTML = `<div class="alert warn" style="cursor:default;align-items:center;gap:10px"><span><b>${ps.length} alteração(ões) não chegaram à nuvem</b> e estão guardadas só neste navegador. ${esc(motivoFalhaNuvem(ps[0].erro))}
-      ${itens.length ? `<br><span class="tiny">${esc(itens.slice(0, 4).map(rot).join(' · '))}${itens.length > 4 ? ` e mais ${itens.length - 4}` : ''}</span>` : ''}</span>
+      <br><span class="tiny">${itens.length ? `${esc(itens.slice(0, 4).map(rot).join(' · '))}${itens.length > 4 ? ` e mais ${itens.length - 4}` : ''}` : 'Só registros do histórico de atividades; nenhum dado de contrato, parcela ou cadastro.'}</span></span>
       <button class="btn btn-primary btn-sm" style="flex:none" onclick="Cloud.reenviarPendentes()">Tentar de novo</button></div>`;
   });
 }
