@@ -654,6 +654,27 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7w. Aviso "1 alteração não chegou à nuvem… falta de permissão" — corrigido (08/10)
+
+O que era: o item parado era um registro do **histórico de atividades**, não um dado seu. O
+histórico, de propósito, só aceita inclusão no banco (ninguém reescreve o que já foi
+registrado). Quando a internet oscila, o registro às vezes chega ao banco mas a resposta não
+volta; o app guarda para reenviar, e no reenvio o banco via aquilo como "alteração" de algo
+que já existia e recusava — para sempre, com a mensagem de falta de permissão.
+
+Correção: no histórico, o reenvio agora diz ao banco "inclua se não existir; se já existe,
+ignore". Nada a rodar no Supabase.
+
+- Ao abrir a versão nova, o aviso some sozinho (o app reenvia os pendentes ao entrar). Se
+  não sumir, clique em **Tentar de novo** uma vez.
+- Quando o pendente for só do histórico, o aviso agora diz isso, para não assustar.
+
+`test37` simula a resposta perdida e confere o reenvio, o recarregar e que os outros
+cadastros continuam sendo alterados normalmente. O banco simulado dos testes passou a recusar
+alteração no histórico, como o real.
+
+---
+
 ## 7v. Recibo de pagamento (05/10)
 
 Pedido seu: gerar recibo nas parcelas, na própria tela de pagamento.
