@@ -101,7 +101,7 @@ function loteCardHtml(l, onclick) {
   return `<div class="item ${l.status}" onclick="${onclick}('${l.id}')">
     <div class="info">
       <div class="title">${esc(loteLabel(l))} ${l.tipo === 'comercial' ? '<span class="badge neutral">Comercial</span>' : ''}</div>
-      <div class="meta"><span>${fmtNum(l.area, 0)} m²</span>${l.frente ? `<span>· ${fmtNum(l.frente, 1)}m × ${fmtNum(l.fundos || 0, 1)}m</span>` : ''}${m2 ? `<span>· ${fmtMoney(m2)}/m²</span>` : ''}${l.obs ? `<span>· ${esc(l.obs)}</span>` : ''}</div>
+      <div class="meta">${[num(l.area) ? `${fmtNum(l.area, 0)} m²` : '', l.frente ? `${fmtNum(l.frente, 1)}m × ${fmtNum(l.fundos || 0, 1)}m` : '', m2 ? `${fmtMoney(m2)}/m²` : '', l.obs ? esc(l.obs) : ''].filter(Boolean).map((t, i) => `<span>${i ? '· ' : ''}${t}</span>`).join('')}</div>
     </div>
     <div class="side"><div class="value${!num(l.preco) ? ' small muted' : ''}">${mostrarPreco ? (num(l.preco) ? fmtMoney(l.preco) : 'Sob consulta') : '—'}</div><span class="badge ${l.status}">${statusLabel(l.status)}</span></div>
   </div>`;

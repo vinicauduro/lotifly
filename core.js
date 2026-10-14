@@ -1343,6 +1343,7 @@ function updateTopbars() {
   $$('.lot-select').forEach(sel => {
     sel.innerHTML = empsVisiveis.length ? optionsHtml(empsVisiveis, lot ? lot.id : '') : '<option value="">Nenhum empreendimento</option>';
     sel.style.display = empsVisiveis.length > 1 ? '' : 'none';
+    const top = sel.closest('.topbar'); if (top) top.classList.toggle('com-seletor', empsVisiveis.length > 1);
   });
   const empresa = (Cloud.org && Cloud.org.nome) || db.config.empresa || '';
   $$('#screen-corretor .lot-name').forEach(el => { el.textContent = lot ? lot.nome : (empresa || 'Gestão de Loteamento'); });
@@ -1544,6 +1545,21 @@ async function carregarDemo() {
 }
 
 
+/* Valor em cartão nunca é cortado com reticências. O número de caracteres do maior valor
+   de cada grade de cartões vai para --n, e o CSS reduz a fonte só quando ele não cabe na
+   largura do cartão: "R$ 0,00" fica no tamanho normal, "R$ 10.000.000,00" encolhe o
+   necessário, e os cartões da mesma grade continuam com o mesmo tamanho de número. */
+function marcarValores() {
+  const por = (el, n) => { n = String(n || 1); if (el.style.getPropertyValue('--n') !== n) el.style.setProperty('--n', n); };
+  const tam = el => el.textContent.trim().length;
+  const marcar = () => {
+    document.querySelectorAll('.kpi-grid').forEach(g => por(g, Math.max(0, ...[...g.querySelectorAll('.kpi .val')].map(tam))));
+    document.querySelectorAll('.kpi .val').forEach(el => { if (!el.closest('.kpi-grid')) por(el, tam(el)); });
+  };
+  marcar();
+  new MutationObserver(marcar).observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+
 // ---------------------------------------------------------------- boot
 document.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -1559,6 +1575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modalOverlay').classList.contains('open')) fecharJanela(); });
   if (window.Gestos) Gestos.medirTeclado();
+  marcarValores();
   state.role = 'landing';
   showScreen('landing');
   if (Cloud.enabled) { Cloud.init(); await Cloud.boot(); return; }
@@ -1568,4 +1585,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (modo === 'corretor') enterCorretor();
   else if (sessionStorage.getItem('gl_admin') === '1') startRole('admin');
   else if (prefs.lastRole === 'corretor') startRole('corretor');
+  /* Dados de pior caso para testar a interface: só no computador de desenvolvimento (localhost)
+     e só pedindo no endereço (?dados=pior). Nunca no app publicado. */
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('dados')) {
+    const s = document.createElement('script'); s.src = 'dev/pior-caso.js'; document.body.appendChild(s);
+  }
 });

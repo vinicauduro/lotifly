@@ -128,13 +128,18 @@ h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong
 .topbar .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
 .topbar .brand > div { min-width: 0; }
 .topbar .brand h1 { font-size: 1rem; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
-.topbar .brand .role { font-size: 0.72rem; color: rgba(255,255,255,0.78); letter-spacing: 0.02em; }
+.topbar .brand .role { font-size: 0.72rem; color: rgba(255,255,255,0.78); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .brand > div { flex: 1 1 auto; }
 .topbar .right { display: flex; align-items: center; gap: 8px; flex: none; }
 .topbar select {
   background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);
   border-radius: var(--r-md); padding: 6px 10px; font-size: 0.82rem; max-width: 190px; height: var(--h-ctrl-sm); width: auto;
 }
 .topbar select option { color: var(--text); }
+@media (max-width: 479px) { .topbar select { max-width: 42vw; min-width: 0; text-overflow: ellipsis; } .topbar .right { flex: 0 1 auto; min-width: 0; } }
+/* No celular o seletor já diz qual é o empreendimento: o título repetido sai e o seletor
+   fica com a largura toda, em vez de três textos espremidos com reticências. */
+@media (max-width: 479px) { #screen-corretor .topbar.com-seletor .brand { display: none; } #screen-corretor .topbar.com-seletor .right { flex: 1 1 auto; } #screen-corretor .topbar.com-seletor .lot-select { flex: 1 1 auto; max-width: none; } }
 .top-link { color: white; text-decoration: none; font-size: 0.82rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.32); height: var(--h-ctrl-sm); min-width: var(--h-ctrl-sm); padding: 0 12px; border-radius: var(--r-md); white-space: nowrap; background: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 @media (hover: hover) and (pointer: fine) { .top-link:hover { background: rgba(255,255,255,0.1); } }
 
@@ -174,12 +179,13 @@ h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong
 .kpi-grid.inicio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .kpi-grid.inicio > .destaque { grid-column: 1 / -1; }
 @media (min-width: 720px) { .kpi-grid.inicio { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi-grid.inicio > .destaque { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; justify-content: center; } }
-@media (min-width: 1180px) { .kpi-grid.inicio { grid-template-columns: 1.6fr repeat(2, minmax(0, 1fr)); } .kpi-grid.inicio > .destaque { grid-column: 1; grid-row: span 2; } .kpi-grid.inicio > .destaque .val { font-size: 2.6rem; } }
-.kpi { background: var(--card); border-radius: var(--radius); padding: 16px 18px; border: 1px solid var(--border); min-width: 0; transition: border-color 0.15s ease, background-color 0.15s ease; }
+@media (min-width: 1180px) { .kpi-grid.inicio { grid-template-columns: 1.6fr repeat(2, minmax(0, 1fr)); } .kpi-grid.inicio > .destaque { grid-column: 1; grid-row: span 2; } .kpi-grid.inicio > .destaque .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 2.6rem); } }
+.kpi { background: var(--card); border-radius: var(--radius); padding: 16px 18px; border: 1px solid var(--border); min-width: 0; container-type: inline-size; transition: border-color 0.15s ease, background-color 0.15s ease; }
 @media (hover: hover) and (pointer: fine) { .kpi[onclick]:hover { border-color: var(--border-strong); background: var(--surface-2); } }
 .kpi .lbl { font-size: 0.8rem; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 7px; }
 .kpi .lbl::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--border-strong); flex: none; }
-.kpi .val { font-size: 1.45rem; font-weight: 650; letter-spacing: -0.02em; color: var(--text-strong); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+/* Valor nunca é cortado: a fonte encolhe só quando o número (--n caracteres, ver marcarValores) não cabe no cartão. */
+.kpi .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 1.45rem); font-weight: 650; letter-spacing: -0.02em; color: var(--text-strong); margin-top: 6px; white-space: nowrap; line-height: 1.2; }
 .kpi .sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; line-height: 1.45; }
 .kpi.c-green .lbl::before { background: var(--success); }
 .kpi.c-amber .lbl::before { background: #c27a12; }
@@ -189,9 +195,9 @@ h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong
 .kpi.c-green .val { color: var(--success); }
 /* O número que abre o painel: a carteira inteira em aberto */
 .kpi.destaque { background: var(--card); border-color: var(--border-strong); }
-.kpi.destaque .val { font-size: 2rem; letter-spacing: -0.03em; color: var(--primary); }
+.kpi.destaque .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 2rem); letter-spacing: -0.03em; color: var(--primary); }
 .kpi.destaque .lbl { color: var(--text); font-weight: 600; }
-@media (max-width: 719px) { .kpi .val { font-size: clamp(1rem, 4.3vw, 1.25rem); } .kpi.destaque .val { font-size: 1.8rem; } .kpi { padding: 14px; } }
+@media (max-width: 719px) { .kpi .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 1.25rem); } .kpi.destaque .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 1.8rem); } .kpi { padding: 14px; } }
 
 .status-strip { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .status-strip .pill { flex: 1; min-width: 90px; background: var(--card); border-radius: var(--r-md); padding: 10px 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); }
@@ -353,9 +359,11 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 }
 
 /* ---------- detail blocks ---------- */
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; font-size: 0.88rem; margin-bottom: 14px; }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 16px; font-size: 0.88rem; margin-bottom: 14px; }
 .detail-grid .k { color: var(--muted); font-size: 0.76rem; font-weight: 500; }
-.detail-grid .v { font-weight: 600; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.detail-grid .v { font-weight: 600; color: var(--text-strong); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: break-word; }
+/* Em 320 px as duas colunas não comportam um valor milionário sem partir o número. */
+@media (max-width: 359px) { .detail-grid { grid-template-columns: minmax(0, 1fr); } }
 .detail-grid .full { grid-column: 1 / -1; }
 .price-big { font-size: 1.9rem; font-weight: 650; letter-spacing: -0.03em; color: var(--primary); line-height: 1.15; }
 .price-sub { font-size: 0.82rem; color: var(--muted); }
@@ -580,10 +588,15 @@ details.qualif[open] > summary, details.ver-tabela[open] > summary { margin-bott
 .ct-acoes .btn { flex: none; }
 .ct-cab { padding-bottom: 18px; }
 .ct-num { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+.ct-num b { white-space: nowrap; }
 .ct-num .badge { margin-left: auto; }
 .ct-titulo { font-size: 1.4rem; font-weight: 650; letter-spacing: -0.02em; margin: 8px 0 4px; color: var(--text-strong); }
+.ct-cab .meta { font-size: 0.86rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 6px; line-height: 1.5; }
+.ct-cab .meta > span { min-width: 0; overflow-wrap: anywhere; }
 .ct-titulo .muted { font-weight: 500; font-size: 1rem; letter-spacing: 0; }
 .ct-kpis { margin: 16px 0 12px; }
+/* Em telas de 320px o cartão do contrato não tem largura para dois valores milionários lado a lado. */
+@media (max-width: 359px) { .ct-kpis { grid-template-columns: minmax(0, 1fr); } .kpi-grid { gap: 8px; } .kpi { padding: 12px; } }
 .ct-parte { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .ct-parte:last-child { border-bottom: 0; }
 .ct-qualif { font-size: 0.88rem; color: var(--text); margin: 6px 0 2px; line-height: 1.55; }

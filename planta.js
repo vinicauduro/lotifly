@@ -75,36 +75,53 @@ class PlantaView {
       // em telas estreitas (retrato) usa menos lotes por linha para aproveitar a altura
       const rect = this.svg.getBoundingClientRect();
       const perRow = rect.width && rect.height && rect.width < rect.height ? 5 : 10;
-      this.esq = this.layoutEsquema(this.lotes, perRow); this.W = this.esq.W; this.H = this.esq.H;
+      this.esq = this.layoutEsquema(this.lotes, perRow, rect.width && rect.height ? rect.width / rect.height : 1.6); this.W = this.esq.W; this.H = this.esq.H;
     }
     const key = (loteamento ? loteamento.id : '') + '|' + this.mode + '|' + this.W + 'x' + this.H;
     if (key !== this.lastKey || !this.vb) { this.lastKey = key; this.resetView(); }
     this.render();
   }
 
-  layoutEsquema(lotes, perRow = 10) {
-    const cellW = 110, cellH = 70, gap = 8, blockPad = 14, blockGap = 34, titleH = 30;
+  /* As quadras vão lado a lado, em quantas colunas deixarem o desenho mais perto do formato
+     da tela (aspecto = largura / altura). Com 20 quadras numa coluna só, cada lote virava
+     um risco na tela; em colunas, o desenho inteiro cabe e os lotes ficam legíveis. */
+  layoutEsquema(lotes, perRow = 10, aspecto = 1.6) {
+    const cellW = 110, cellH = 70, gap = 8, blockPad = 14, blockGap = 34, titleH = 30, margem = 20;
     const groups = {};
     lotes.forEach(l => { (groups[l.quadra] = groups[l.quadra] || []).push(l); });
-    const quadras = Object.keys(groups).sort(naturalCmp);
-    const pts = new Map(); const blocks = [];
-    let y = 20, W = 0;
-    quadras.forEach(q => {
+    const quadras = Object.keys(groups).sort(naturalCmp).map(q => {
       const ls = groups[q].slice().sort(cmpLote);
-      const cols = Math.min(perRow, ls.length);
-      const rows = Math.ceil(ls.length / perRow);
-      const bw = cols * cellW + (cols - 1) * gap + blockPad * 2;
-      const bh = titleH + rows * cellH + (rows - 1) * gap + blockPad * 2;
-      blocks.push({ nome: q, x: 20, y, w: bw, h: bh, n: ls.length });
-      ls.forEach((l, i) => {
-        const r = Math.floor(i / perRow), c = i % perRow;
-        const x0 = 20 + blockPad + c * (cellW + gap), y0 = y + titleH + blockPad + r * (cellH + gap);
-        pts.set(l.id, [[x0, y0], [x0 + cellW, y0], [x0 + cellW, y0 + cellH], [x0, y0 + cellH]]);
-      });
-      W = Math.max(W, bw + 40);
-      y += bh + blockGap;
+      const cols = Math.min(perRow, ls.length), rows = Math.ceil(ls.length / perRow);
+      return { q, ls, w: cols * cellW + (cols - 1) * gap + blockPad * 2, h: titleH + rows * cellH + (rows - 1) * gap + blockPad * 2 };
     });
-    return { W: Math.max(W, 400), H: Math.max(y, 300), pts, blocks };
+    const colW = Math.max(0, ...quadras.map(b => b.w));
+    const medir = nc => {
+      let H = margem;
+      for (let i = 0; i < quadras.length; i += nc) H += Math.max(...quadras.slice(i, i + nc).map(b => b.h)) + blockGap;
+      return { W: nc * colW + (nc - 1) * blockGap + margem * 2, H };
+    };
+    let nc = 1, melhor = Infinity;
+    for (let n = 1; n <= Math.max(1, quadras.length); n++) {
+      const m = medir(n), d = Math.abs(Math.log((m.W / m.H) / aspecto));
+      if (d < melhor - 1e-9) { melhor = d; nc = n; }
+    }
+    const pts = new Map(); const blocks = [];
+    let y = margem;
+    for (let i = 0; i < quadras.length; i += nc) {
+      const linha = quadras.slice(i, i + nc);
+      linha.forEach((b, j) => {
+        const bx = margem + j * (colW + blockGap);
+        blocks.push({ nome: b.q, x: bx, y, w: b.w, h: b.h, n: b.ls.length });
+        b.ls.forEach((l, k) => {
+          const r = Math.floor(k / perRow), c = k % perRow;
+          const x0 = bx + blockPad + c * (cellW + gap), y0 = y + titleH + blockPad + r * (cellH + gap);
+          pts.set(l.id, [[x0, y0], [x0 + cellW, y0], [x0 + cellW, y0 + cellH], [x0, y0 + cellH]]);
+        });
+      });
+      y += Math.max(...linha.map(b => b.h)) + blockGap;
+    }
+    const m = medir(nc);
+    return { W: Math.max(m.W, 400), H: Math.max(y, 300), pts, blocks };
   }
 
   absPts(l) {
