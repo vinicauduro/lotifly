@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Lotifly</title>
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -87,11 +87,11 @@
       <div class="tab" data-tab="cadastros" onclick="switchTab('cadastros')"><span class="aside-rot"><i class=ico data-i=gear-six></i>Configurações</span></div>
     </nav>
   </aside>
-  <div class="aside-scrim" onclick="document.body.classList.remove('aside-aberto')"></div>
+  <div class="aside-scrim" onclick="fecharMenu()"></div>
 
   <main class="admin-main">
     <div class="topbar">
-      <div class="brand"><button class="aside-burger" onclick="document.body.classList.add('aside-aberto')" aria-label="Abrir menu"><i class=ico data-i=list></i></button><div><h1 class="lot-name">Loteamento</h1><div class="role">Administração</div></div></div>
+      <div class="brand"><button class="aside-burger" onclick="abrirMenu()" aria-label="Abrir menu"><i class=ico data-i=list></i></button><div><h1 class="lot-name">Loteamento</h1><div class="role">Administração</div></div></div>
       <div class="right"><span class="user-name small" style="display:none;opacity:.85"></span><button class="top-link btn-ver-corretor" onclick="startRole('corretor')" title="Ver como o corretor vê" aria-label="Ver como o corretor vê"><i class=ico data-i=eye></i></button><button class="top-link" onclick="sair()">Sair</button></div>
     </div>
     <div class="sync-pendentes" id="syncPendentes"></div>
@@ -120,7 +120,7 @@
 <!-- MODAL genérico -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal" id="modalBox">
-    <div class="modal-head"><h2 id="modalTitle"></h2><button class="modal-close" onclick="closeModal()" title="Fechar" aria-label="Fechar"><i class=ico data-i=x></i></button></div>
+    <div class="modal-head"><h2 id="modalTitle"></h2><button class="modal-close" onclick="fecharJanela()" title="Fechar" aria-label="Fechar"><i class=ico data-i=x></i></button></div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-foot" id="modalFoot"></div>
   </div>
@@ -131,6 +131,7 @@
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="core.js"></script>
+<script src="gestos.js"></script>
 <script src="permissoes.js"></script>
 <script src="planta.js"></script>
 <script src="planta-pdf.js"></script>

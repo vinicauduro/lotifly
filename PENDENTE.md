@@ -654,6 +654,42 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7y. Celular com cara de app (15/10)
+
+Pedido seu: corrigir o que faz o Lotifly parecer site no celular e dar às janelas e ao menu o
+movimento do iPhone.
+
+**Correções de celular**
+- **Zoom ao tocar no campo**: todo campo, inclusive o seletor de empreendimento do topo (que
+  estava com 13px), tem 16px em aparelho de toque. O zoom da tela continua liberado.
+- **Flash cinza ao tocar**: desligado; cada botão, cartão e aba mostra o próprio "apertou" no
+  instante do toque. Segurar o dedo num botão não seleciona mais o texto dele.
+- **Altura da tela**: o app usa a altura visível de verdade (a barra do navegador não empurra mais
+  nada para fora); a planta não muda de tamanho quando a barra some ao rolar.
+- **Realce preso depois do toque**: todo efeito de passar o mouse só vale onde existe mouse.
+- **Teclado cobrindo campos**: com o teclado aberto, a janela passa a ocupar só a parte visível —
+  o campo e o botão Confirmar ficam acima do teclado. No celular a janela não abre mais o
+  teclado sozinha: ele abre quando você toca no campo.
+- Os avisos que aparecem no topo não bloqueiam mais o toque no que está embaixo deles.
+
+**Janelas e menu**
+- No celular a janela é uma gaveta com alça: **puxe para baixo para fechar**. Um puxão rápido
+  fecha mesmo curto; puxado devagar e pouco, ela volta.
+- O **menu lateral** fecha arrastando para a esquerda.
+- O movimento é de **mola** e pode ser **interrompido**: dá para segurar a janela ou o menu no
+  meio do caminho e trazer de volta.
+- Com "Reduzir movimento" ligado no celular, nada desliza: aparece e some na hora.
+- No computador nada mudou.
+
+- [ ] No celular: tocar num campo de valor e ver se a tela não aproxima.
+- [ ] Abrir uma janela, puxar pela alça para baixo; abrir o menu e arrastar para a esquerda.
+- [ ] Registrar um pagamento com o teclado aberto e ver se o Confirmar aparece.
+
+`test38` roda tudo isso no iPhone 13 e no Pixel 7 simulados, com toque de verdade para o
+navegador. O teclado é simulado: a confirmação final é no aparelho.
+
+---
+
 ## 7x. Visual novo, minimalista (14/10)
 
 Pedido seu: redesign na direção minimalista, sem mexer em nenhuma função, cálculo ou dado,

@@ -120,14 +120,19 @@ function openModal({ title, body, footer = '', wide = false, full = false, onClo
   $('#modalBox').classList.toggle('wide', wide && !full);
   $('#modalBox').classList.toggle('full', !!full);
   $('#modalBody').scrollTop = 0;
+  const jaAberta = $('#modalOverlay').classList.contains('open');
   $('#modalOverlay').classList.add('open');
   state.modalOnClose = onClose;
   document.body.style.overflow = 'hidden';
+  if (window.Gestos) Gestos.aoAbrirJanela(jaAberta);
 }
 /* Põe o cursor no primeiro campo logo depois de a janela abrir, mas só se a pessoa ainda
    não começou a digitar em outro: o foco atrasado roubava o cursor no meio da digitação e o
    texto caía no campo errado. */
 function focarSeLivre(id) {
+  /* No celular não: o teclado subiria sozinho no meio da animação da gaveta e cobriria metade
+     da janela. Lá o teclado abre quando a pessoa toca no campo. */
+  if (matchMedia('(pointer: coarse)').matches) return;
   setTimeout(() => {
     const a = document.activeElement, corpo = document.getElementById('modalBody');
     if (a && corpo && corpo.contains(a) && a !== document.getElementById(id)) return;
@@ -136,6 +141,7 @@ function focarSeLivre(id) {
 }
 function closeModal() {
   $('#modalOverlay').classList.remove('open');
+  if (window.Gestos) Gestos.aoFecharJanela();
   document.body.style.overflow = '';
   const cb = state.modalOnClose; state.modalOnClose = null;
   if (cb) cb();
@@ -1321,7 +1327,7 @@ function switchTab(tab) {
   const prefix = state.role === 'admin' ? 'a' : 'c';
   $$(`#screen-${state.role} .tab`).forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   $$(`#screen-${state.role} .view`).forEach(v => v.classList.toggle('active', v.id === `${prefix}v-${tab}`));
-  document.body.classList.remove('aside-aberto');
+  if (document.body.classList.contains('aside-aberto')) { if (typeof fecharMenu === 'function') fecharMenu(); else document.body.classList.remove('aside-aberto'); }
   renderCurrent();
 }
 function renderCurrent() {
@@ -1548,10 +1554,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#modalOverlay').addEventListener('mousedown', e => { apertouNoFundo = e.target.id === 'modalOverlay'; });
   $('#modalOverlay').addEventListener('mouseup', e => { soltouNoFundo = e.target.id === 'modalOverlay'; });
   $('#modalOverlay').addEventListener('click', e => {
-    if (e.target.id === 'modalOverlay' && apertouNoFundo && soltouNoFundo) closeModal();
+    if (e.target.id === 'modalOverlay' && apertouNoFundo && soltouNoFundo) fecharJanela();
     apertouNoFundo = soltouNoFundo = false;
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modalOverlay').classList.contains('open')) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modalOverlay').classList.contains('open')) fecharJanela(); });
+  if (window.Gestos) Gestos.medirTeclado();
   state.role = 'landing';
   showScreen('landing');
   if (Cloud.enabled) { Cloud.init(); await Cloud.boot(); return; }
