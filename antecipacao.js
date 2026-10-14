@@ -76,12 +76,12 @@ function abrirAntecipacao(vendaId) {
     ${!taxaVenda(v) ? `<div class="alert info" style="cursor:default"><span>Este contrato não tem juros no parcelamento, então antecipar não gera desconto: o cliente paga o valor das parcelas.</span></div>` : ''}
 
     <p class="tiny muted">O valor para quitação vale para todo o mês de ${monthLabel(mesAtual())}: o cálculo é por mês fechado, igual à cobrança de juros. É o saldo devedor do contrato, o mesmo número da tabela de amortização.</p>
-    <details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:700">🧮 Ver a tabela de amortização</summary>
+    <details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:700">Ver a tabela de amortização</summary>
       <div class="table-wrap" style="margin-top:8px"><table class="tbl"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="num">Valor</th><th class="num">Juros do mês</th><th class="num">Amortização</th><th class="num">Saldo depois</th></tr></thead>
       <tbody>${tabelaAmortizacao(v, todayStr()).map(x => `<tr><td>${esc(x.rec.descricao)}</td><td>${fmtDate(x.rec.vencimento)}</td><td class="num">${fmtMoney(x.parcela)}</td><td class="num">${fmtMoney(x.juros)}</td><td class="num">${fmtMoney(x.amortizacao)}</td><td class="num">${fmtMoney(x.saldo)}</td></tr>`).join('')}</tbody></table></div>
       <p class="tiny muted">Começa no saldo devedor de hoje. Antecipar uma parcela do fim economiza todos os juros previstos até lá.</p></details>
 
-    <div class="fieldset" style="margin-top:14px"><span class="lg">💸 O que o cliente quer fazer</span>
+    <div class="fieldset" style="margin-top:14px"><span class="lg">O que o cliente quer fazer</span>
       <div class="fg"><label>Operação</label><select id="anTipo" onchange="anCalc('${v.id}')">
         <option value="total">Quitar o contrato inteiro</option>
         <option value="parcelas">Antecipar as últimas parcelas</option>
@@ -98,11 +98,11 @@ function abrirAntecipacao(vendaId) {
       <div class="fg"><label>Observação no recibo</label><input type="text" id="anObs" placeholder="Antecipação negociada com o cliente"></div>
     </div>`;
   openModal({
-    title: '💸 Antecipar ou quitar',
+    title: 'Antecipar ou quitar',
     body, wide: true,
     footer: `<button class="btn btn-secondary" onclick="abrirVendaAdmin('${v.id}')">Voltar</button>
-      <button class="btn btn-outline" onclick="imprimirDemonstrativo('${v.id}')">🖨️ Demonstrativo</button>
-      ${v.cliente.telefone ? `<a class="btn btn-wa" target="_blank" href="${waLink(v.cliente.telefone, textoAntecipacao(v, s))}">💬 Enviar</a>` : ''}
+      <button class="btn btn-outline" onclick="imprimirDemonstrativo('${v.id}')">Demonstrativo</button>
+      ${v.cliente.telefone ? `<a class="btn btn-wa" target="_blank" href="${waLink(v.cliente.telefone, textoAntecipacao(v, s))}">Enviar</a>` : ''}
       <button class="btn btn-success" onclick="aplicarAntecipacao('${v.id}')">Registrar pagamento</button>`
   });
   anCalc(v.id);

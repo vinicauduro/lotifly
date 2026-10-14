@@ -43,22 +43,22 @@ function renderRecebiveis() {
   v.innerHTML = `
     ${avisoRemessaHtml(esc0)}
     <div class="kpi-grid">
-      <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoneyShort(tot - pago)}</div><div class="sub">de ${fmtMoneyShort(tot)} contratado</div></div>
-      <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoneyShort(pago)}</div><div class="sub">${fmtMoneyShort(recMes)} neste mês</div></div>
-      <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoneyShort(atr)}</div><div class="sub">${all.filter(r => recStatus(r) === 'atrasado').length} parcela(s)</div></div>
-      <div class="kpi c-blue"><div class="lbl">Vence este mês</div><div class="val">${fmtMoneyShort(mes)}</div><div class="sub">${monthLabel(mesKey)}</div></div>
+      <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(tot - pago)}</div><div class="sub">de ${fmtMoneyShort(tot)} contratado</div></div>
+      <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoney(pago)}</div><div class="sub">${fmtMoneyShort(recMes)} neste mês</div></div>
+      <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(atr)}</div><div class="sub">${all.filter(r => recStatus(r) === 'atrasado').length} parcela(s)</div></div>
+      <div class="kpi c-blue"><div class="lbl">Vence este mês</div><div class="val">${fmtMoney(mes)}</div><div class="sub">${monthLabel(mesKey)}</div></div>
     </div>
     <div class="chips">${[['aberto', 'Em aberto'], ['atrasado', 'Atrasados'], ['pago', 'Pagos'], ['all', 'Todos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="mostrarRecebiveis('${k}')">${l}<span class="n">${all.filter(grupos[k]).length}</span></div>`).join('')}
-      ${contasComLayout().length ? `<div class="chip" onclick="abrirGerarCobrancas()">🧾 Gerar cobranças<span class="n">${parcelasDoMes(esc0, mesAtual()).filter(r => !registradaNoBanco(r) && !bloqueioRemessa(r)).length}</span></div>
-      <div class="chip" onclick="abrirRetorno()">📥 Retorno</div>` : ''}</div>
+      ${contasComLayout().length ? `<div class="chip" onclick="abrirGerarCobrancas()">Gerar cobranças<span class="n">${parcelasDoMes(esc0, mesAtual()).filter(r => !registradaNoBanco(r) && !bloqueioRemessa(r)).length}</span></div>
+      <div class="chip" onclick="abrirRetorno()">Retorno</div>` : ''}</div>
     <div class="filters">
       ${escopoSelectHtml('renderRecebiveis()')}
       <select onchange="filtroRec().mes=this.value;renderRecebiveis()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}${m === mesAtual() ? ' (mês atual)' : ''}</option>`).join('')}</select>
-      <input type="text" placeholder="🔎 Cliente ou lote" value="${esc(f.busca)}" oninput="aSetFiltro('rec','busca',this.value,renderRecebiveis,this)">
-      <button class="btn btn-secondary btn-sm" onclick="exportarRecebiveisCSV()">⬇️ CSV</button>
+      <input type="text" placeholder="Cliente ou lote" value="${esc(f.busca)}" oninput="aSetFiltro('rec','busca',this.value,renderRecebiveis,this)">
+      <button class="btn btn-secondary btn-sm" onclick="exportarRecebiveisCSV()">CSV</button>
     </div>
     <p class="small muted mb">${list.length} parcela(s) · ${fmtMoney(somaLista)}${f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
-    ${list.length ? list.map(r => recRowHtml(r)).join('') : `<div class="empty"><div class="ic">📆</div><p>Nenhuma parcela nesta lista.</p></div>`}`;
+    ${list.length ? list.map(r => recRowHtml(r)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Nenhuma parcela nesta lista.</p></div>`}`;
 }
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
 function recRowHtml(r) {
@@ -68,7 +68,7 @@ function recRowHtml(r) {
     <div class="info"><div class="title">${v ? esc(v.cliente.nome) : '—'} <span class="tiny muted">· ${v ? esc(imovelShort(v)) : ''}</span></div>
       <div class="meta"><span>${esc(r.descricao)}</span><span>· vence ${fmtDate(r.vencimento)}</span>${recCorrecao(r) > 0.005 && st !== 'pago' ? `<span title="Correção pelo índice do contrato">· base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</span>` : ''}${st === 'atrasado' ? `<span style="color:var(--danger)">· ${daysBetween(r.vencimento, todayStr())} dias · atualizado ${fmtMoney(recAtualizado(r))}</span>` : ''}${st === 'pago' && r.dataPagamento ? `<span>· pago em ${fmtDate(r.dataPagamento)}${r.forma ? ' (' + esc(r.forma) + ')' : ''}</span>` : ''}${st === 'parcial' ? `<span>· pago ${fmtMoney(r.valorPago)}, resta ${fmtMoney(rest)}</span>` : ''}</div></div>
     <div class="side"><div class="value">${fmtMoney(st === 'pago' ? r.valorPago : rest)}</div><span class="badge ${st}">${statusLabel(st)}</span>
-      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && v && v.status !== 'distrato' && pode('financeiro.baixar') ? `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${r.id}')">💵</button>` : ''}${num(r.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${r.id}')">🧾</button>` : ''}${pode('financeiro.baixar') ? `<button class="btn-icon" title="Editar" onclick="editarRecebivel('${r.id}')">✏️</button>` : ''}</div></div></div>`;
+      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && v && v.status !== 'distrato' && pode('financeiro.baixar') ? `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${r.id}')"><i class=ico data-i=money></i></button>` : ''}${num(r.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${r.id}')"><i class=ico data-i=receipt></i></button>` : ''}${pode('financeiro.baixar') ? `<button class="btn-icon" title="Editar" onclick="editarRecebivel('${r.id}')"><i class=ico data-i=pencil-simple></i></button>` : ''}</div></div></div>`;
 }
 function abrirPagamento(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
@@ -78,7 +78,7 @@ function abrirPagamento(id, voltarVendaId) {
     <div class="frow"><div class="fg"><label>Valor recebido (R$) *</label><input type="number" id="pgValor" step="0.01" value="${Math.round(rest * 100) / 100}"></div><div class="fg"><label>Data do pagamento *</label><input type="date" id="pgData" value="${todayStr()}"></div></div>
     <div class="frow"><div class="fg"><label>Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div><div class="fg"><label>&nbsp;</label>${atual > rest + 0.01 ? `<button class="btn btn-outline btn-sm" onclick="setVal('pgValor',${Math.round(atual * 100) / 100})">Usar valor c/ juros</button>` : ''}</div></div>
     <div class="fg"><label>Observação</label><input type="text" id="pgObs" value="${esc(r.obsPagamento || '')}"></div>`;
-  openModal({ title: '💵 Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">🧾 Confirmar e gerar recibo</button><button class="btn btn-success" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
+  openModal({ title: 'Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">Confirmar e gerar recibo</button><button class="btn btn-success" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
 }
 function salvarPagamento(id, voltarVendaId, comRecibo) {
   if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', 'Seu perfil não registra pagamentos.', true); return; }
@@ -141,7 +141,7 @@ function gerarRecibo(id, pg) {
   if (!(d.valor > 0)) { toast('⚠️', 'Parcela sem pagamento', 'Registre o pagamento antes de gerar o recibo.', true); return; }
   const c = d.v.cliente || {};
   const texto = `Olá, ${c.nome || ''}! Confirmamos o recebimento de ${fmtMoney(d.valor)} referente à ${d.r.descricao}${d.v.numeroContrato ? ` do contrato nº ${d.v.numeroContrato}` : ''}, pago em ${fmtDate(d.pg.data)}. Obrigado!`;
-  docPreview({ titulo: '🧾 Recibo de pagamento', html: reciboHtml(d), arquivo: `Recibo ${d.r.descricao} ${c.nome || ''}`.replace(/[\\/:*?"'<>|]/g, '-'),
+  docPreview({ titulo: 'Recibo de pagamento', html: reciboHtml(d), arquivo: `Recibo ${d.r.descricao} ${c.nome || ''}`.replace(/[\\/:*?"'<>|]/g, '-'),
     whatsTexto: c.telefone ? waLink(c.telefone, texto) : '' });
 }
 function editarRecebivel(id, voltarVendaId) {
@@ -149,7 +149,7 @@ function editarRecebivel(id, voltarVendaId) {
   const body = `<div class="fg"><label>Descrição</label><input type="text" id="erDesc" value="${esc(r.descricao)}"></div>
     <div class="frow"><div class="fg"><label>Vencimento</label><input type="date" id="erVenc" value="${r.vencimento}"></div><div class="fg"><label>Valor base (R$)</label><input type="number" id="erValor" step="0.01" value="${r.valor}">${recCorrecao(r) > 0.005 ? `<div class="hint">Com a correção do contrato: ${fmtMoney(recValor(r))}</div>` : ''}</div></div>
     <div class="frow"><div class="fg"><label>Valor pago (R$)</label><input type="number" id="erPago" step="0.01" value="${r.valorPago || 0}"></div><div class="fg"><label>Data do pagamento</label><input type="date" id="erData" value="${r.dataPagamento || ''}"></div></div>`;
-  openModal({ title: '✏️ Editar parcela', body, footer: `<button class="btn btn-outline-danger" onclick="excluirRecebivel('${r.id}','${voltarVendaId || ''}')">Excluir</button><button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-primary" onclick="salvarRecebivel('${r.id}','${voltarVendaId || ''}')">Salvar</button>` });
+  openModal({ title: 'Editar parcela', body, footer: `<button class="btn btn-outline-danger" onclick="excluirRecebivel('${r.id}','${voltarVendaId || ''}')">Excluir</button><button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-primary" onclick="salvarRecebivel('${r.id}','${voltarVendaId || ''}')">Salvar</button>` });
 }
 function salvarRecebivel(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
@@ -222,26 +222,26 @@ function renderCustos(alvo) {
   const catData = Object.entries(porCat).map(([id, value]) => { const c = getCategoria(id); return { label: c ? c.nome : 'Sem categoria', color: c ? c.cor : '#94a3b8', value }; }).sort((a, b) => b.value - a.value);
   v.innerHTML = `
     <div class="kpi-grid">
-      <div class="kpi c-primary"><div class="lbl">Total de custos</div><div class="val">${fmtMoneyShort(tot)}</div><div class="sub">${orcTotal ? Math.round(tot / orcTotal * 100) + '% do orçamento (' + fmtMoneyShort(orcTotal) + ')' : all.length + ' lançamento(s)'}</div></div>
-      <div class="kpi c-green"><div class="lbl">Pago</div><div class="val">${fmtMoneyShort(pago)}</div></div>
-      <div class="kpi c-amber"><div class="lbl">A pagar</div><div class="val">${fmtMoneyShort(tot - pago)}</div><div class="sub">${fmtMoneyShort(prox)} nos próximos 30 dias</div></div>
-      <div class="kpi c-red"><div class="lbl">Vencidos</div><div class="val">${fmtMoneyShort(atr)}</div><div class="sub">${all.filter(c => custoStatus(c) === 'atrasado').length} conta(s)</div></div>
+      <div class="kpi c-primary"><div class="lbl">Total de custos</div><div class="val">${fmtMoney(tot)}</div><div class="sub">${orcTotal ? Math.round(tot / orcTotal * 100) + '% do orçamento (' + fmtMoneyShort(orcTotal) + ')' : all.length + ' lançamento(s)'}</div></div>
+      <div class="kpi c-green"><div class="lbl">Pago</div><div class="val">${fmtMoney(pago)}</div></div>
+      <div class="kpi c-amber"><div class="lbl">A pagar</div><div class="val">${fmtMoney(tot - pago)}</div><div class="sub">${fmtMoneyShort(prox)} nos próximos 30 dias</div></div>
+      <div class="kpi c-red"><div class="lbl">Vencidos</div><div class="val">${fmtMoney(atr)}</div><div class="sub">${all.filter(c => custoStatus(c) === 'atrasado').length} conta(s)</div></div>
     </div>
     ${global ? `<div class="filters">${escopoSelectHtml('renderCustos()')}</div>` : ''}
     <div class="grid2">
       <div class="card"><h3>Custos por categoria</h3><canvas class="chart" id="chartCustos" height="190"></canvas><div class="legend-list" id="chartCustosLegend"></div></div>
-      ${!lot ? `<div class="card"><h3>Orçado × realizado</h3><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h3>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()">✏️</button></span></h3>
+      ${!lot ? `<div class="card"><h3>Orçado × realizado</h3><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h3>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></span></h3>
         ${db.categorias.filter(c => num((lot.orcamento || {})[c.id]) > 0).map(c => { const o = lot.orcamento[c.id]; const real = porCat[c.id] || 0; const pct = Math.round(real / o * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${c.cor}"></span> ${esc(c.nome)}</span><span class="muted">${fmtMoneyShort(real)} / ${fmtMoneyShort(o)} · ${pct}%</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Defina o orçamento por categoria para acompanhar aqui.</p>'}</div>`}
     </div>
     <div class="chips">${[['all', 'Todos'], ['pendente', 'A pagar'], ['atrasado', 'Vencidos'], ['pago', 'Pagos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.custos.status='${k}';renderCustos()">${l}<span class="n">${k === 'all' ? all.length : all.filter(c => custoStatus(c) === k).length}</span></div>`).join('')}</div>
     <div class="filters">
       <select onchange="state.filters.custos.cat=this.value;renderCustos()"><option value="all">Todas as categorias</option>${db.categorias.map(c => `<option value="${c.id}" ${f.cat === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>
       <select onchange="state.filters.custos.mes=this.value;renderCustos()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}</option>`).join('')}</select>
-      <input type="text" placeholder="🔎 Descrição ou fornecedor" value="${esc(f.busca)}" oninput="aSetFiltro('custos','busca',this.value,renderCustos,this)">
-      <button class="btn btn-primary btn-sm" onclick="${global ? 'novoCustoEscolhendoEmp()' : 'abrirCustoForm()'}">＋ Lançar</button>
+      <input type="text" placeholder="Descrição ou fornecedor" value="${esc(f.busca)}" oninput="aSetFiltro('custos','busca',this.value,renderCustos,this)">
+      <button class="btn btn-primary btn-sm" onclick="${global ? 'novoCustoEscolhendoEmp()' : 'abrirCustoForm()'}"><i class=ico data-i=plus></i>Lançar</button>
     </div>
     <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
-    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic">🧾</div><p>Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…</p></div>`}`;
+    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…</p></div>`}`;
   drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
 }
 function custoRowHtml(c) {
@@ -249,14 +249,14 @@ function custoRowHtml(c) {
   const emp = state.tab === 'custos' && !escopoAtual() ? getLoteamento(c.loteamentoId) : null;
   return `<div class="item ${st}" onclick="setCurLotSilencioso('${c.loteamentoId}');abrirCustoForm('${c.id}')">
     <div class="info"><div class="title">${esc(c.descricao)}${emp ? ` <span class="tiny muted">· ${esc(emp.nome)}</span>` : ''}</div>
-      <div class="meta"><span class="badge" style="background:${cat ? cat.cor : '#94a3b8'};color:white">${cat ? esc(cat.nome) : 'Sem categoria'}</span>${c.fornecedor ? `<span>· ${esc(c.fornecedor)}</span>` : ''}<span>· ${fmtDate(c.dataCompetencia)}</span>${c.vencimento && st !== 'pago' ? `<span ${st === 'atrasado' ? 'style="color:var(--danger)"' : ''}>· vence ${fmtDate(c.vencimento)}</span>` : ''}${st === 'pago' && c.dataPagamento ? `<span>· pago em ${fmtDate(c.dataPagamento)}</span>` : ''}</div></div>
+      <div class="meta"><span class="badge neutral badge-cat"><span class="dot" style="background:${cat ? cat.cor : '#94a3b8'}"></span>${cat ? esc(cat.nome) : 'Sem categoria'}</span>${c.fornecedor ? `<span>· ${esc(c.fornecedor)}</span>` : ''}<span>· ${fmtDate(c.dataCompetencia)}</span>${c.vencimento && st !== 'pago' ? `<span ${st === 'atrasado' ? 'style="color:var(--danger)"' : ''}>· vence ${fmtDate(c.vencimento)}</span>` : ''}${st === 'pago' && c.dataPagamento ? `<span>· pago em ${fmtDate(c.dataPagamento)}</span>` : ''}</div></div>
     <div class="side"><div class="value">${fmtMoney(c.valor)}</div><span class="badge ${st}">${statusLabel(st)}</span>
-      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')">💵</button>` : ''}<button class="btn-icon del" onclick="excluirCusto('${c.id}')">🗑️</button></div></div></div>`;
+      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')"><i class=ico data-i=money></i></button>` : ''}<button class="btn-icon del" onclick="excluirCusto('${c.id}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div></div></div>`;
 }
 /* Lançar a partir da lista da empresa: primeiro diz de qual empreendimento é. (A despesa da
    empresa sem empreendimento entra na próxima fase.) */
 function novoCustoEscolhendoEmp() {
-  comEmpreendimento('🧾 Nova despesa', 'De qual empreendimento é esta despesa?', () => abrirCustoForm());
+  comEmpreendimento('Nova despesa', 'De qual empreendimento é esta despesa?', () => abrirCustoForm());
 }
 function abrirCustoForm(id) {
   const lot = curLot(); const c = id ? db.custos.find(x => x.id === id) : null;
@@ -268,7 +268,7 @@ function abrirCustoForm(id) {
     <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="document.getElementById('cuDataPg').parentElement.style.display=this.value==='pago'?'':'none'"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c ? c.dataPagamento || todayStr() : todayStr()}"></div></div>
     <div class="fg"><label>Lote (opcional)</label><select id="cuLote"><option value="">— Custo geral do loteamento —</option>${optionsHtml(lotesDo(lot.id), c ? c.loteId || '' : '', l => loteLabel(l))}</select></div>
     <div class="fg"><label>Observações</label><textarea id="cuObs">${esc(c ? c.obs || '' : '')}</textarea></div>`;
-  openModal({ title: c ? '✏️ Editar custo' : '🧾 Lançar custo', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
+  openModal({ title: c ? 'Editar custo' : 'Lançar custo', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
   focarSeLivre('cuDesc');
 }
 function salvarCusto(id) {
@@ -305,11 +305,11 @@ function renderComissoes(v, f) {
   const porCorretor = {};
   vendas.forEach(x => { const k = x.corretor.nome || 'Venda direta'; porCorretor[k] = porCorretor[k] || { n: 0, tot: 0, pago: 0 }; porCorretor[k].n++; porCorretor[k].tot += num(x.comissaoValor); if (x.comissaoPaga) porCorretor[k].pago += num(x.comissaoValor); });
   v.innerHTML = `
-    <div class="subtabs"><div class="chip" onclick="state.filters.avendas.sub='vendas';renderAVendas()">💰 Vendas</div><div class="chip active">🤝 Comissões</div></div>
-    <div class="kpi-grid cols3"><div class="kpi c-primary"><div class="lbl">Total de comissões</div><div class="val">${fmtMoneyShort(tot)}</div></div><div class="kpi c-green"><div class="lbl">Pagas</div><div class="val">${fmtMoneyShort(pago)}</div></div><div class="kpi c-amber"><div class="lbl">A pagar</div><div class="val">${fmtMoneyShort(tot - pago)}</div></div></div>
+    <div class="subtabs"><div class="chip" onclick="state.filters.avendas.sub='vendas';renderAVendas()">Vendas</div><div class="chip active">Comissões</div></div>
+    <div class="kpi-grid cols3"><div class="kpi c-primary"><div class="lbl">Total de comissões</div><div class="val">${fmtMoneyShort(tot)}</div></div><div class="kpi c-green"><div class="lbl">Pagas</div><div class="val">${fmtMoneyShort(pago)}</div></div><div class="kpi c-amber"><div class="lbl">A pagar</div><div class="val">${fmtMoney(tot - pago)}</div></div></div>
     <div class="card"><h3>Por corretor</h3><div class="table-wrap"><table class="tbl"><thead><tr><th>Corretor</th><th class="num">Vendas</th><th class="num">Comissões</th><th class="num">Pagas</th><th class="num">A pagar</th></tr></thead><tbody>${Object.entries(porCorretor).sort((a, b) => b[1].tot - a[1].tot).map(([k, s]) => `<tr><td>${esc(k)}</td><td class="num">${s.n}</td><td class="num">${fmtMoney(s.tot)}</td><td class="num">${fmtMoney(s.pago)}</td><td class="num"><b>${fmtMoney(s.tot - s.pago)}</b></td></tr>`).join('') || '<tr><td colspan="5" class="muted">Sem vendas.</td></tr>'}</tbody></table></div></div>
     ${vendas.map(x => { const r = vendaResumo(x); return `<div class="item ${x.comissaoPaga ? 'pago' : 'pendente'}" onclick="abrirVendaAdmin('${x.id}')"><div class="info"><div class="title">${esc(x.corretor.nome)} <span class="tiny muted">· ${esc(imovelShort(x))} · ${esc(x.cliente.nome)}</span></div><div class="meta"><span>Venda ${fmtDate(x.dataVenda)} · ${fmtMoney(x.valorTotal)}</span><span>· ${fmtNum(x.comissaoPct, 1)}%</span><span>· cliente já pagou ${fmtMoney(r.pago)}</span>${x.comissaoPaga && x.comissaoData ? `<span>· paga em ${fmtDate(x.comissaoData)}</span>` : ''}</div></div>
-      <div class="side"><div class="value">${fmtMoney(x.comissaoValor)}</div><span class="badge ${x.comissaoPaga ? 'paga' : 'pendente'}">${x.comissaoPaga ? 'Paga' : 'A pagar'}</span><div class="btns" onclick="event.stopPropagation()"><button class="btn-icon ${x.comissaoPaga ? '' : 'ok'}" title="${x.comissaoPaga ? 'Marcar como não paga' : 'Marcar como paga'}" onclick="toggleComissao('${x.id}')">${x.comissaoPaga ? '↩' : '💵'}</button></div></div></div>`; }).join('') || '<div class="empty"><div class="ic">🤝</div><p>Nenhuma comissão.</p></div>'}`;
+      <div class="side"><div class="value">${fmtMoney(x.comissaoValor)}</div><span class="badge ${x.comissaoPaga ? 'paga' : 'pendente'}">${x.comissaoPaga ? 'Paga' : 'A pagar'}</span><div class="btns" onclick="event.stopPropagation()"><button class="btn-icon ${x.comissaoPaga ? '' : 'ok'}" title="${x.comissaoPaga ? 'Marcar como não paga' : 'Marcar como paga'}" onclick="toggleComissao('${x.id}')">${x.comissaoPaga ? '<i class=ico data-i=arrow-u-up-left></i>' : '<i class=ico data-i=money></i>'}</button></div></div></div>`; }).join('') || '<div class="empty"><div class="ic"><i class=ico data-i=handshake></i></div><p>Nenhuma comissão.</p></div>'}`;
 }
 function toggleComissao(id) {
   const x = getVenda(id); if (!x) return;
@@ -332,24 +332,33 @@ function drawFluxoChart(cv, recs, custos) {
   const rIn = months.map(m => recs.filter(r => monthKey(r.vencimento) === m).reduce((s, r) => s + recValor(r), 0));
   const cOut = months.map(m => custos.filter(c => monthKey(c.vencimento || c.dataCompetencia) === m).reduce((s, c) => s + num(c.valor), 0));
   const max = Math.max(...rIn, ...cOut, 1);
-  const padL = 8, padB = 22, padT = 14; const cw = w - padL * 2, ch = h - padB - padT; const gw = cw / months.length; const bw = gw * 0.34;
+  const padL = 56, padR = 8, padB = 22, padT = 14; const cw = w - padL - padR, ch = h - padB - padT; const gw = cw / months.length; const bw = gw * 0.34;
   ctx.clearRect(0, 0, w, h);
-  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
-  [0.25, 0.5, 0.75, 1].forEach(p => { const y = padT + ch - ch * p; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padL, y); ctx.stroke(); });
+  eixoValores(ctx, w, padL, padR, padT, ch, max);
   const narrow = gw < 46, showVals = gw >= 64;
   months.forEach((m, i) => {
     const x = padL + i * gw + gw / 2;
     const h1 = rIn[i] / max * ch, h2 = cOut[i] / max * ch;
     ctx.fillStyle = m === monthKey(todayStr()) ? '#1d4ed8' : '#60a5fa'; ctx.fillRect(x - bw - 1, padT + ch - h1, bw, h1);
     ctx.fillStyle = m === monthKey(todayStr()) ? '#ea580c' : '#fdba74'; ctx.fillRect(x + 1, padT + ch - h2, bw, h2);
-    ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#6b6a65'; ctx.font = (m === monthKey(todayStr()) ? '600 ' : '') + '11px Geist, system-ui'; ctx.textAlign = 'center';
     if (!narrow || i % 2 === 0) ctx.fillText(monthLabel(m), x, h - 6);
     if (showVals) {
-      ctx.fillStyle = '#334155'; ctx.font = '9px system-ui';
+      ctx.fillStyle = '#3a3d40'; ctx.font = '10px Geist, system-ui';
       if (h1 >= 14) ctx.fillText(fmtMoneyShort(rIn[i]).replace('R$ ', ''), x - bw / 2 - 1, padT + ch - h1 - 3);
       if (h2 >= 14) ctx.fillText(fmtMoneyShort(cOut[i]).replace('R$ ', ''), x + bw / 2 + 1, padT + ch - h2 - 3);
     }
   });
+}
+/* Linhas de grade com o valor de cada uma à esquerda: o gráfico precisa dizer quanto é. */
+function eixoValores(ctx, w, padL, padR, padT, ch, max) {
+  ctx.strokeStyle = '#e8e7e3'; ctx.lineWidth = 1; ctx.fillStyle = '#6b6a65'; ctx.font = '11px Geist, system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 0.25, 0.5, 0.75, 1].forEach(p => {
+    const y = Math.round(padT + ch - ch * p) + 0.5;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    const v = max * p; ctx.fillText(v >= 1e6 ? fmtNum(v / 1e6, 1) + ' mi' : v >= 1e3 ? fmtNum(v / 1e3, 0) + ' mil' : fmtNum(v, 0), padL - 8, y);
+  });
+  ctx.textBaseline = 'alphabetic';
 }
 /* Recebido × inadimplência. Cores conferidas no validador de paleta, inclusive para quem
    não distingue vermelho de verde: azul, vermelho e amarelo. O amarelo tem pouco contraste
@@ -357,12 +366,11 @@ function drawFluxoChart(cv, recs, custos) {
 const COR_RECEBIDO = '#2a78d6', COR_ATRASO = '#d03b3b', COR_A_VENCER = '#eda100';
 function drawRecebimentosChart(cv, tip, serie) {
   if (!cv) return; const { ctx, w, h } = setupCanvas(cv);
-  const padL = 8, padB = 22, padT = 16; const cw = w - padL * 2, ch = h - padB - padT; const gw = cw / serie.length;
+  const padL = 56, padR = 8, padB = 22, padT = 18; const cw = w - padL - padR, ch = h - padB - padT; const gw = cw / serie.length;
   const bw = Math.min(24, gw * 0.56);   // barra fina: no máximo 24 px, o resto do espaço é respiro
   const max = Math.max(...serie.map(x => x.devido), 1);
   ctx.clearRect(0, 0, w, h);
-  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
-  [0.25, 0.5, 0.75, 1].forEach(p => { const y = Math.round(padT + ch - ch * p) + 0.5; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padL, y); ctx.stroke(); });
+  eixoValores(ctx, w, padL, padR, padT, ch, max);
   const narrow = gw < 46;
   serie.forEach((x, i) => {
     const cx = padL + i * gw + gw / 2; let base = padT + ch;
@@ -383,15 +391,19 @@ function drawRecebimentosChart(cv, tip, serie) {
       ctx.lineTo(cx + bw / 2, y + altura); ctx.closePath(); ctx.fill();
       base -= hh;
     });
-    ctx.fillStyle = x.mes === mesAtual() ? '#0f172a' : '#64748b'; ctx.font = (x.mes === mesAtual() ? 'bold ' : '') + '10px system-ui'; ctx.textAlign = 'center';
+    ctx.fillStyle = x.mes === mesAtual() ? '#15181b' : '#6b6a65'; ctx.font = (x.mes === mesAtual() ? '600 ' : '') + '11px Geist, system-ui'; ctx.textAlign = 'center';
     if (!narrow || (serie.length - 1 - i) % 2 === 0) ctx.fillText(monthLabel(x.mes), cx, h - 6);
   });
   /* Só o mês com a maior inadimplência leva o número em cima; o resto fica na dica e na tabela. */
   const pior = serie.reduce((a, x, i) => (x.pct > (serie[a] || {}).pct ? i : a), 0);
   if (serie[pior] && serie[pior].pct >= 0.5) {
     const x = serie[pior], cx = padL + pior * gw + gw / 2, topoY = padT + ch - x.devido / max * ch;
-    ctx.fillStyle = '#334155'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText(fmtNum(x.pct, 0) + '% atraso', cx, Math.max(10, topoY - 4));
+    /* Etiqueta com fundo branco, para não se misturar com as barras vizinhas */
+    const txt = fmtNum(x.pct, 0) + '% atraso'; ctx.font = '600 11px Geist, system-ui'; ctx.textAlign = 'center';
+    const tw = ctx.measureText(txt).width + 10, ty = Math.max(2, topoY - 20), tx = Math.min(w - padR - tw / 2, Math.max(padL + tw / 2, cx));
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#e8e7e3'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(Math.round(tx - tw / 2) + 0.5, Math.round(ty) + 0.5, Math.round(tw), 16); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = COR_ATRASO; ctx.fillText(txt, tx, ty + 12);
   }
   if (!tip) return;
   const mostrar = ev => {

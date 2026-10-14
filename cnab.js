@@ -345,7 +345,7 @@ function contaAtual() {
 }
 function recDaConta(rec, conta) { const c = contaDoRec(rec); return !!c && !!conta && c.id === conta.id; }
 function avisoSemConta() {
-  openModal({ title: '🏦 Falta a conta de cobrança', body: '<p class="help">Antes de gerar cobranças, cadastre o convênio da empresa em <b>Configurações › 🏦 Contas bancárias</b>: agência, conta, convênio, carteira e as instruções padrão do boleto.</p>', footer: '<button class="btn btn-primary" onclick="closeModal();state.sub.cad=\'banco\';switchTab(\'cadastros\')">Ir para o cadastro</button>' });
+  openModal({ title: 'Falta a conta de cobrança', body: '<p class="help">Antes de gerar cobranças, cadastre o convênio da empresa em <b>Configurações › Contas bancárias</b>: agência, conta, convênio, carteira e as instruções padrão do boleto.</p>', footer: '<button class="btn btn-primary" onclick="closeModal();state.sub.cad=\'banco\';switchTab(\'cadastros\')">Ir para o cadastro</button>' });
 }
 
 // ================================================================ TELA: GERAR COBRANÇAS DO MÊS
@@ -370,7 +370,7 @@ function abrirGerarCobrancas(mes, contaId) {
   const multiEmp = new Set(prontas.map(r => r.loteamentoId)).size > 1;
 
   openModal({
-    title: '🧾 Gerar cobranças', wide: true,
+    title: 'Gerar cobranças', wide: true,
     body: `<div class="subtabs" style="justify-content:center"><div class="chip" onclick="abrirGerarCobrancas('${mesAnterior(m)}')">‹ ${monthLabel(mesAnterior(m))}</div><div class="chip active">${monthLabel(m)}</div><div class="chip" onclick="abrirGerarCobrancas('${mesSeguinte(m)}')">${monthLabel(mesSeguinte(m))} ›</div></div>
       ${contas.length > 1 ? `<div class="fg"><label>Conta de cobrança</label>
         <select onchange="abrirGerarCobrancas('${m}', this.value)">${contas.map(c => `<option value="${esc(c.id)}" ${conta.id === c.id ? 'selected' : ''}>${esc(contaLabel(c))}</option>`).join('')}</select>
@@ -381,7 +381,7 @@ function abrirGerarCobrancas(mes, contaId) {
         <div class="kpi c-blue"><div class="lbl">Já geradas em ${monthLabel(m)}</div><div class="val">${geradas.length}</div><div class="sub">registradas no banco</div></div>
         <div class="kpi c-amber"><div class="lbl">Prontas para gerar</div><div class="val">${prontas.length}</div><div class="sub">${fmtMoney(total)}</div></div>
       </div>
-      ${Object.keys(semIndice).length ? `<div class="card"><h3>⏳ Contratos esperando índice</h3>
+      ${Object.keys(semIndice).length ? `<div class="card"><h3>Contratos esperando índice</h3>
         <p class="help">Estes contratos sofrem correção mensal e o índice que corrige a parcela de ${monthLabel(m)} ainda não foi lançado. Gerar agora mandaria boleto com valor errado, então eles ficam de fora até você lançar em <b>Financeiro › Índices</b>.</p>
         ${Object.keys(semIndice).map(vid => { const v = getVenda(vid); return `<div class="item"><div class="info"><div class="title">${esc(imovelLabel(v))} · ${esc(v.cliente.nome || '')}</div><div class="meta"><span>${esc(semIndice[vid])}</span></div></div></div>`; }).join('')}</div>` : ''}
       ${pend.length ? `<div class="alert warn" style="cursor:default"><span><b>${pend.length} cobrança(s) alterada(s) depois de registrada(s)</b> vão junto nesta remessa, para o banco atualizar: ${pend.filter(x => x.acao === 'alterar').length} alteração(ões) e ${pend.filter(x => x.acao === 'baixar').length} baixa(s).</span></div>` : ''}
@@ -390,9 +390,9 @@ function abrirGerarCobrancas(mes, contaId) {
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Cliente</th><th>Imóvel</th>${multiEmp ? '<th>Empreendimento</th>' : ''}<th>Parcela</th><th>Vencimento</th><th class="num">Valor</th></tr></thead><tbody>
         ${prontas.map(r => { const v = getVenda(r.vendaId); return `<tr><td>${esc(v.cliente.nome || '')}</td><td>${esc(imovelShort(v))}</td>${multiEmp ? `<td>${esc((getLoteamento(r.loteamentoId) || {}).nome || '')}</td>` : ''}<td>${esc(r.descricao || '')}</td><td>${fmtDate(r.vencimento)}</td><td class="num">${esc(fmtMoney(recValor(r)))}</td></tr>`; }).join('')}
         </tbody><tfoot><tr><td colspan="${multiEmp ? 5 : 4}">Total</td><td class="num">${esc(fmtMoney(total))}</td></tr></tfoot></table></div></div>`
-        : `<div class="empty"><div class="ic">📭</div><p><b>Nada a gerar em ${monthLabel(m)}</b></p><p class="small">${geradas.length ? 'As cobranças deste mês já foram geradas.' : 'Nenhuma parcela em aberto neste mês nesta conta.'}</p></div>`}`,
+        : `<div class="empty"><div class="ic"><i class=ico data-i=tray></i></div><p><b>Nada a gerar em ${monthLabel(m)}</b></p><p class="small">${geradas.length ? 'As cobranças deste mês já foram geradas.' : 'Nenhuma parcela em aberto neste mês nesta conta.'}</p></div>`}`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
-      ${prontas.length ? `<button class="btn btn-outline" onclick="simularCobrancas('${conta.id}','${m}')">🖨️ Simular</button><button class="btn btn-primary" onclick="gerarCobrancas('${conta.id}','${m}')">Gerar agora</button>` : pend.length ? `<button class="btn btn-primary" onclick="gerarRemessaPendente('${conta.id}')">Gerar remessa das alterações</button>` : ''}`
+      ${prontas.length ? `<button class="btn btn-outline" onclick="simularCobrancas('${conta.id}','${m}')">Simular</button><button class="btn btn-primary" onclick="gerarCobrancas('${conta.id}','${m}')">Gerar agora</button>` : pend.length ? `<button class="btn btn-primary" onclick="gerarRemessaPendente('${conta.id}')">Gerar remessa das alterações</button>` : ''}`
   });
 }
 /* Simulação em PDF: o que sairia se você gerasse agora, agrupado por cliente, como o
@@ -436,7 +436,7 @@ function gerarRemessaPendente(contaId) {
     const comPend = contas.filter(c => pendentesDeRemessa('').some(x => recDaConta(x.r, c)));
     if (!comPend.length) { toast('ℹ️', 'Nada pendente', '', true); return; }
     if (comPend.length === 1) return gerarRemessaPendente(comPend[0].id);
-    openModal({ title: '📤 Remessa de alterações', body: `<p class="help mb">O banco aceita um arquivo por convênio. De qual conta é esta remessa?</p>
+    openModal({ title: 'Remessa de alterações', body: `<p class="help mb">O banco aceita um arquivo por convênio. De qual conta é esta remessa?</p>
       <div class="fg"><label>Conta</label><select id="rpConta">${comPend.map(c => `<option value="${esc(c.id)}">${esc(contaLabel(c))} — ${pendentesDeRemessa('').filter(x => recDaConta(x.r, c)).length} título(s)</option>`).join('')}</select></div>`,
       footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarRemessaPendente(val('rpConta'))">Gerar</button>` });
     return;
@@ -462,7 +462,7 @@ function avisoRemessaHtml(escopo) {
 function abrirRetorno() {
   if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', 'Seu perfil não dá baixa.', true); return; }
   if (!contasComLayout().length) { avisoSemConta(); return; }
-  openModal({ title: '📥 Ler retorno do banco',
+  openModal({ title: 'Ler retorno do banco',
     body: `<p class="help mb">Escolha o arquivo de retorno que você baixou do internet banking. O sistema lê, mostra o que entendeu e só dá baixa depois que você confirmar.</p>
       <div class="fg"><input type="file" id="retArq" accept=".ret,.txt,.RET,.TXT" onchange="lerArquivoRetorno(this)"></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>` });
@@ -496,7 +496,7 @@ function mostrarRetorno() {
       <td>${esc(x.nossoNumero)}</td><td>${esc(x.descricao)}${x.motivo ? ' <span class="muted">(' + esc(x.motivo) + ')</span>' : ''}</td><td>${x.data ? fmtDate(x.data) : '—'}</td>
       <td class="num">${esc(fmtMoney(x.valorPago))}</td></tr>`;
   };
-  openModal({ title: '📥 Retorno · ' + esc(r.nomeArquivo || ''), wide: true,
+  openModal({ title: 'Retorno · ' + esc(r.nomeArquivo || ''), wide: true,
     body: `<p class="help mb">Arquivo de <b>${esc(r.cabecalho.empresa)}</b>, agência ${esc(r.cabecalho.agencia)} conta ${esc(r.cabecalho.conta)}, gerado em ${r.cabecalho.data ? fmtDate(r.cabecalho.data) : '—'}. ${r.itens.length} ocorrência(s).${r.cabecalho.titulosEmSer ? ` Segundo o banco, a carteira tem <b>${r.cabecalho.titulosEmSer} título(s) em ser</b>, somando ${esc(fmtMoney(r.cabecalho.valorEmSer))}.` : ''}</p>
       ${tarifas > 0.005 ? `<div class="alert info" style="cursor:default"><span>O banco cobrou <b>${esc(fmtMoney(tarifas))}</b> de tarifa neste arquivo (${esc(fmtMoney(tarifas / Math.max(1, r.itens.filter(x => x.tarifa > 0).length)))} por título). Isso não sai das parcelas — lance como despesa bancária se quiser acompanhar.</span></div>` : ''}
       ${!r.itens.length ? '<div class="alert info" style="cursor:default"><span>Este arquivo não tem nenhuma ocorrência: só cabeçalho e rodapé. É o retorno de um dia sem movimento.</span></div>' : ''}
@@ -505,12 +505,12 @@ function mostrarRetorno() {
       ${r.itens.length && !baixar.length ? '<div class="alert info" style="cursor:default"><span>Nenhuma liquidação nova para dar baixa. As demais ocorrências são informativas.</span></div>' : ''}
       ${r.itens.filter(x => x.efeito !== 'liquidada').length ? `<div class="card"><h3>Outras ocorrências</h3>
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Parcela</th><th>Nosso número</th><th>Ocorrência</th><th>Data</th><th class="num">Valor</th></tr></thead><tbody>${r.itens.filter(x => x.efeito !== 'liquidada').map(linha).join('')}</tbody></table></div></div>` : ''}
-      ${recusados.length ? `<div class="card"><h3>🚫 ${recusados.length} título(s) recusado(s) pelo banco</h3>
+      ${recusados.length ? `<div class="card"><h3>${recusados.length} título(s) recusado(s) pelo banco</h3>
         <p class="help">Estes títulos não foram registrados — motivo mais comum é nosso número já usado no convênio. Ao confirmar, eles voltam a ficar sem registro e saem na próxima remessa com um número novo.</p>
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Parcela</th><th>Nosso número</th><th>Motivo</th></tr></thead><tbody>
         ${recusados.map(x => { const v = getVenda(x.rec.vendaId); return `<tr><td>${esc(v ? imovelLabel(v) : '')} · ${esc(x.rec.descricao || '')}</td><td>${esc(x.nossoNumero)}</td><td>${esc(x.motivo || '—')}</td></tr>`; }).join('')}
         </tbody></table></div></div>` : ''}
-      ${r.avisos.length ? `<div class="card"><h3>⚠️ Confira antes</h3>${r.avisos.slice(0, 20).map(a => `<p class="help">${esc(a)}</p>`).join('')}</div>` : ''}`,
+      ${r.avisos.length ? `<div class="card"><h3>Confira antes</h3>${r.avisos.slice(0, 20).map(a => `<p class="help">${esc(a)}</p>`).join('')}</div>` : ''}`,
     footer: baixar.length || recusados.length ? `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="aplicarRetorno()">${baixar.length ? 'Dar baixa em ' + baixar.length + ' parcela(s)' : ''}${baixar.length && recusados.length ? ' e liberar ' : ''}${!baixar.length && recusados.length ? 'Liberar ' + recusados.length + ' recusado(s)' : recusados.length ? recusados.length + ' recusado(s)' : ''}</button>`
       : `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>` });
 }
@@ -570,7 +570,7 @@ function renderBoletos() {
   const contas = contasComLayout();
   const irContas = `state.sub.cad='banco';switchTab('cadastros')`;
   if (!contas.length) {
-    el.innerHTML = `<div class="empty"><div class="ic">🏦</div><p><b>Nenhuma conta de cobrança cadastrada</b></p>
+    el.innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=bank></i></div><p><b>Nenhuma conta de cobrança cadastrada</b></p>
       <p class="small">Cadastre agência, conta, convênio e carteira para gerar boletos e ler o retorno do banco.</p>
       ${pode('config.editar') ? `<button class="btn btn-primary mt" onclick="${irContas}">Cadastrar conta bancária</button>` : ''}</div>`;
     return;
@@ -591,10 +591,10 @@ function renderBoletos() {
     <div class="card"><h3>Cobranças do mês</h3>
       <p class="help mb">Numera o nosso número de cada parcela, gera o arquivo de remessa e marca como registrada. Você confere antes de gerar.</p>
       <div class="btn-row">
-        ${podeBaixar ? `<button class="btn btn-primary" onclick="abrirGerarCobrancas()">🧾 Gerar cobranças do mês</button>
-        <button class="btn btn-outline" onclick="abrirRetorno()">📥 Ler retorno do banco</button>` : '<p class="help">Seu perfil só consulta. Gerar cobranças e dar baixa pelo retorno dependem da permissão de baixa.</p>'}
-        ${travadas.length && pode('indices.editar') ? `<button class="btn btn-secondary" onclick="switchTab('indices')">📈 Lançar índices</button>` : ''}
+        ${podeBaixar ? `<button class="btn btn-primary" onclick="abrirGerarCobrancas()">Gerar cobranças do mês</button>
+        <button class="btn btn-outline" onclick="abrirRetorno()">Ler retorno do banco</button>` : '<p class="help">Seu perfil só consulta. Gerar cobranças e dar baixa pelo retorno dependem da permissão de baixa.</p>'}
+        ${travadas.length && pode('indices.editar') ? `<button class="btn btn-secondary" onclick="switchTab('indices')">Lançar índices</button>` : ''}
       </div></div>
-    ${contas.map(c => `<div class="card"><h3>🏦 ${esc(contaLabel(c))}</h3>${cadRemessasHtml(c.id)}</div>`).join('')}
+    ${contas.map(c => `<div class="card"><h3>${esc(contaLabel(c))}</h3>${cadRemessasHtml(c.id)}</div>`).join('')}
     ${pode('config.editar') ? `<p class="help"><a href="#" onclick="${irContas};return false">Contas bancárias e instruções do boleto ›</a></p>` : ''}`;
 }

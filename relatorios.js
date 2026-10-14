@@ -3,13 +3,13 @@
 'use strict';
 
 const RELATORIOS = [
-  ['resumo', '📊 Resumo gerencial'],
-  ['espelho', '🗺️ Espelho de vendas'],
-  ['vendas', '💰 Vendas'],
-  ['receber', '📆 Contas a receber'],
-  ['inadimplencia', '🔔 Inadimplência'],
-  ['comissoes', '🧑‍💼 Comissões'],
-  ['despesas', '🧾 Despesas']
+  ['resumo', 'Resumo gerencial'],
+  ['espelho', 'Espelho de vendas'],
+  ['vendas', 'Vendas'],
+  ['receber', 'Contas a receber'],
+  ['inadimplencia', 'Inadimplência'],
+  ['comissoes', 'Comissões'],
+  ['despesas', 'Despesas']
 ];
 
 function relState() {
@@ -43,8 +43,8 @@ function renderRelatorios() {
         <div class="fg"><label>Até</label><input type="date" value="${f.ate}" onchange="relSet('ate',this.value)"></div></div>
       <div class="chips" style="margin-top:6px">${[['mes', 'Este mês'], ['anterior', 'Mês passado'], ['ano', 'Este ano'], ['anoAnterior', 'Ano passado'], ['tudo', 'Tudo']].map(([k, l]) => `<div class="chip" onclick="relPeriodo('${k}')">${l}</div>`).join('')}</div>
       ${rel.filtros || ''}
-      <div class="btn-row mt"><button class="btn btn-secondary btn-sm" onclick="imprimirRelatorio()">🖨️ Imprimir / PDF</button>
-        <button class="btn btn-secondary btn-sm" onclick="exportarRelatorioCSV()">⬇️ CSV</button></div>
+      <div class="btn-row mt"><button class="btn btn-secondary btn-sm" onclick="imprimirRelatorio()">Imprimir / PDF</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportarRelatorioCSV()">CSV</button></div>
     </div>
     ${rel.kpis || ''}
     ${rel.html}`;
@@ -52,7 +52,7 @@ function renderRelatorios() {
 }
 
 function relTabela(cols, linhas, rodape) {
-  if (!linhas.length) return `<div class="empty"><div class="ic">📄</div><p>Nada encontrado neste período.</p></div>`;
+  if (!linhas.length) return `<div class="empty"><div class="ic"><i class=ico data-i=file-text></i></div><p>Nada encontrado neste período.</p></div>`;
   return `<div class="card" style="padding:10px"><div class="table-wrap"><table class="tbl">
     <thead><tr>${cols.map(c => `<th${c.num ? ' class="num"' : ''}>${esc(c.t)}</th>`).join('')}</tr></thead>
     <tbody>${linhas.map(l => l.grupo
@@ -359,7 +359,7 @@ function orcamentoHtml(escopo, lista) {
   const cats = db.categorias.filter(c => num(orc[c.id]) > 0 || lista.some(x => x.categoriaId === c.id));
   if (!cats.length) return '';
   const todos = custosDo(escopo);
-  return `<div class="card"><h3>📋 Orçado × realizado por categoria</h3>
+  return `<div class="card"><h3>Orçado × realizado por categoria</h3>
     <div class="table-wrap"><table class="tbl"><thead><tr><th>Categoria</th><th class="num">Orçado</th><th class="num">Realizado (total)</th><th class="num">No período</th><th class="num">Saldo</th></tr></thead>
     <tbody>${cats.map(c => {
       const orcado = num(orc[c.id]);

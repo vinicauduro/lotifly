@@ -47,7 +47,7 @@ async function numerarContratosAntigos() {
 /* Contrato antigo que já tinha número no papel: dá para corrigir à mão. */
 function editarNumeroContrato(id) {
   const v = getVenda(id); if (!v) return;
-  openModal({ title: '🔢 Número do contrato',
+  openModal({ title: 'Número do contrato',
     body: `<div class="fg"><label>Número</label><input type="text" id="ncNumero" value="${esc(v.numeroContrato || '')}" placeholder="0041/${anoDoContrato(v)}">
       <div class="hint">No formato número/ano, como 41/${anoDoContrato(v)} ou 0041/${anoDoContrato(v)}. Os próximos contratos continuam a partir do maior número do ano.</div></div>`,
     footer: `<button class="btn btn-secondary" onclick="abrirContrato('${v.id}')">Cancelar</button><button class="btn btn-primary" onclick="salvarNumeroContrato('${v.id}')">Salvar</button>` });
@@ -82,7 +82,7 @@ function voltarDoContrato() {
   const de = state.contratoDe && state.contratoDe !== 'contrato' ? state.contratoDe : 'vendas';
   state.contratoId = null; switchTab(de);
 }
-const ABAS_CONTRATO = [['resumo', '📋 Resumo'], ['partes', '🧑‍🤝‍🧑 Partes'], ['parcelas', '📆 Parcelas'], ['documentos', '📄 Documentos'], ['historico', '🕘 Histórico']];
+const ABAS_CONTRATO = [['resumo', 'Resumo'], ['partes', 'Partes'], ['parcelas', 'Parcelas'], ['documentos', 'Documentos'], ['historico', 'Histórico']];
 function renderContrato() {
   const el = $('#av-contrato'); if (!el) return;
   $$('#screen-admin .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'vendas'));
@@ -95,26 +95,26 @@ function renderContrato() {
   const de = state.contratoDe && state.contratoDe !== 'contrato' ? state.contratoDe : 'vendas';
   const voltarRot = { vendas: 'Todos os contratos', clientes: 'Clientes', recebiveis: 'A receber', cobranca: 'Cobrança', emp: 'Imóveis', painel: 'Início' }[de] || 'Voltar';
   const acoes = [
-    pode('vendas.editar') ? `<button class="btn btn-secondary btn-sm" onclick="abrirVendaForm('${x.id}')">✏️ Editar</button>` : '',
-    x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="btn btn-success btn-sm" onclick="abrirAntecipacao('${x.id}')">💸 Antecipar / quitar</button>` : '',
-    `<button class="btn btn-outline btn-sm" onclick="gerarContratoVenda('${x.id}')">📄 Contrato</button>`,
-    `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">🖨️ Extrato</button>`,
-    c.telefone ? `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">💬 Enviar resumo</a>` : '',
-    pode('vendas.distrato') ? `<button class="btn btn-outline-danger btn-sm" onclick="excluirVenda('${x.id}')">🗑️ Excluir</button>` : ''
+    pode('vendas.editar') ? `<button class="btn btn-secondary btn-sm" onclick="abrirVendaForm('${x.id}')">Editar</button>` : '',
+    x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="btn btn-success btn-sm" onclick="abrirAntecipacao('${x.id}')">Antecipar / quitar</button>` : '',
+    `<button class="btn btn-outline btn-sm" onclick="gerarContratoVenda('${x.id}')">Contrato</button>`,
+    `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">Extrato</button>`,
+    c.telefone ? `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">Enviar resumo</a>` : '',
+    pode('vendas.distrato') ? `<button class="btn btn-outline-danger btn-sm" onclick="excluirVenda('${x.id}')">Excluir</button>` : ''
   ].filter(Boolean).join('');
   el.innerHTML = `
     <div class="row-between mb" style="gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="voltarDoContrato()">‹ ${esc(voltarRot)}</button><div class="ct-acoes">${acoes}</div></div>
     <div class="card ct-cab">
       <div class="ct-num">${x.numeroContrato ? `Contrato <b>Nº ${esc(x.numeroContrato)}</b>` : '<span class="muted">Contrato sem número</span>'}
-        ${pode('vendas.editar') ? `<button class="btn-icon" title="${x.numeroContrato ? 'Alterar o número' : 'Dar número'}" onclick="${x.numeroContrato ? `editarNumeroContrato('${x.id}')` : `numerarVenda('${x.id}')`}">${x.numeroContrato ? '✏️' : '🔢'}</button>` : ''}
+        ${pode('vendas.editar') ? `<button class="btn-icon" title="${x.numeroContrato ? 'Alterar o número' : 'Dar número'}" onclick="${x.numeroContrato ? `editarNumeroContrato('${x.id}')` : `numerarVenda('${x.id}')`}">${x.numeroContrato ? '<i class=ico data-i=pencil-simple></i>' : '<i class=ico data-i=hash></i>'}</button>` : ''}
         <span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${statusLabel(x.status)}</span></div>
       <h2 class="ct-titulo">${esc(imovelLabel(x))}${lot ? ` <span class="muted">· ${esc(lot.nome)}</span>` : ''}</h2>
-      <div class="meta"><span>🧑 ${esc(c.nome || '')}${extras ? ` e mais ${extras}` : ''}</span><span>· 📅 ${fmtDate(x.dataVenda)}</span><span>· ${x.nParcelas ? `${x.nParcelas}× ${fmtMoney(x.valorParcela)}` : 'à vista'}</span></div>
+      <div class="meta"><span>${esc(c.nome || '')}${extras ? ` e mais ${extras}` : ''}</span><span>· ${fmtDate(x.dataVenda)}</span><span>· ${x.nParcelas ? `${x.nParcelas}× ${fmtMoney(x.valorParcela)}` : 'à vista'}</span></div>
       <div class="kpi-grid ct-kpis">
-        <div class="kpi c-primary"><div class="lbl">Valor do contrato</div><div class="val">${fmtMoneyShort(x.valorTotal)}</div><div class="sub">${r.n} parcela(s) com a entrada</div></div>
-        <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoneyShort(r.pago)}</div><div class="sub">${pct}% · ${r.nPagas}/${r.n} pagas</div></div>
-        <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoneyShort(Math.max(0, r.restante))}</div><div class="sub">${proximaParcelaTxt(x)}</div></div>
-        <div class="kpi ${r.atrasado ? 'c-red' : 'c-green'}"><div class="lbl">Em atraso</div><div class="val">${fmtMoneyShort(r.atrasado)}</div><div class="sub">${r.atrasado ? 'veja em Parcelas' : 'em dia'}</div></div>
+        <div class="kpi c-primary"><div class="lbl">Valor do contrato</div><div class="val">${fmtMoney(x.valorTotal)}</div><div class="sub">${r.n} parcela(s) com a entrada</div></div>
+        <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoney(r.pago)}</div><div class="sub">${pct}% · ${r.nPagas}/${r.n} pagas</div></div>
+        <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(Math.max(0, r.restante))}</div><div class="sub">${proximaParcelaTxt(x)}</div></div>
+        <div class="kpi ${r.atrasado ? 'c-red' : 'c-green'}"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(r.atrasado)}</div><div class="sub">${r.atrasado ? 'veja em Parcelas' : 'em dia'}</div></div>
       </div>
       <div class="progress"><div style="width:${pct}%"></div></div>
     </div>
@@ -146,30 +146,30 @@ function ctPartesHtml(x) {
   const bloco = (titulo, pessoas, comFicha) => `<div class="card"><h3>${titulo}</h3>${pessoas.map(p => {
     const falta = faltaQualificacao(p);
     const ficha = comFicha && typeof clientePorChave === 'function' ? clientePorChave(chaveCliente(p)) : null;
-    return `<div class="ct-parte"><div class="row-between"><b>${esc(p.nome || '')}</b>${ficha ? `<button class="btn btn-secondary btn-sm" style="flex:none" onclick="abrirClienteForm('${esc(ficha.id)}')">👤 Ficha do cliente</button>` : ''}</div>
+    return `<div class="ct-parte"><div class="row-between"><b>${esc(p.nome || '')}</b>${ficha ? `<button class="btn btn-secondary btn-sm" style="flex:none" onclick="abrirClienteForm('${esc(ficha.id)}')">Ficha do cliente</button>` : ''}</div>
       <p class="ct-qualif">${esc(qualificacaoParte(p)) || '<span class="muted">sem qualificação</span>'}</p>
       ${falta.length ? `<div class="tiny" style="color:var(--danger)">Falta para o contrato: ${esc(falta.join(', '))}</div>` : ''}</div>`;
   }).join('') || '<p class="help">Ninguém cadastrado.</p>'}</div>`;
   const k = x.corretor || {};
-  return bloco('🧑‍🤝‍🧑 Comprador' + (todosCompradores(x).length > 1 ? 'es' : ''), todosCompradores(x), true)
-    + bloco('✍️ Vendedor' + (todosVendedores(x).length > 1 ? 'es' : ''), todosVendedores(x), false)
-    + `<div class="card"><h3>🤝 Intermediação</h3>${k.nome && k.nome !== 'Venda direta' ? `<div class="detail-grid"><div><div class="k">Corretor</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci || '—')}</div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria || '—')}</div></div><div><div class="k">Telefone</div><div class="v">${esc(fmtPhone(k.telefone)) || '—'}</div></div></div>` : '<p class="help">Venda direta, sem corretor.</p>'}
-      ${pode('vendas.editar') ? `<p class="help mt">Para mudar as partes, use <b>✏️ Editar</b> no topo.</p>` : ''}</div>`;
+  return bloco('Comprador' + (todosCompradores(x).length > 1 ? 'es' : ''), todosCompradores(x), true)
+    + bloco('Vendedor' + (todosVendedores(x).length > 1 ? 'es' : ''), todosVendedores(x), false)
+    + `<div class="card"><h3>Intermediação</h3>${k.nome && k.nome !== 'Venda direta' ? `<div class="detail-grid"><div><div class="k">Corretor</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci || '—')}</div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria || '—')}</div></div><div><div class="k">Telefone</div><div class="v">${esc(fmtPhone(k.telefone)) || '—'}</div></div></div>` : '<p class="help">Venda direta, sem corretor.</p>'}
+      ${pode('vendas.editar') ? `<p class="help mt">Para mudar as partes, use <b>Editar</b> no topo.</p>` : ''}</div>`;
 }
 function ctParcelasHtml(x) {
   const recs = recebiveisDe(x.id); const r = vendaResumo(x);
-  return `<div class="card"><div class="table-wrap"><table class="tbl"><thead><tr><th>Parcela</th><th>Venc.</th><th class="num">Valor</th><th class="num">Pago</th><th>Status</th><th></th></tr></thead>
-    <tbody>${recs.map(rc => { const st = recStatus(rc); return `<tr><td>${esc(rc.descricao)}</td><td>${fmtDate(rc.vencimento)}</td><td class="num">${fmtMoney(recValor(rc))}${recCorrecao(rc) > 0.005 ? `<br><span class="tiny muted">base ${fmtMoney(rc.valor)}</span>` : ''}</td><td class="num">${rc.valorPago ? fmtMoney(rc.valorPago) + (rc.dataPagamento ? `<br><span class="tiny muted">${fmtDate(rc.dataPagamento)}</span>` : '') : '—'}</td><td><span class="badge ${st}">${statusLabel(st)}</span>${st === 'atrasado' ? `<br><span class="tiny" style="color:var(--danger)">atual. ${fmtMoney(recAtualizado(rc))}</span>` : ''}</td><td class="ct-acoes-linha">${x.status !== 'distrato' ? (!pode('financeiro.baixar') ? '' : st === 'pago' ? `<button class="btn-icon" title="Estornar" onclick="estornarPagamento('${rc.id}','${x.id}')">↩</button>` : `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${rc.id}','${x.id}')">💵</button>`) : ''} ${num(rc.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${rc.id}')">🧾</button> ` : ''}<button class="btn-icon" title="Boleto" onclick="abrirBoleto('${rc.id}')">🏦</button> <button class="btn-icon" title="Editar parcela" onclick="editarRecebivel('${rc.id}','${x.id}')">✏️</button></td></tr>`; }).join('')}</tbody>
+  return `<div class="card"><div class="table-wrap"><table class="tbl tbl-parcelas"><thead><tr><th>Parcela</th><th>Venc.</th><th class="num">Valor</th><th class="num">Pago</th><th>Status</th><th><span class="sr-only">Ações</span></th></tr></thead>
+    <tbody>${recs.map(rc => { const st = recStatus(rc); return `<tr><td>${esc(rc.descricao)}</td><td>${fmtDate(rc.vencimento)}</td><td class="num">${fmtMoney(recValor(rc))}${recCorrecao(rc) > 0.005 ? `<br><span class="tiny muted">base ${fmtMoney(rc.valor)}</span>` : ''}</td><td class="num">${rc.valorPago ? fmtMoney(rc.valorPago) + (rc.dataPagamento ? `<br><span class="tiny muted">${fmtDate(rc.dataPagamento)}</span>` : '') : '—'}</td><td><span class="badge ${st}">${statusLabel(st)}</span>${st === 'atrasado' ? `<br><span class="tiny" style="color:var(--danger)">atual. ${fmtMoney(recAtualizado(rc))}</span>` : ''}</td><td class="ct-acoes-linha">${x.status !== 'distrato' ? (!pode('financeiro.baixar') ? '' : st === 'pago' ? `<button class="btn-icon" title="Estornar" onclick="estornarPagamento('${rc.id}','${x.id}')"><i class=ico data-i=arrow-u-up-left></i></button>` : `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${rc.id}','${x.id}')"><i class=ico data-i=money></i></button>`) : ''} ${num(rc.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${rc.id}')"><i class=ico data-i=receipt></i></button> ` : ''}<button class="btn-icon" title="Boleto" onclick="abrirBoleto('${rc.id}')"><i class=ico data-i=bank></i></button> <button class="btn-icon" title="Editar parcela" onclick="editarRecebivel('${rc.id}','${x.id}')"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
     <tfoot><tr><td colspan="2">Total</td><td class="num">${fmtMoney(r.total)}</td><td class="num">${fmtMoney(r.pago)}</td><td colspan="2"></td></tr></tfoot></table></div></div>`;
 }
 function ctDocumentosHtml(x) {
   const c = x.cliente || {};
   const linha = (ic, titulo, desc, botao) => `<div class="item" style="cursor:default"><div class="info"><div class="title">${ic} ${titulo}</div><div class="meta"><span>${desc}</span></div></div><div class="side">${botao}</div></div>`;
   return `<div class="card">
-    ${linha('📄', 'Contrato de compra e venda', `Pelo modelo da empresa, com a qualificação das partes${x.numeroContrato ? ` e o número ${esc(x.numeroContrato)}` : ''}. Dá para conferir e corrigir antes de imprimir.`, `<button class="btn btn-primary btn-sm" onclick="gerarContratoVenda('${x.id}')">Gerar</button>`)}
-    ${linha('🖨️', 'Extrato do contrato', 'Todas as parcelas, o que foi pago e o que falta.', `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">Imprimir</button>`)}
-    ${c.telefone ? linha('💬', 'Resumo por WhatsApp', `Para ${esc(c.nome || '')}, com o saldo e a próxima parcela.`, `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">Enviar</a>`) : ''}
-    ${linha('🏦', 'Boletos', 'O boleto de cada parcela abre pela aba Parcelas, no botão 🏦.', `<button class="btn btn-secondary btn-sm" onclick="state.contratoAba='parcelas';renderContrato()">Ver parcelas</button>`)}
+    ${linha('<i class=ico data-i=file-text></i>', 'Contrato de compra e venda', `Pelo modelo da empresa, com a qualificação das partes${x.numeroContrato ? ` e o número ${esc(x.numeroContrato)}` : ''}. Dá para conferir e corrigir antes de imprimir.`, `<button class="btn btn-primary btn-sm" onclick="gerarContratoVenda('${x.id}')">Gerar</button>`)}
+    ${linha('<i class=ico data-i=printer></i>', 'Extrato do contrato', 'Todas as parcelas, o que foi pago e o que falta.', `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">Imprimir</button>`)}
+    ${c.telefone ? linha('<i class=ico data-i=whatsapp-logo></i>', 'Resumo por WhatsApp', `Para ${esc(c.nome || '')}, com o saldo e a próxima parcela.`, `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">Enviar</a>`) : ''}
+    ${linha('<i class=ico data-i=bank></i>', 'Boletos', 'O boleto de cada parcela abre pela aba Parcelas, no botão <i class=ico data-i=bank></i>.', `<button class="btn btn-secondary btn-sm" onclick="state.contratoAba='parcelas';renderContrato()">Ver parcelas</button>`)}
   </div>`;
 }
 /* O histórico é montado do que o sistema guarda com data: a venda, cada pagamento, cada
@@ -178,17 +178,17 @@ function ctDocumentosHtml(x) {
 function eventosDoContrato(x) {
   const ev = [];
   const add = (data, ic, txt) => { if (data) ev.push({ data: String(data), ic, txt }); };
-  add(x.criadoEm || x.dataVenda, '📝', `Contrato registrado: ${fmtMoney(x.valorTotal)} para ${x.cliente.nome}${x.dataVenda ? ` (venda de ${fmtDate(x.dataVenda)})` : ''}`);
+  add(x.criadoEm || x.dataVenda, '<i class=ico data-i=note-pencil></i>', `Contrato registrado: ${fmtMoney(x.valorTotal)} para ${x.cliente.nome}${x.dataVenda ? ` (venda de ${fmtDate(x.dataVenda)})` : ''}`);
   recebiveisDe(x.id).forEach(r => {
-    if (num(r.valorPago) > 0) add(r.dataPagamento, '💵', `${r.descricao} paga: ${fmtMoney(r.valorPago)}${r.forma ? ' · ' + r.forma : ''}`);
-    if (r.remessaEm) add(r.remessaEm, '🏦', `${r.descricao} registrada no banco${r.nossoNumero ? ' (nosso número ' + r.nossoNumero + ')' : ''}`);
+    if (num(r.valorPago) > 0) add(r.dataPagamento, '<i class=ico data-i=money></i>', `${r.descricao} paga: ${fmtMoney(r.valorPago)}${r.forma ? ' · ' + r.forma : ''}`);
+    if (r.remessaEm) add(r.remessaEm, '<i class=ico data-i=bank></i>', `${r.descricao} registrada no banco${r.nossoNumero ? ' (nosso número ' + r.nossoNumero + ')' : ''}`);
   });
-  db.cobrancas.filter(cb => cb.vendaId === x.id).forEach(cb => add(cb.data || cb.criadoEm, '🔔', `Cobrança por ${cb.canal || 'contato'}${cb.dias ? ` com ${cb.dias} dia(s) de atraso` : ''}${cb.obs ? ': ' + cb.obs : ''}`));
-  if (x.comissaoPaga && x.comissaoData) add(x.comissaoData, '🤝', `Comissão paga a ${x.corretor.nome}: ${fmtMoney(x.comissaoValor)}`);
-  if (x.distratoEm) add(x.distratoEm, '↩️', 'Distrato');
+  db.cobrancas.filter(cb => cb.vendaId === x.id).forEach(cb => add(cb.data || cb.criadoEm, '<i class=ico data-i=bell></i>', `Cobrança por ${cb.canal || 'contato'}${cb.dias ? ` com ${cb.dias} dia(s) de atraso` : ''}${cb.obs ? ': ' + cb.obs : ''}`));
+  if (x.comissaoPaga && x.comissaoData) add(x.comissaoData, '<i class=ico data-i=handshake></i>', `Comissão paga a ${x.corretor.nome}: ${fmtMoney(x.comissaoValor)}`);
+  if (x.distratoEm) add(x.distratoEm, '<i class=ico data-i=arrow-u-up-left></i>', 'Distrato');
   const marcas = [imovelLabel(x), x.numeroContrato].filter(Boolean);
   db.log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^Venda registrada/.test(l.msg || ''))
-    .forEach(l => add(l.ts, '🕘', `${l.msg}${l.who ? ' — ' + l.who : ''}`));
+    .forEach(l => add(l.ts, '<i class=ico data-i=clock-counter-clockwise></i>', `${l.msg}${l.who ? ' — ' + l.who : ''}`));
   return ev.sort((a, b) => b.data.localeCompare(a.data));
 }
 function ctHistoricoHtml(x) {

@@ -654,6 +654,43 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7x. Visual novo, minimalista (14/10)
+
+Pedido seu: redesign na direção minimalista, sem mexer em nenhuma função, cálculo ou dado,
+mantendo as cores da marca, com os números financeiros em destaque e tudo padronizado.
+
+**O que mudou**
+- **Fonte Geist** (instalada no app, funciona sem internet) e algarismos de largura fixa nos
+  valores: os R$ ficam alinhados e fáceis de comparar.
+- **Cores**: o azul-marinho da marca segue no topo, no menu e no botão principal. O fundo
+  passou a um cinza claro levemente quente; verde, âmbar e vermelho só onde dizem algo. Todos
+  os textos e botões agora passam no contraste mínimo (eram 219 pontos abaixo; agora nenhum).
+- **Sem emojis na interface**: viraram ícones de traço único (Phosphor) ou saíram dos
+  rótulos. As mensagens de WhatsApp continuam como eram.
+- **Início**: o **Total a receber** é o número grande; ao lado, Em atraso (com a
+  inadimplência dos 12 meses), A receber no mês, A pagar no mês e Vendas. Os cartões mostram o
+  **valor exato** (R$ 498.407,77), não mais "R$ 498,4 mil".
+- **Gráficos** com a escala de valores à esquerda; o rótulo de atraso não fica mais por cima
+  das barras.
+- **Padrão único** de botões (mesma altura e cantos), cartões (borda fina, sem sombra),
+  tabelas (cabeçalho discreto, números à direita) e filtros.
+- **Celular**: na aba Parcelas do contrato, cada parcela vira um bloco com valor, situação e os
+  botões à vista; campos com fonte de 16px (o iPhone não dá mais zoom ao tocar); folga para o
+  entalhe do iPhone no app instalado; o nome do empreendimento não passa mais por cima dos
+  botões do corretor.
+- Nome **Lotifly** na aba do navegador, no ícone da tela inicial e na entrada.
+
+**Achado no caminho, sem mexer:** o gráfico "Custos por categoria" em A pagar já aparecia
+vazio antes — fica para uma correção à parte.
+
+- [ ] Abrir no computador e no celular e ver se o visual agrada.
+- [ ] No iPhone, abrir pelo ícone da tela inicial e conferir o topo (relógio e bateria).
+
+Prints de antes (`diagnostico/`) e depois (`diagnostico/depois/`) de todas as telas estão no
+repositório e no PR.
+
+---
+
 ## 7w. Aviso "1 alteração não chegou à nuvem… falta de permissão" — corrigido (08/10)
 
 O que era: o item parado era um registro do **histórico de atividades**, não um dado seu. O

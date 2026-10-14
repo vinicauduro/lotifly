@@ -10,7 +10,7 @@ const REGUA_PADRAO = [
   { dias: 60, nome: 'Renegociação', texto: '{{cliente}}, seguimos sem retorno sobre o {{lote}}. O débito soma {{valor}}, com {{dias}} dias de atraso. Queremos encontrar uma saída: dá para renegociar prazo ou valor das parcelas. Me responda até sexta para combinarmos.' },
   { dias: 90, nome: 'Notificação', texto: '{{cliente}}, o contrato do {{lote}} está com {{dias}} dias de atraso e débito de {{valor}}. Sem manifestação, o caso será encaminhado para notificação extrajudicial, conforme o contrato. Entre em contato para resolvermos.' }
 ];
-const CANAIS = [['whatsapp', '💬 WhatsApp'], ['ligacao', '📞 Ligação'], ['email', '✉️ E-mail'], ['presencial', '🤝 Pessoalmente'], ['carta', '📬 Carta / notificação']];
+const CANAIS = [['whatsapp', 'WhatsApp'], ['ligacao', 'Ligação'], ['email', 'E-mail'], ['presencial', 'Pessoalmente'], ['carta', 'Carta / notificação']];
 
 function reguaConfig() {
   const r = db.config.regua;
@@ -82,11 +82,11 @@ function renderCobranca() {
       return `<div class="chip ${f.faixa === k ? 'active' : ''}" onclick="state.filters.cob.faixa='${k}';renderCobranca()">${l}<span class="n">${n}</span></div>`;
     }).join('')}</div>
     <div class="filters">
-      <input type="text" placeholder="🔎 Cliente ou imóvel" value="${esc(f.busca)}" oninput="aSetFiltro('cob','busca',this.value,renderCobranca,this)">
-      <button class="btn btn-secondary btn-sm" onclick="state.sub.cad='cobranca';switchTab('cadastros')">⚙️ Régua</button>
-      <button class="btn btn-secondary btn-sm" onclick="exportarInadimplenciaCSV()">⬇️ CSV</button>
+      <input type="text" placeholder="Cliente ou imóvel" value="${esc(f.busca)}" oninput="aSetFiltro('cob','busca',this.value,renderCobranca,this)">
+      <button class="btn btn-secondary btn-sm" onclick="state.sub.cad='cobranca';switchTab('cadastros')">Régua</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportarInadimplenciaCSV()">CSV</button>
     </div>
-    ${lista.length ? lista.map(cobrancaCardHtml).join('') : `<div class="empty"><div class="ic">🎉</div><p>Nenhum contrato em atraso nesta faixa.</p></div>`}`;
+    ${lista.length ? lista.map(cobrancaCardHtml).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=confetti></i></div><p>Nenhum contrato em atraso nesta faixa.</p></div>`}`;
 }
 
 function cobrancaCardHtml(it) {
@@ -104,10 +104,10 @@ function cobrancaCardHtml(it) {
       ? `Última cobrança em ${fmtDate(it.ultima.data)} (${esc((CANAIS.find(x => x[0] === it.ultima.canal) || [, it.ultima.canal])[1])})${it.nCobrancas > 1 ? ` · ${it.nCobrancas} no total` : ''}${it.ultima.obs ? ` — ${esc(it.ultima.obs)}` : ''}`
       : '<b style="color:var(--danger)">Ainda não foi cobrado</b>'}</div>
     <div class="btn-row mt">
-      ${c.telefone ? `<button class="btn btn-wa btn-sm" onclick="abrirCobranca('${it.venda.id}')">💬 Cobrar</button>` : `<button class="btn btn-secondary btn-sm" onclick="abrirCobranca('${it.venda.id}')">🔔 Cobrar</button>`}
-      <button class="btn btn-secondary btn-sm" onclick="abrirVendaAdmin('${it.venda.id}')">📄 Contrato</button>
-      <button class="btn btn-secondary btn-sm" onclick="abrirAntecipacao('${it.venda.id}')">💸 Acordo</button>
-      ${it.nCobrancas ? `<button class="btn btn-secondary btn-sm" onclick="historicoCobranca('${it.venda.id}')">🕘 Histórico</button>` : ''}
+      ${c.telefone ? `<button class="btn btn-wa btn-sm" onclick="abrirCobranca('${it.venda.id}')">Cobrar</button>` : `<button class="btn btn-secondary btn-sm" onclick="abrirCobranca('${it.venda.id}')">Cobrar</button>`}
+      <button class="btn btn-secondary btn-sm" onclick="abrirVendaAdmin('${it.venda.id}')">Contrato</button>
+      <button class="btn btn-secondary btn-sm" onclick="abrirAntecipacao('${it.venda.id}')">Acordo</button>
+      ${it.nCobrancas ? `<button class="btn btn-secondary btn-sm" onclick="historicoCobranca('${it.venda.id}')">Histórico</button>` : ''}
     </div></div>`;
 }
 
@@ -131,7 +131,7 @@ function abrirCobranca(vendaId) {
   const texto = docPreencher(faixa.texto, ctx).replace(/__________/g, '');
   const c = it.venda.cliente;
   openModal({
-    title: '🔔 Cobrar · ' + esc(c.nome),
+    title: 'Cobrar · ' + esc(c.nome),
     wide: true,
     body: `<p class="small mb">${it.parcelas.length} parcela(s) · ${it.dias} dias de atraso · <b>${fmtMoney(it.valor)}</b> com multa e juros</p>
       <div class="frow"><div class="fg"><label>Etapa da régua</label><select id="cbFaixa" onchange="cbTrocaFaixa('${vendaId}')">${reguaConfig().map(f => `<option value="${f.dias}" ${f.dias === faixa.dias ? 'selected' : ''}>${esc(f.nome)} — a partir de ${f.dias} dias</option>`).join('')}</select></div>
@@ -143,7 +143,7 @@ function abrirCobranca(vendaId) {
       <tbody>${it.parcelas.map(r => `<tr><td>${esc(r.descricao)}</td><td>${fmtDate(r.vencimento)}</td><td class="num">${fmtMoney(recRestante(r))}</td><td class="num">${fmtMoney(recAtualizado(r))}</td></tr>`).join('')}</tbody></table></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
       <button class="btn btn-outline" onclick="registrarCobranca('${vendaId}',false)">Só registrar</button>
-      ${c.telefone ? `<button class="btn btn-wa" onclick="registrarCobranca('${vendaId}',true)">💬 Abrir WhatsApp e registrar</button>` : ''}`
+      ${c.telefone ? `<button class="btn btn-wa" onclick="registrarCobranca('${vendaId}',true)">Abrir WhatsApp e registrar</button>` : ''}`
   });
 }
 function cbTrocaFaixa(vendaId) {
@@ -174,12 +174,12 @@ function historicoCobranca(vendaId) {
   const v = getVenda(vendaId); if (!v) return;
   const list = cobrancasDe(vendaId);
   openModal({
-    title: '🕘 Histórico de cobrança',
+    title: 'Histórico de cobrança',
     body: `<p class="small mb"><b>${esc(v.cliente.nome)}</b> · ${list.length} registro(s)</p>
       ${list.map(c => `<div class="card" style="margin-bottom:8px"><div class="row-between"><div><b>${fmtDate(c.data)}</b> · ${esc((CANAIS.find(x => x[0] === c.canal) || [, c.canal])[1])}${c.faixa ? ` · ${esc(c.faixa)}` : ''}</div><span class="tiny muted">${esc(c.quem || '')}</span></div>
         <div class="small mt">${c.dias ? `${c.dias} dias de atraso · ${fmtMoney(c.valor)}` : ''}${c.obs ? `<br>${esc(c.obs)}` : ''}</div>
-        <div class="btn-row mt"><button class="btn btn-outline-danger btn-sm" onclick="excluirCobranca('${c.id}','${vendaId}')">🗑️ Excluir</button></div></div>`).join('') || '<p class="help">Nada registrado.</p>'}`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button><button class="btn btn-primary" onclick="abrirCobranca('${vendaId}')">🔔 Nova cobrança</button>`
+        <div class="btn-row mt"><button class="btn btn-outline-danger btn-sm" onclick="excluirCobranca('${c.id}','${vendaId}')">Excluir</button></div></div>`).join('') || '<p class="help">Nada registrado.</p>'}`,
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button><button class="btn btn-primary" onclick="abrirCobranca('${vendaId}')">Nova cobrança</button>`
   });
 }
 function excluirCobranca(id, vendaId) {
@@ -202,7 +202,7 @@ function exportarInadimplenciaCSV() {
 function cadCobrancaHtml() {
   const r = reguaConfig();
   const salva = Array.isArray(db.config.regua) && db.config.regua.length;
-  return `<div class="card"><h3>🔔 Régua de cobrança</h3>
+  return `<div class="card"><h3>Régua de cobrança</h3>
     <p class="help">Cada etapa tem um texto pronto, escolhido pelos dias de atraso. Na hora de cobrar, o sistema sugere a etapa certa e você ainda pode editar a mensagem.</p>
     <div class="fg"><label>Chave PIX para as mensagens</label><input type="text" id="cgPix" value="${esc(db.config.pix || '')}" placeholder="CNPJ, telefone ou chave aleatória"></div>
     <p class="help">Campos que você pode usar no texto: <b>{{cliente}}</b>, <b>{{primeiroNome}}</b>, <b>{{lote}}</b>, <b>{{loteamento}}</b>, <b>{{parcelas}}</b>, <b>{{dias}}</b>, <b>{{vencimento}}</b>, <b>{{valor}}</b>, <b>{{valorPrincipal}}</b>, <b>{{empresa}}</b>, <b>{{pix}}</b>.</p>
