@@ -283,8 +283,8 @@ function docPreview({ titulo, html, arquivo, whatsTexto }) {
     body: `<p class="help mb">Confira o documento. Você pode <b>clicar no texto e editar</b> qualquer parte antes de imprimir ou salvar em PDF.</p>
       <div class="doc-folha" id="docFolha" contenteditable="true">${html}</div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
-      ${whatsTexto ? `<a class="btn btn-wa" target="_blank" href="${esc(whatsTexto)}">💬 Enviar</a>` : ''}
-      <button class="btn btn-primary" onclick="docImprimir('${esc(arquivo || 'documento')}')">🖨️ Imprimir / salvar PDF</button>`
+      ${whatsTexto ? `<a class="btn btn-wa" target="_blank" href="${esc(whatsTexto)}">Enviar</a>` : ''}
+      <button class="btn btn-primary" onclick="docImprimir('${esc(arquivo || 'documento')}')">Imprimir / salvar PDF</button>`
   });
 }
 function docImprimir(nome) {
@@ -300,7 +300,7 @@ function docImprimir(nome) {
 function docFormLivres(campos, prefixo) {
   if (!campos.length) return '';
   const memo = JSON.parse(localStorage.getItem('gl_doc_livres') || '{}');
-  return `<div class="fieldset"><span class="lg">✏️ Campos do seu modelo</span>
+  return `<div class="fieldset"><span class="lg">Campos do seu modelo</span>
     ${campos.map(k => `<div class="fg"><label>${esc(k.replace(/[._]/g, ' '))}</label><input type="text" id="${prefixo}${k.replace(/\W/g, '_')}" value="${esc(memo[k] || '')}"></div>`).join('')}
     <div class="hint">São as partes marcadas no seu modelo que não vêm do cadastro. Ficam guardadas para a próxima vez.</div></div>`;
 }
@@ -323,24 +323,24 @@ function abrirPropostaForm(loteId) {
   const n = nSim || Math.min(60, Number(cond.maxParcelas) || 60);
   const livres = docCamposLivres(mods[0].corpo);
   openModal({
-    title: '📄 Gerar proposta',
+    title: 'Gerar proposta',
     wide: true,
     body: `<p class="help mb">Preencha os dados do cliente e as condições. A proposta sai em PDF com o modelo da empresa, pronta para enviar e assinar.</p>
       <div class="fg"><label>Lote</label><input type="text" value="${esc(loteLabel(l))} — ${fmtMoney(l.preco)}" readonly></div>
       ${mods.length > 1 ? `<div class="fg"><label>Modelo</label><select id="ppModelo">${mods.map(m => `<option value="${esc(m.id)}">${esc(m.nome)}</option>`).join('')}</select></div>` : ''}
-      <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Cliente</span>
+      <div class="fieldset"><span class="lg">Cliente</span>
         <div class="fg"><label>Nome *</label><input type="text" id="ppNome"></div>
         <div class="frow"><div class="fg"><label>CPF/CNPJ</label><input type="text" id="ppCpf"></div><div class="fg"><label>Telefone *</label><input type="tel" id="ppTel"></div></div>
         <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="ppEmail"></div><div class="fg"><label>Cidade</label><input type="text" id="ppCidade"></div></div>
         <div class="fg"><label>Endereço</label><input type="text" id="ppEnd"></div></div>
-      <div class="fieldset"><span class="lg">💰 Condições</span>
+      <div class="fieldset"><span class="lg">Condições</span>
         <div class="frow"><div class="fg"><label>Valor do lote (R$)</label><input type="number" id="ppTotal" step="0.01" value="${l.preco}" oninput="ppCalc()"></div><div class="fg"><label>Entrada (R$)</label><input type="number" id="ppEntrada" step="0.01" value="${entrada}" oninput="ppCalc()"></div></div>
         <div class="frow3"><div class="fg"><label>Nº parcelas</label><input type="number" id="ppN" min="0" value="${n}" oninput="ppCalc()"></div><div class="fg"><label>Juros (% a.m.)</label><input type="number" id="ppJuros" step="0.01" value="${cond.jurosMes || 0}" oninput="ppCalc()"></div><div class="fg"><label>1º vencimento</label><input type="date" id="ppVenc" value="${addMonths(todayStr(), 1)}"></div></div>
         <div class="fg"><label>Valor da parcela (R$) <span class="tiny muted">— calculado; pode ajustar</span></label><input type="number" id="ppParcela" step="0.01" oninput="window.ppManual=true"></div>
         <div class="frow"><div class="fg"><label>Reforço anual (R$) <span class="tiny muted">opcional</span></label><input type="number" id="ppReforco" step="0.01" value="" oninput="ppCalc()"></div><div class="fg"><label>Validade da proposta</label><input type="date" id="ppValidade" value="${addDays(todayStr(), 5)}"></div></div>
         <div class="sim-result" id="ppResumo"></div></div>
       ${docFormLivres(livres, 'ppL_')}`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarProposta('${l.id}')">📄 Gerar proposta</button>`
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarProposta('${l.id}')">Gerar proposta</button>`
   });
   window.ppManual = false;
   ppCalc();
@@ -389,7 +389,7 @@ function gerarProposta(loteId) {
   const tel = val('ppTel');
   const texto = `Olá ${val('ppNome').split(' ')[0]}! Segue a proposta do ${loteLabel(l)} no ${lot.nome}: ${ctx['pagamento.resumo']}. Qualquer dúvida estou à disposição.`;
   logAct(`Proposta gerada: ${loteLabel(l)} — ${val('ppNome')}`);
-  docPreview({ titulo: '📄 Proposta · ' + loteShort(l), html, arquivo: `Proposta ${loteShort(l)} - ${val('ppNome')}`, whatsTexto: tel ? waLink(tel, texto) : null });
+  docPreview({ titulo: 'Proposta · ' + loteShort(l), html, arquivo: `Proposta ${loteShort(l)} - ${val('ppNome')}`, whatsTexto: tel ? waLink(tel, texto) : null });
 }
 
 // ================================================================ CONTRATO (venda)
@@ -403,19 +403,19 @@ function gerarContratoVenda(vendaId) {
      sair capenga. */
   const falta = [...new Set(todosCompradores(v).flatMap(faltaQualificacao))];
   openModal({
-    title: '📄 Gerar contrato',
+    title: 'Gerar contrato',
     wide: true,
     body: `<p class="help mb">O contrato usa o modelo cadastrado em <b>Configurações › Modelos de documento</b>. O que você completar aqui volta para o cadastro da venda.</p>
       ${mods.length > 1 ? `<div class="fg"><label>Modelo</label><select id="ctModelo">${mods.map(m => `<option value="${esc(m.id)}">${esc(m.nome)}</option>`).join('')}</select></div>` : ''}
       ${falta.length ? `<div class="alert warn" style="cursor:default"><span>Para o contrato sair completo ainda falta <b>${esc(falta.join(', '))}</b>. Complete abaixo.</span></div>` : ''}
-      <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Qualificação do comprador</span>
+      <div class="fieldset"><span class="lg">Qualificação do comprador</span>
         ${pessoasListaHtml('ct', todosCompradores(v), { conjuge: true, rotulo: 'Comprador', rotuloBotao: 'Adicionar comprador' })}
         <label class="check mt"><input type="checkbox" id="ctSalvar" checked> Guardar esses dados no cadastro da venda</label></div>
-      <div class="fieldset"><span class="lg">✍️ Vendedor</span>
+      <div class="fieldset"><span class="lg">Vendedor</span>
         ${vendedoresListaHtml('ctVend', [v.vendedorId || ''].concat((v.vendedoresExtras || []).map(x => x.id || '')))}</div>
       <div class="frow"><div class="fg"><label>Data do contrato</label><input type="date" id="ctData" value="${esc(v.dataVenda || todayStr())}"></div></div>
       ${docFormLivres(livres, 'ctL_')}`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarContratoConfirma('${v.id}')">📄 Gerar contrato</button>`
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarContratoConfirma('${v.id}')">Gerar contrato</button>`
   });
 }
 function gerarContratoConfirma(vendaId) {
@@ -442,20 +442,20 @@ function gerarContratoConfirma(vendaId) {
   });
   const html = docHtml(mod.corpo, ctx);
   logAct(`Contrato gerado: ${l ? loteLabel(l) : ''} — ${v.cliente.nome}`);
-  docPreview({ titulo: '📄 Contrato · ' + (l ? loteShort(l) : ''), html, arquivo: `Contrato ${l ? loteShort(l) : ''} - ${v.cliente.nome}` });
+  docPreview({ titulo: 'Contrato · ' + (l ? loteShort(l) : ''), html, arquivo: `Contrato ${l ? loteShort(l) : ''} - ${v.cliente.nome}` });
 }
 
 // ================================================================ CADASTRO DE MODELOS
 function cadDocumentosHtml() {
   const mods = db.modelos.slice().sort((a, b) => (a.tipo + a.nome).localeCompare(b.tipo + b.nome));
   const lista = mods.length ? mods : modelosPadrao();
-  return `<div class="card"><h3>📄 Modelos de documento</h3>
+  return `<div class="card"><h3>Modelos de documento</h3>
     <p class="help">O texto é seu. Cole aqui a proposta e o contrato que a sua empresa já usa e marque as partes que mudam a cada negócio com os campos do sistema. Na hora de gerar, tudo é preenchido sozinho e você ainda pode editar antes de imprimir.</p>
     ${mods.length ? '' : '<p class="help mt">Você ainda não cadastrou modelos. Os dois abaixo são exemplos prontos: abra, ajuste ao seu texto e salve.</p>'}
-    <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirModeloForm('','proposta')">＋ Modelo de proposta</button><button class="btn btn-secondary" onclick="abrirModeloForm('','contrato')">＋ Modelo de contrato</button></div></div>
+    <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirModeloForm('','proposta')"><i class=ico data-i=plus></i>Modelo de proposta</button><button class="btn btn-secondary" onclick="abrirModeloForm('','contrato')"><i class=ico data-i=plus></i>Modelo de contrato</button></div></div>
     ${lista.map(m => `<div class="card"><div class="row-between">
       <div><b>${esc(m.nome)}</b> <span class="badge ${m.tipo === 'proposta' ? 'pendente' : 'neutral'}">${m.tipo === 'proposta' ? 'Proposta' : 'Contrato'}</span>${db.modelos.find(x => x.id === m.id) ? '' : ' <span class="tiny muted">exemplo</span>'}</div>
-      <div class="btn-row" style="margin:0"><button class="btn btn-secondary btn-sm" onclick="abrirModeloForm('${esc(m.id)}')">✏️ Editar</button>${db.modelos.find(x => x.id === m.id) ? `<button class="btn btn-outline-danger btn-sm" onclick="excluirModelo('${esc(m.id)}')">🗑️</button>` : ''}</div></div>
+      <div class="btn-row" style="margin:0"><button class="btn btn-secondary btn-sm" onclick="abrirModeloForm('${esc(m.id)}')">Editar</button>${db.modelos.find(x => x.id === m.id) ? `<button class="btn btn-outline-danger btn-sm" onclick="excluirModelo('${esc(m.id)}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button>` : ''}</div></div>
       <div class="small muted mt">${esc(docPreencher(m.corpo, {}).replace(/[#*_]/g, '').slice(0, 160))}…</div></div>`).join('')}`;
 }
 
@@ -465,7 +465,7 @@ function abrirModeloForm(id, tipo) {
   const t = rasc ? rasc.tipo : (m ? m.tipo : (tipo || 'contrato'));
   const paleta = DOC_CAMPOS.map(([grupo, itens]) => `<div class="doc-grupo"><b>${esc(grupo)}</b> ${itens.map(([k, rot]) => `<button type="button" class="doc-chip" onclick="modInserir('${k}')" title="${esc(k)}">${esc(rot)}</button>`).join('')}</div>`).join('');
   openModal({
-    title: m ? '✏️ Editar modelo' : (t === 'proposta' ? '＋ Modelo de proposta' : '＋ Modelo de contrato'),
+    title: m ? 'Editar modelo' : (t === 'proposta' ? 'Modelo de proposta' : 'Modelo de contrato'),
     full: true,
     body: `<div class="frow"><div class="fg"><label>Nome do modelo *</label><input type="text" id="mdNome" value="${esc(rasc ? rasc.nome : (m ? m.nome : ''))}" placeholder="${t === 'proposta' ? 'Proposta de compra' : 'Promessa de compra e venda'}"></div>
       <div class="fg"><label>Tipo</label><select id="mdTipo"><option value="proposta" ${t === 'proposta' ? 'selected' : ''}>Proposta (corretor)</option><option value="contrato" ${t === 'contrato' ? 'selected' : ''}>Contrato (venda)</option></select></div></div>
@@ -475,7 +475,7 @@ function abrirModeloForm(id, tipo) {
           <div class="hint">Clique num campo ao lado para inserir no lugar do cursor. Use <b># </b> no começo da linha para título, <b>## </b> para subtítulo e <b>**texto**</b> para negrito. Qualquer campo que você inventar, por exemplo <b>{{foro}}</b>, vira um preenchimento na hora de gerar.</div></div>
         <div class="doc-paleta">${paleta}</div>
       </div>`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-outline" onclick="modTestar()">👁️ Ver exemplo</button><button class="btn btn-primary" onclick="salvarModelo('${esc(id || '')}')">Salvar modelo</button>`
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-outline" onclick="modTestar()">Ver exemplo</button><button class="btn btn-primary" onclick="salvarModelo('${esc(id || '')}')">Salvar modelo</button>`
   });
 }
 function modInserir(campo) {
@@ -504,7 +504,7 @@ function modTestar() {
     extras: {}
   });
   const html = docHtml(corpo, ctx);
-  openModal({ title: '👁️ Exemplo preenchido', wide: true, body: `<p class="help mb">Dados fictícios só para conferir o texto. Os espaços em branco são campos sem valor no cadastro.</p><div class="doc-folha">${html}</div>`, footer: `<button class="btn btn-primary" onclick="abrirModeloForm('${esc(window.__modEditId || '')}')">Voltar ao editor</button>` });
+  openModal({ title: 'Exemplo preenchido', wide: true, body: `<p class="help mb">Dados fictícios só para conferir o texto. Os espaços em branco são campos sem valor no cadastro.</p><div class="doc-folha">${html}</div>`, footer: `<button class="btn btn-primary" onclick="abrirModeloForm('${esc(window.__modEditId || '')}')">Voltar ao editor</button>` });
 }
 function salvarModelo(id) {
   if (!pode('documentos.editar')) { toast('🔒', 'Sem permissão', 'Seu perfil não edita modelos.', true); return; }

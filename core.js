@@ -103,7 +103,10 @@ function toast(icon, title, body, isErr) {
   const c = $('#toastContainer');
   const t = document.createElement('div');
   t.className = 'toast' + (isErr ? ' err' : '');
-  t.innerHTML = `<div class="t">${icon} ${esc(title)}</div>${body ? `<div>${esc(body)}</div>` : ''}`;
+  /* As chamadas passam um emoji; aqui ele vira o ícone do aviso. */
+  const ICONES_TOAST = { '✅': 'check-circle', '⚠️': 'warning', '⛔': 'prohibit', '🔒': 'lock', '🗑️': 'trash', '↩️': 'arrow-u-up-left' };
+  const nomeIco = isErr ? 'warning-circle' : (ICONES_TOAST[icon] || 'info');
+  t.innerHTML = `<div class="t"><i class=ico data-i=${nomeIco}></i><span>${esc(title)}</span></div>${body ? `<div class="b">${esc(body)}</div>` : ''}`;
   c.appendChild(t);
   setTimeout(() => t.remove(), 4200);
 }
@@ -709,17 +712,17 @@ function ehCarteira(lot) { return empTipo(lot) === 'carteira'; }
 /* O imóvel avulso diz o que é. Em ordem alfabética, que é como aparecem no cadastro:
    [chave, nome, ícone, exemplo de descrição]. */
 const CATEGORIAS_IMOVEL = [
-  ['apartamento', 'Apartamento', '🏢', 'Ex.: Apartamento 302 do Ed. Aurora'],
-  ['casa', 'Casa', '🏠', 'Ex.: Casa na Rua das Flores, 120'],
-  ['galpao', 'Galpão', '🏭', 'Ex.: Galpão no Distrito Industrial'],
-  ['lote', 'Lote', '📐', 'Ex.: Lote 15 da Quadra 300'],
-  ['sala', 'Sala comercial', '🏬', 'Ex.: Sala 5 do Centro Empresarial'],
-  ['sitio', 'Sítio', '🌳', 'Ex.: Sítio Boa Vista, Linha Tigre']
+  ['apartamento', 'Apartamento', '<i class=ico data-i=building-office></i>', 'Ex.: Apartamento 302 do Ed. Aurora'],
+  ['casa', 'Casa', '<i class=ico data-i=house></i>', 'Ex.: Casa na Rua das Flores, 120'],
+  ['galpao', 'Galpão', '<i class=ico data-i=warehouse></i>', 'Ex.: Galpão no Distrito Industrial'],
+  ['lote', 'Lote', '<i class=ico data-i=ruler></i>', 'Ex.: Lote 15 da Quadra 300'],
+  ['sala', 'Sala comercial', '<i class=ico data-i=storefront></i>', 'Ex.: Sala 5 do Centro Empresarial'],
+  ['sitio', 'Sítio', '<i class=ico data-i=tree></i>', 'Ex.: Sítio Boa Vista, Linha Tigre']
 ];
 function categoriaImovel(lot) { return CATEGORIAS_IMOVEL.find(c => c[0] === (lot || {}).categoria) || null; }
 /* Imóvel avulso cadastrado antes das categorias aparece só como "Imóvel" até alguém escolher. */
 function empLabel(lot) { if (!ehCarteira(lot)) return 'Empreendimento'; const c = categoriaImovel(lot); return c ? c[1] : 'Imóvel'; }
-function empIcone(lot) { if (!ehCarteira(lot)) return '🏘️'; const c = categoriaImovel(lot); return c ? c[2] : '🏠'; }
+function empIcone(lot) { if (!ehCarteira(lot)) return '<i class=ico data-i=buildings></i>'; const c = categoriaImovel(lot); return c ? c[2] : '<i class=ico data-i=house></i>'; }
 /* O imóvel de terceiro é um só: vendido enquanto tiver contrato que não virou distrato. */
 function vendaAtivaDoImovel(lot) { return lot ? db.vendas.find(v => v.loteamentoId === lot.id && v.status !== 'distrato') : null; }
 /* Os dados do imóvel de terceiro no formato que a venda guarda, para o contrato já nascer
@@ -948,11 +951,11 @@ function pessoasListaHtml(base, lista, opc) {
   window.__pessoasN = window.__pessoasN || {}; window.__pessoasOpc = window.__pessoasOpc || {};
   window.__pessoasN[base] = arr.length; window.__pessoasOpc[base] = opc;
   return `${opc.cadastro && typeof clientesDatalistHtml === 'function' ? clientesDatalistHtml() : ''}<div id="${base}Lista">${arr.map((p, i) => pessoaBlocoHtml(base, p, i, opc)).join('')}</div>
-    <button type="button" class="btn btn-secondary btn-sm" onclick="addPessoa('${base}')">＋ ${esc(opc.rotuloBotao || 'Adicionar')}</button>`;
+    <button type="button" class="btn btn-secondary btn-sm" onclick="addPessoa('${base}')"><i class=ico data-i=plus></i>${esc(opc.rotuloBotao || 'Adicionar')}</button>`;
 }
 function pessoaBlocoHtml(base, p, i, opc) {
   const pre = pfxPessoa(base, i);
-  const cab = i ? `<div class="row-between" style="margin-bottom:6px"><b class="tiny">${esc(opc.rotulo || 'Pessoa')} ${i + 1}</b><button type="button" class="btn-icon del" onclick="delPessoa('${pre}')">🗑</button></div>` : '';
+  const cab = i ? `<div class="row-between" style="margin-bottom:6px"><b class="tiny">${esc(opc.rotulo || 'Pessoa')} ${i + 1}</b><button type="button" class="btn-icon del" onclick="delPessoa('${pre}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div>` : '';
   /* Só o primeiro precisa de telefone: é por ele que o sistema fala com a venda. */
   const o = i ? Object.assign({}, opc, { telObrigatorio: false }) : opc;
   const busca = opc.cadastro && typeof buscaClienteHtml === 'function' ? buscaClienteHtml(base, i) : '';
@@ -1013,12 +1016,12 @@ function vendedoresListaHtml(base, ids) {
   const arr = (ids && ids.length) ? ids : [''];
   window.__vendN = window.__vendN || {}; window.__vendN[base] = arr.length;
   return `<div id="${base}Lista">${arr.map((id, i) => vendedorLinhaHtml(base, id, i)).join('')}</div>
-    <button type="button" class="btn btn-secondary btn-sm" onclick="addVendedorLinha('${base}')">＋ Adicionar vendedor</button>`;
+    <button type="button" class="btn btn-secondary btn-sm" onclick="addVendedorLinha('${base}')"><i class=ico data-i=plus></i>Adicionar vendedor</button>`;
 }
 function vendedorLinhaHtml(base, id, i) {
   const el = pfxPessoa(base, i);
   return `<div class="fg" id="${el}Linha"><label>${i ? 'Vendedor ' + (i + 1) : 'Quem vende neste contrato'}</label>
-    <div class="row-between" style="gap:8px">${vendedorSelectHtml(el, id)}${i ? `<button type="button" class="btn-icon del" onclick="delVendedorLinha('${el}')">🗑</button>` : ''}</div></div>`;
+    <div class="row-between" style="gap:8px">${vendedorSelectHtml(el, id)}${i ? `<button type="button" class="btn-icon del" onclick="delVendedorLinha('${el}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button>` : ''}</div></div>`;
 }
 function addVendedorLinha(base) {
   const box = $('#' + base + 'Lista'); if (!box) return;
@@ -1090,7 +1093,7 @@ function pessoaFormHtml(pre, p, opc) {
   /* O resumo é recalculado a cada tecla: um aviso do que falta que não some quando você
      preenche é pior que aviso nenhum. */
   return `<div oninput="qualifResumo('${pre}')" onchange="qualifResumo('${pre}')">${cabeca}
-    <details class="qualif" open><summary>📋 Qualificação completa para o contrato <span id="${idt('Resumo')}">${qualifResumoHtml(p)}</span></summary>${resto}${opc.conjuge ? conjugeFormHtml(pre, p) : ''}</details></div>`;
+    <details class="qualif" open><summary>Qualificação completa para o contrato <span id="${idt('Resumo')}">${qualifResumoHtml(p)}</span></summary>${resto}${opc.conjuge ? conjugeFormHtml(pre, p) : ''}</details></div>`;
 }
 
 /* O que ainda falta para o contrato sair qualificado. É a mesma conferência que a
@@ -1185,7 +1188,7 @@ function conjugeFormHtml(pre, p) {
   const oposto = (p || {}).genero === 'f' ? 'm' : 'f';
   const cj = Object.assign({ tipo: 'pf', genero: oposto, nacionalidade: 'brasileiro' }, (p || {}).conjuge || {});
   const mesmo = cj.mesmoEndereco !== false;
-  return `<div id="${pre}CjBox" style="${temConjuge(p) ? '' : 'display:none'}"><div class="fieldset"><span class="lg">💍 Cônjuge / companheiro</span>
+  return `<div id="${pre}CjBox" style="${temConjuge(p) ? '' : 'display:none'}"><div class="fieldset"><span class="lg">Cônjuge / companheiro</span>
     <p class="help">Quem é casado ou vive em união estável assina o contrato junto. Estes dados entram na qualificação.</p>
     ${pessoaFormHtml(pre + 'Cj', Object.assign({}, cj, { tipo: 'pf' }), { soGenero: true, semEndereco: true, semEstadoCivil: true })}
     <label class="check"><input type="checkbox" id="${pre}CjMesmoEnd" ${mesmo ? 'checked' : ''} onchange="pessoaConjugeEnd('${pre}')"> Mora no mesmo endereço</label>
@@ -1349,7 +1352,7 @@ function enterAdmin() {
   const body = `<p class="small muted mb">Digite o PIN do administrador.</p>
     <div class="fg"><input type="password" inputmode="numeric" id="pinInput" class="pin-input" maxlength="8" autocomplete="off" placeholder="••••"></div>
     ${db.config.pinPadrao ? '<div class="alert warn" style="cursor:default"><span>PIN padrão <b>1234</b>. Troque em Configurações › Geral.</span></div>' : ''}`;
-  openModal({ title: '🔐 Acesso do administrador', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="checkPin()">Entrar</button>` });
+  openModal({ title: 'Acesso do administrador', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="checkPin()">Entrar</button>` });
   setTimeout(() => { const i = $('#pinInput'); i.focus(); i.onkeydown = e => { if (e.key === 'Enter') checkPin(); }; }, 50);
 }
 function checkPin() {
@@ -1362,7 +1365,7 @@ function enterCorretor() {
   if (db.config.codigoCorretor && prefs.codigoOk !== hashStr(db.config.codigoCorretor)) {
     const body = `<p class="small muted mb">Este loteamento exige um código de acesso para corretores. Peça ao administrador.</p>
       <div class="fg"><input type="text" id="codInput" placeholder="Código de acesso" autocomplete="off"></div>`;
-    openModal({ title: '🔑 Acesso do corretor', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="checkCodigo()">Entrar</button>` });
+    openModal({ title: 'Acesso do corretor', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="checkCodigo()">Entrar</button>` });
     setTimeout(() => { const i = $('#codInput'); i.focus(); i.onkeydown = e => { if (e.key === 'Enter') checkCodigo(); }; }, 50);
     return;
   }
@@ -1398,11 +1401,11 @@ function renderLanding() {
   const box = $('#landingEmpreend');
   if (!lot) {
     box.innerHTML = `<div class="nome">Nenhum loteamento cadastrado</div><div class="info">Entre como administrador para cadastrar o primeiro loteamento, ou carregue os dados de exemplo.</div>
-      <div class="mt"><button class="btn btn-sm btn-accent" onclick="carregarDemo()">✨ Carregar dados de exemplo</button></div>`;
+      <div class="mt"><button class="btn btn-sm btn-accent" onclick="carregarDemo()">Carregar dados de exemplo</button></div>`;
   } else {
     const ls = lotesDo(lot.id);
     const cnt = s => ls.filter(l => l.status === s).length;
-    box.innerHTML = `<div class="nome">🏘️ ${esc(lot.nome)}</div><div class="info">${esc([lot.cidade, lot.endereco].filter(Boolean).join(' · '))}</div>
+    box.innerHTML = `<div class="nome">${esc(lot.nome)}</div><div class="info">${esc([lot.cidade, lot.endereco].filter(Boolean).join(' · '))}</div>
       <div class="stats"><span><b>${ls.length}</b>lotes</span><span><b style="color:#86efac">${cnt('disponivel')}</b>disponíveis</span><span><b style="color:#fcd34d">${cnt('reservado')}</b>reservados</span><span><b style="color:#fca5a5">${cnt('vendido')}</b>vendidos</span></div>
       ${db.loteamentos.length > 1 ? `<div class="mt"><select class="lot-select" onchange="setCurLot(this.value)" style="max-width:260px;margin:0 auto"></select></div>` : ''}`;
   }

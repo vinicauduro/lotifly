@@ -95,16 +95,16 @@ function renderClientes() {
   const fora = edita ? compradoresForaDoCadastro() : [];
   const incompletos = db.clientes.filter(c => faltaQualificacao(c).length).length;
   v.innerHTML = `
-    ${fora.length ? `<div class="alert info" onclick="importarCompradores()"><span><b>${fora.length} comprador(es) dos contratos ainda sem ficha.</b> Trazer para o cadastro? Quem já tem ficha, pelo CPF, não é duplicado. <u>Trazer agora</u></span><span>›</span></div>` : ''}
+    ${fora.length ? `<div class="alert info" onclick="importarCompradores()"><span><b>${fora.length} comprador(es) dos contratos ainda sem ficha.</b> Trazer para o cadastro? Quem já tem ficha, pelo CPF, não é duplicado. <u>Trazer agora</u></span><i class=ico data-i=caret-right></i></div>` : ''}
     <div class="kpi-grid cols3">
       <div class="kpi c-blue"><div class="lbl">Clientes</div><div class="val">${db.clientes.length}</div><div class="sub">no cadastro</div></div>
       <div class="kpi c-green"><div class="lbl">Com contrato</div><div class="val">${db.clientes.filter(c => contratosDoCliente(c).length).length}</div><div class="sub">comprador em ao menos um</div></div>
       <div class="kpi ${incompletos ? 'c-amber' : 'c-green'}"><div class="lbl">Qualificação incompleta</div><div class="val">${incompletos}</div><div class="sub">${incompletos ? 'falta dado para o contrato' : 'todos prontos para contrato'}</div></div>
     </div>
-    <div class="filters"><input type="text" placeholder="🔎 Nome, CPF, telefone, e-mail ou cidade" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
-      ${edita ? '<button class="btn btn-primary btn-sm" onclick="abrirClienteForm()">＋ Novo cliente</button>' : ''}</div>
+    <div class="filters"><input type="text" placeholder="Nome, CPF, telefone, e-mail ou cidade" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
+      ${edita ? '<button class="btn btn-primary btn-sm" onclick="abrirClienteForm()"><i class=ico data-i=plus></i>Novo cliente</button>' : ''}</div>
     ${lista.length ? lista.map(clienteItemHtml).join('')
-      : `<div class="empty"><div class="ic">👥</div><p><b>${db.clientes.length ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}</b></p><p class="small">${db.clientes.length ? 'Tente outro nome ou parte do CPF.' : 'Cadastre aqui ou registre um contrato: o comprador entra no cadastro sozinho.'}</p></div>`}`;
+      : `<div class="empty"><div class="ic"><i class=ico data-i=users></i></div><p><b>${db.clientes.length ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}</b></p><p class="small">${db.clientes.length ? 'Tente outro nome ou parte do CPF.' : 'Cadastre aqui ou registre um contrato: o comprador entra no cadastro sozinho.'}</p></div>`}`;
 }
 function clienteItemHtml(c) {
   const n = contratosDoCliente(c).length; const falta = faltaQualificacao(c);
@@ -112,7 +112,7 @@ function clienteItemHtml(c) {
       <div class="title">${esc(c.nome)}${ehPJ(c) ? ' <span class="badge neutral">PJ</span>' : ''}${temConjuge(c) && (c.conjuge || {}).nome ? ` <span class="tiny muted">e ${esc(c.conjuge.nome)}</span>` : ''}</div>
       <div class="meta"><span>${esc(fmtCPF(c.cpf)) || 'sem CPF'}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.cidade ? `<span>· ${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</span>` : ''}<span>· ${n ? n + ' contrato(s)' : 'sem contrato'}</span></div>
       ${falta.length ? `<div class="tiny muted">Falta para o contrato: ${esc(falta.join(', '))}</div>` : '<div class="tiny ok">Qualificação completa</div>'}</div>
-    <div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()">💬</a>` : ''}</div></div>`;
+    <div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`;
 }
 function abrirClienteForm(id) {
   const c = id ? db.clientes.find(x => x.id === id) : null;
@@ -123,10 +123,10 @@ function abrirClienteForm(id) {
     ${pessoaFormHtml('cl', c || {}, { conjuge: true })}
     ${conjugeFormHtml('cl', c || {})}
     <div class="fg"><label>Observações</label><textarea id="clObs" rows="2">${esc(c ? c.obs || '' : '')}</textarea></div>
-    ${contratos.length ? `<div class="fieldset"><span class="lg">📄 Contratos deste cliente</span>
+    ${contratos.length ? `<div class="fieldset"><span class="lg">Contratos deste cliente</span>
       ${contratos.map(v => `<div class="item" onclick="setCurLotSilencioso('${esc(v.loteamentoId)}');abrirVendaAdmin('${esc(v.id)}')"><div class="info"><div class="title">${esc(imovelLabel(v))} <span class="tiny muted">· ${esc((getLoteamento(v.loteamentoId) || {}).nome || '')}</span></div>
-        <div class="meta"><span>📅 ${fmtDate(v.dataVenda)}</span><span>· ${esc(fmtMoney(v.valorTotal))}</span></div></div><div class="side"><span class="badge ${v.status === 'distrato' ? 'distrato' : v.status}">${statusLabel(v.status)}</span></div></div>`).join('')}</div>` : ''}`;
-  openModal({ title: c ? '👤 ' + esc(c.nome) : '＋ Novo cliente', body, wide: true,
+        <div class="meta"><span>${fmtDate(v.dataVenda)}</span><span>· ${esc(fmtMoney(v.valorTotal))}</span></div></div><div class="side"><span class="badge ${v.status === 'distrato' ? 'distrato' : v.status}">${statusLabel(v.status)}</span></div></div>`).join('')}</div>` : ''}`;
+  openModal({ title: c ? '' + esc(c.nome) : 'Novo cliente', body, wide: true,
     footer: `${c && edita ? `<button class="btn btn-outline-danger" onclick="excluirCliente('${esc(c.id)}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">${edita ? 'Cancelar' : 'Fechar'}</button>${edita ? `<button class="btn btn-primary" onclick="salvarCliente('${c ? esc(c.id) : ''}')">Salvar</button>` : ''}` });
 }
 function salvarCliente(id) {
@@ -154,7 +154,7 @@ function excluirCliente(id, confirmado) {
   const c = db.clientes.find(x => x.id === id); if (!c) return;
   const n = contratosDoCliente(c).length;
   if (!confirmado) {
-    openModal({ title: '🗑️ Excluir cliente',
+    openModal({ title: 'Excluir cliente',
       body: `<p class="mb">Excluir <b>${esc(c.nome)}</b> do cadastro de clientes?</p>
         ${n ? `<div class="alert warn" style="cursor:default"><span>É comprador em <b>${n} contrato(s)</b>. Os contratos não mudam, porque guardam os dados como estavam no dia. Some só a ficha do cadastro; se ele comprar de novo, os dados terão de ser digitados outra vez.</span></div>` : ''}
         <p class="help">Não dá para desfazer.</p>`,
@@ -173,7 +173,7 @@ function clientesDatalistHtml() {
 }
 function buscaClienteHtml(base, i) {
   if (!db.clientes.length) return '';
-  return `<div class="fg cliente-busca"><label>📇 Puxar do cadastro de clientes</label>
+  return `<div class="fg cliente-busca"><label>Puxar do cadastro de clientes</label>
     <input type="text" list="clientesDL" id="${pfxPessoa(base, i)}Busca" placeholder="Digite o nome ou o CPF e escolha na lista" oninput="if (clientePorRotulo(this.value)) puxarCliente('${base}', ${i}, this.value)" onchange="puxarCliente('${base}', ${i}, this.value)"></div>`;
 }
 /* Troca o bloco inteiro pelo formulário já preenchido: cônjuge, endereço e estado civil

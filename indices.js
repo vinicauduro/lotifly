@@ -130,7 +130,7 @@ function confirmarIndice(ind, valores, acao) {
   const difTotal = imp.mudam.reduce((s, x) => s + (x.para - x.de), 0);
   const cabecalho = v => `${v ? esc(imovelLabel(v)) : 'Contrato'}${v && v.cliente && v.cliente.nome ? ' · ' + esc(v.cliente.nome) : ''}`;
   openModal({
-    title: '⚠️ Isto muda parcelas que já existem',
+    title: 'Isto muda parcelas que já existem',
     wide: true,
     body: `<p class="help mb">${esc(acao)}. Confira a diferença antes de salvar. ${imp.mudam.length ? 'As parcelas abaixo passam a valer outro valor; se alguma já foi enviada ao cliente, o boleto precisa ser refeito.' : ''}</p>
       ${imp.mudam.length ? `<div class="card"><h3>Parcelas em aberto que mudam <span class="badge ${difTotal >= 0 ? 'convertida' : 'atrasado'}">${difTotal >= 0 ? '+' : ''}${esc(fmtMoney(difTotal))}</span></h3>
@@ -158,18 +158,18 @@ function cadIndicesHtml() {
   const list = db.indices.slice().sort((a, b) => a.nome.localeCompare(b.nome));
   const usados = {};
   db.vendas.forEach(v => { if (v.indiceId) usados[v.indiceId] = (usados[v.indiceId] || 0) + 1; });
-  const resumo = list.length ? `<div class="card ix-resumo"><h3>📈 Índices de reajuste</h3>
+  const resumo = list.length ? `<div class="card ix-resumo"><h3>Índices de reajuste</h3>
     <div class="ix-resumo-grid">${list.map(ind => {
       const ac = acumuladoIndice(ind, 12);
       return `<div onclick="abrirIndiceAno('${ind.id}')"><div class="v">${ac == null ? '—' : fmtNum(ac, 4)}</div><div class="k">${esc(ind.codigo)}</div></div>`;
     }).join('')}</div>
     <p class="help mt">Acumulado dos últimos 12 meses lançados. Os índices não são atualizados sozinhos: lance o mês novo assim que ele for divulgado.</p>
     ${list.some(ind => ind.tipo === 'percentual' && !indiceValores(ind)[mesAnterior(mesAtual())]) ? `<div class="alert warn" style="cursor:default"><span>Falta lançar ${monthLabel(mesAnterior(mesAtual()))} em ${esc(list.filter(ind => ind.tipo === 'percentual' && !indiceValores(ind)[mesAnterior(mesAtual())]).map(i => i.codigo).join(', '))}. Sem esse lançamento as parcelas do mês que vem ficam sem correção.</span></div>` : ''}</div>` : '';
-  return `${resumo}<div class="card"><h3>📈 Índices de correção</h3>
+  return `${resumo}<div class="card"><h3>Índices de correção</h3>
     <p class="help">Cadastre aqui a variação de cada mês. A correção é mensal: o índice de um mês corrige as parcelas que vencem no mês seguinte, já que ele só é divulgado depois. Vale para todas as parcelas do mês, não importa o dia do vencimento. Cada contrato escolhe qual índice usa, na tela da venda.</p>
-    <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirIndiceForm()">＋ Novo índice</button>
-    ${db.indices.length < INDICES_PADRAO.length ? `<button class="btn btn-secondary" onclick="criarIndicesPadrao()">📈 Criar IGP-M, INPC, IPCA e CUB</button>` : ''}</div></div>
-    ${list.length ? list.map(ind => indiceCardHtml(ind, usados[ind.id] || 0)).join('') : `<div class="empty"><div class="ic">📈</div><p>Nenhum índice cadastrado.</p><p class="small">Crie os índices que você usa e lance a variação de cada mês.</p></div>`}`;
+    <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirIndiceForm()"><i class=ico data-i=plus></i>Novo índice</button>
+    ${db.indices.length < INDICES_PADRAO.length ? `<button class="btn btn-secondary" onclick="criarIndicesPadrao()">Criar IGP-M, INPC, IPCA e CUB</button>` : ''}</div></div>
+    ${list.length ? list.map(ind => indiceCardHtml(ind, usados[ind.id] || 0)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=chart-line-up></i></div><p>Nenhum índice cadastrado.</p><p class="small">Crie os índices que você usa e lance a variação de cada mês.</p></div>`}`;
 }
 
 function indiceCardHtml(ind, nContratos) {
@@ -182,7 +182,7 @@ function indiceCardHtml(ind, nContratos) {
   const unidade = ind.tipo === 'pontos' ? '' : '%';
   return `<div class="card"><div class="row-between">
       <div><b>${esc(ind.nome)}</b> <span class="badge neutral">${esc(ind.codigo)}</span> <span class="tiny muted">${ind.tipo === 'pontos' ? 'valor em pontos (R$/m²)' : 'variação % ao mês'}</span></div>
-      <div class="btn-row" style="margin:0"><button class="btn btn-primary btn-sm" onclick="abrirIndiceAno('${ind.id}')">📅 Lançar índices</button><button class="btn btn-secondary btn-sm" onclick="abrirIndiceForm('${ind.id}')">✏️</button>${nContratos ? '' : `<button class="btn btn-outline-danger btn-sm" onclick="excluirIndice('${ind.id}')">🗑️</button>`}</div></div>
+      <div class="btn-row" style="margin:0"><button class="btn btn-primary btn-sm" onclick="abrirIndiceAno('${ind.id}')">Lançar índices</button><button class="btn btn-secondary btn-sm" onclick="abrirIndiceForm('${ind.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button>${nContratos ? '' : `<button class="btn btn-outline-danger btn-sm" onclick="excluirIndice('${ind.id}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button>`}</div></div>
     <div class="small mt">${ms.length} mês(es) lançado(s)${ac12 != null ? ` · acumulado dos últimos 12: <b>${fmtNum(ac12, 2)}%</b>${ac12ap != null && Math.abs(ac12ap - ac12) > 0.005 ? ` · aplicado nos contratos: <b>${fmtNum(ac12ap, 2)}%</b>` : ''}` : ''}${nContratos ? ` · usado em ${nContratos} contrato(s)` : ''}</div>
     ${temNegativo ? '<p class="help mt">Meses negativos ficam registrados, mas entram como 0% nos contratos: a correção não reduz o valor das parcelas.</p>' : ''}
     ${faltaMes ? `<div class="alert warn" style="cursor:default;margin-top:8px"><span>Falta lançar ${monthLabel(mesAtual())}. Sem o lançamento, as parcelas deste mês ficam sem correção.</span></div>` : ''}
@@ -200,7 +200,7 @@ function criarIndicesPadrao() {
 function abrirIndiceForm(id) {
   const ind = id ? getIndice(id) : null;
   openModal({
-    title: ind ? '✏️ Editar índice' : '＋ Novo índice',
+    title: ind ? 'Editar índice' : 'Novo índice',
     body: `<div class="frow"><div class="fg"><label>Sigla *</label><input type="text" id="ixCodigo" value="${esc(ind ? ind.codigo : '')}" placeholder="IGPM"></div>
       <div class="fg"><label>Tipo</label><select id="ixTipo"><option value="percentual" ${!ind || ind.tipo === 'percentual' ? 'selected' : ''}>Variação em % ao mês</option><option value="pontos" ${ind && ind.tipo === 'pontos' ? 'selected' : ''}>Valor em pontos (CUB)</option></select></div></div>
       <div class="fg"><label>Nome *</label><input type="text" id="ixNome" value="${esc(ind ? ind.nome : '')}" placeholder="IGP-M (FGV)"></div>
@@ -227,7 +227,7 @@ function abrirLancarIndice(id, mes) {
   const m = mes || mesAtual();
   const atual = indiceValores(ind)[m];
   openModal({
-    title: `＋ ${esc(ind.codigo)} · lançar mês`,
+    title: `${esc(ind.codigo)} · lançar mês`,
     body: `<div class="frow"><div class="fg"><label>Mês de referência *</label><input type="month" id="lxMes" value="${m}"></div>
       <div class="fg"><label>${ind.tipo === 'pontos' ? 'Valor do índice *' : 'Variação no mês (%) *'}</label><input type="number" id="lxValor" step="0.0001" value="${atual != null ? atual : ''}" placeholder="${ind.tipo === 'pontos' ? '2.350,00' : '0,55'}"></div></div>
       <p class="help">${ind.tipo === 'pontos' ? 'Lance o valor publicado do índice no mês.' : 'Pode ser negativo em caso de deflação, por exemplo -0,15: o valor fica registrado, mas entra como 0% nos contratos, porque a correção não reduz as parcelas. Este é o índice apurado no mês informado, que corrige as parcelas do mês seguinte.'}</p>
@@ -246,11 +246,11 @@ function abrirIndiceAno(id, ano) {
   window.__ixBuf = Object.assign({}, indiceValores(ind));
   window.__ixAno = Number(ano) || Number(mesAtual().slice(0, 4));
   openModal({
-    title: `📈 ${esc(ind.nome)}`,
+    title: `${esc(ind.nome)}`,
     wide: true,
     body: ixAnoHtml(id),
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-outline" onclick="ixCapturar();abrirIndiceValores('${id}')">📋 Colar de uma planilha</button>
+      <button class="btn btn-outline" onclick="ixCapturar();abrirIndiceValores('${id}')">Colar de uma planilha</button>
       <button class="btn btn-primary" onclick="salvarIndiceAno('${id}')">Salvar</button>`
   });
   setTimeout(() => { const el = document.getElementById('ix0'); if (el) el.focus(); }, 60);
@@ -331,7 +331,7 @@ function abrirIndiceValores(id) {
   const vals = indiceValores(ind);
   const linhas = mesesDoIndice(ind).map(m => `${m}  ${String(vals[m]).replace('.', ',')}`).join('\n');
   openModal({
-    title: `📋 ${esc(ind.codigo)} · todos os meses`,
+    title: `${esc(ind.codigo)} · todos os meses`,
     wide: true,
     body: `<p class="help mb">Uma linha por mês, no formato <b>AAAA-MM valor</b>. Dá para colar de uma planilha. ${ind.tipo === 'pontos' ? 'Valores em pontos.' : 'Valores em % do mês.'}</p>
       <div class="fg"><textarea id="ixLista" class="doc-editor" style="min-height:220px" spellcheck="false">${esc(linhas)}</textarea></div>`,
@@ -358,7 +358,7 @@ function indiceSelectHtml(selId, selBase, dataVenda) {
      mandar para a tela certa. */
   if (!db.indices.length) {
     return `<div class="alert info" style="cursor:pointer" onclick="closeModal();irParaIndices()">
-      <span><b>Nenhum índice cadastrado ainda.</b> Para corrigir as parcelas por IGP-M, INPC, IPCA ou CUB, cadastre o índice em Financeiro › Índices. Sem isso a venda fica sem correção monetária.</span><span>›</span></div>`;
+      <span><b>Nenhum índice cadastrado ainda.</b> Para corrigir as parcelas por IGP-M, INPC, IPCA ou CUB, cadastre o índice em Financeiro › Índices. Sem isso a venda fica sem correção monetária.</span><i class=ico data-i=caret-right></i></div>`;
   }
   return `<div class="frow"><div class="fg"><label>Índice de correção</label>
       <select id="vfIndice"><option value="">— sem correção —</option>${db.indices.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map(i => `<option value="${i.id}" ${selId === i.id ? 'selected' : ''}>${esc(i.nome)}</option>`).join('')}</select>
@@ -376,5 +376,5 @@ function correcaoResumoVenda(v) {
   const abertas = recebiveisDe(v.id).filter(r => recStatus(r) !== 'pago');
   const correcao = abertas.reduce((s, r) => s + recCorrecao(r), 0);
   const vencidas = abertas.filter(r => r.vencimento < todayStr()).length;
-  return `<div class="alert info" style="cursor:default"><span>📈 <b>${esc(ind.codigo)}</b> desde ${monthLabel(base)} · acumulado ${fmtNum((f - 1) * 100, 2)}%${correcao ? ` · ${fmtMoney(correcao)} de correção nas parcelas em aberto` : ''}${falta.length ? ` · <b>faltam lançar ${falta.length} mês(es)</b>` : ''}${vencidas ? ` · ${vencidas} parcela(s) vencida(s) com valor congelado, só multa e juros` : ''}</span></div>`;
+  return `<div class="alert info" style="cursor:default"><span><b>${esc(ind.codigo)}</b> desde ${monthLabel(base)} · acumulado ${fmtNum((f - 1) * 100, 2)}%${correcao ? ` · ${fmtMoney(correcao)} de correção nas parcelas em aberto` : ''}${falta.length ? ` · <b>faltam lançar ${falta.length} mês(es)</b>` : ''}${vencidas ? ` · ${vencidas} parcela(s) vencida(s) com valor congelado, só multa e juros` : ''}</span></div>`;
 }

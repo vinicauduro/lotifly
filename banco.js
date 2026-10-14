@@ -136,7 +136,7 @@ function cadBancoHtml() {
   if (!editandoId && lista.length) return listaContasHtml(lista);
   const c = (editandoId && db.contasBanco.find(x => x.id === editandoId)) || { banco: '001', carteira: '17', variacao: '019', nossoNumeroAtual: 1, remessaSeq: 1, protestoDias: 0, baixaDias: 0, multaPct: num(db.config.multaPct) || 2, jurosMesPct: num(db.config.jurosMesPct) || 1, descontoPct: 0, especie: 'DM', aceite: 'N', mensagem1: '', mensagem2: '' };
   const perfil = BANCOS[pad(c.banco, 3)] || BANCOS['001'];
-  return `<div class="card"><h3>🏦 ${c.id ? 'Editar conta de cobrança' : 'Nova conta de cobrança'} ${lista.length ? '<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="state.sub.contaEdit=null;renderCurrent()">‹ Voltar</button></span>' : ''}</h3>
+  return `<div class="card"><h3>${c.id ? 'Editar conta de cobrança' : 'Nova conta de cobrança'} ${lista.length ? '<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="state.sub.contaEdit=null;renderCurrent()">‹ Voltar</button></span>' : ''}</h3>
     <p class="help">Dados do convênio de cobrança registrada da empresa. Eles vão no boleto e no arquivo de remessa. Cada empresa preenche os seus; o layout de cada banco é do sistema.</p>
     <div class="fg"><label>Cobra quais vendas?</label><select id="bcEmp">
       <option value="" ${!c.loteamentoId ? 'selected' : ''}>Todos os empreendimentos</option>
@@ -152,7 +152,7 @@ function cadBancoHtml() {
       <div class="fg"><label>Convênio / código do cedente</label><input type="text" id="bcConvenio" value="${esc(c.convenio || '')}" placeholder="1234567"></div></div>
     <div class="fg"><label>Próxima remessa (sequencial)</label><input type="number" id="bcSeq" value="${c.remessaSeq || 1}"></div>
     <div class="alert info" style="cursor:default"><span><b>O nosso número é do sistema.</b> Cada boleto recebe o seu sozinho, ${c.id ? `a partir de <b>${proximoNossoNumero(c)}</b>` : `começando em <b>${NN_INICIAL}</b>`}, sem repetir e sem voltar atrás — o banco recusa título cujo número já foi usado neste convênio. A faixa começa bem acima da que o seu sistema antigo estaria usando — ele estava na casa dos milhares, e daqui ele levaria décadas para chegar. Cada conta tem a sua numeração, porque o banco exige que o número seja único dentro do convênio, não entre bancos.</span></div>
-    <div class="fieldset"><span class="lg">📄 Instruções do boleto</span>
+    <div class="fieldset"><span class="lg">Instruções do boleto</span>
       <div class="frow3"><div class="fg"><label>Multa por atraso (%)</label><input type="number" id="bcMulta" step="0.01" value="${c.multaPct ?? 2}"></div>
         <div class="fg"><label>Juros de mora (% ao mês)</label><input type="number" id="bcJuros" step="0.01" value="${fmtNumPlano(jurosMesDaConta(c))}"><div class="hint">O banco cobra por dia; o sistema divide por 30 sozinho.</div></div>
         <div class="fg"><label>Desconto até o vencimento (%)</label><input type="number" id="bcDesc" step="0.01" value="${c.descontoPct ?? 0}"></div></div>
@@ -163,22 +163,22 @@ function cadBancoHtml() {
       <div class="fg"><label>Mensagem 1 no boleto</label><input type="text" id="bcMsg1" value="${esc(c.mensagem1 || '')}" placeholder="Referente ao lote {{lote}} do {{loteamento}}"></div>
       <div class="fg"><label>Mensagem 2 no boleto</label><input type="text" id="bcMsg2" value="${esc(c.mensagem2 || '')}" placeholder="Não receber após 30 dias do vencimento"></div></div>
     <div class="btn-row">${c.id ? `<button class="btn btn-outline-danger" onclick="excluirContaBanco('${c.id}')">Excluir</button>` : ''}<button class="btn btn-primary" onclick="salvarContaBanco('${c.id || ''}')">Salvar conta de cobrança</button>
-      ${c.id ? `<button class="btn btn-secondary" onclick="testarBoleto('${c.id}')">👁️ Ver um boleto de exemplo</button>` : ''}</div>
+      ${c.id ? `<button class="btn btn-secondary" onclick="testarBoleto('${c.id}')">Ver um boleto de exemplo</button>` : ''}</div>
     ${!perfil.campoLivre ? `<div class="alert warn" style="cursor:default;margin-top:10px"><span>O layout do ${esc(perfil.nome)} ainda não está implementado. Hoje o sistema gera boleto do Banco do Brasil; os outros entram assim que eu tiver o manual de cada um.</span></div>` : ''}
-    ${layoutCnab(c.banco) ? `<div class="fieldset"><span class="lg">📤 Remessa e retorno</span>
-      <p class="help">A remessa sai da aba <b>Recebíveis</b>, no botão <b>📤 Remessa</b>: você escolhe as parcelas e o sistema monta o arquivo. O retorno entra pelo botão <b>📥 Retorno</b>, com tela de conferência antes de dar baixa.</p>
+    ${layoutCnab(c.banco) ? `<div class="fieldset"><span class="lg">Remessa e retorno</span>
+      <p class="help">A remessa sai da aba <b>Recebíveis</b>, no botão <b>Remessa</b>: você escolhe as parcelas e o sistema monta o arquivo. O retorno entra pelo botão <b>Retorno</b>, com tela de conferência antes de dar baixa.</p>
       ${cadRemessasHtml(c.id)}</div>` : ''}</div>`;
 }
 
 function listaContasHtml(lista) {
-  return `<div class="card"><h3>🏦 Contas de cobrança <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.contaEdit='nova';renderCurrent()">＋ Nova conta</button></span></h3>
+  return `<div class="card"><h3>Contas de cobrança <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.contaEdit='nova';renderCurrent()"><i class=ico data-i=plus></i>Nova conta</button></span></h3>
     <p class="help mb">O banco aceita um arquivo de remessa por convênio, então é por conta que a cobrança se organiza. Com uma conta só, todos os empreendimentos saem juntos.</p>
     ${lista.map(c => { const b = BANCOS[pad(c.banco, 3)]; const emp = c.loteamentoId && getLoteamento(c.loteamentoId);
       const n = db.recebiveis.filter(r => { const x = contaCobranca(r.loteamentoId); return x && x.id === c.id && recStatus(r) !== 'pago'; }).length;
       return `<div class="item" onclick="state.sub.contaEdit='${c.id}';renderCurrent()"><div class="info">
         <div class="title">${esc((b || {}).nome || c.banco)} · ag ${esc(c.agencia)}${c.agenciaDv ? '-' + esc(c.agenciaDv) : ''} / conta ${esc(c.conta)}${c.contaDv ? '-' + esc(c.contaDv) : ''} ${b && b.campoLivre ? '' : '<span class="badge neutral">sem layout</span>'}</div>
         <div class="meta"><span>convênio ${esc(c.convenio)}</span><span>· carteira ${esc(c.carteira)}</span><span>· ${emp ? 'só ' + esc(emp.nome) : 'todos os empreendimentos'}</span><span>· ${n} parcela(s) em aberto</span></div>
-      </div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();state.sub.contaEdit='${c.id}';renderCurrent()">✏️</button></div></div>`; }).join('')}</div>`;
+      </div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();state.sub.contaEdit='${c.id}';renderCurrent()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></div></div>`; }).join('')}</div>`;
 }
 function excluirContaBanco(id) {
   const c = db.contasBanco.find(x => x.id === id); if (!c) return;
@@ -254,14 +254,14 @@ function abrirBoleto(recId) {
   let d;
   try { d = dadosBoleto(rec); } catch (e) { toast('⚠️', 'Não dá para gerar', e.message, true); return; }
   openModal({
-    title: '🏦 Boleto · ' + esc(rec.descricao),
+    title: 'Boleto · ' + esc(rec.descricao),
     wide: true,
     body: `<p class="help mb">Confira antes de imprimir. O boleto só é válido depois que o banco registrar o título pelo arquivo de remessa.</p>
       <div id="boletoBox">${boletoHtml(d)}</div>
       <div class="fg mt"><label>Linha digitável</label><input type="text" readonly value="${esc(d.linha)}" onclick="this.select()"></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
-      ${rec.vendaId && getVenda(rec.vendaId) && getVenda(rec.vendaId).cliente.telefone ? `<a class="btn btn-wa" target="_blank" href="${waLink(getVenda(rec.vendaId).cliente.telefone, `Segue a linha digitável do boleto de ${rec.descricao}, vencimento ${fmtDate(rec.vencimento)}, valor ${fmtMoney(d.valor)}:\n\n${d.linha}`)}">💬 Enviar linha</a>` : ''}
-      <button class="btn btn-primary" onclick="imprimirBoleto('${rec.id}')">🖨️ Imprimir</button>`
+      ${rec.vendaId && getVenda(rec.vendaId) && getVenda(rec.vendaId).cliente.telefone ? `<a class="btn btn-wa" target="_blank" href="${waLink(getVenda(rec.vendaId).cliente.telefone, `Segue a linha digitável do boleto de ${rec.descricao}, vencimento ${fmtDate(rec.vencimento)}, valor ${fmtMoney(d.valor)}:\n\n${d.linha}`)}">Enviar linha</a>` : ''}
+      <button class="btn btn-primary" onclick="imprimirBoleto('${rec.id}')">Imprimir</button>`
   });
 }
 function imprimirBoleto(recId) {

@@ -7,7 +7,7 @@ function renderAdminTab() {
   const fab = $('#fab'); fab.classList.remove('show');
   const tab = state.tab;
   if (!db.loteamentos.length && tab !== 'cadastros' && tab !== 'emp') {
-    $('#av-' + tab).innerHTML = `<div class="card"><div class="empty"><div class="ic">🏗️</div><p><b>Bem-vindo!</b> Cadastre o seu primeiro empreendimento para começar.</p><div class="btn-row" style="justify-content:center"><button class="btn btn-primary" style="flex:none" onclick="abrirLoteamentoForm()">＋ Cadastrar empreendimento</button><button class="btn btn-secondary" style="flex:none" onclick="carregarDemo()">✨ Ver com dados de exemplo</button></div></div></div>`;
+    $('#av-' + tab).innerHTML = `<div class="card"><div class="empty"><div class="ic"><i class=ico data-i=crane-tower></i></div><p><b>Bem-vindo!</b> Cadastre o seu primeiro empreendimento para começar.</p><div class="btn-row" style="justify-content:center"><button class="btn btn-primary" style="flex:none" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Cadastrar empreendimento</button><button class="btn btn-secondary" style="flex:none" onclick="carregarDemo()">Ver com dados de exemplo</button></div></div></div>`;
     return;
   }
   aplicarPermissoesNasAbas();
@@ -46,10 +46,10 @@ function contadoresDoMenu() {
    Aqui mora tudo que é de um empreendimento só: planta, lotes, preços e obra.
    Vendas, recebíveis e relatórios ficam de fora, porque são da empresa inteira. */
 const EMP_SUBS = [
-  ['resumo', '📋 Resumo', null],
-  ['planta', '🗺️ Planta', 'planta.editar'],
-  ['lotes', '📦 Lotes e preços', 'lotes.editar'],
-  ['custos', '🧾 Obra e orçamento', 'custos.ver']
+  ['resumo', 'Resumo', null],
+  ['planta', 'Planta', 'planta.editar'],
+  ['lotes', 'Lotes e preços', 'lotes.editar'],
+  ['custos', 'Obra e orçamento', 'custos.ver']
 ];
 /* Numa carteira de imóveis de terceiros não existe planta, lote, reserva nem obra: o imóvel
    não é seu, você só administra o recebível. A aba de custos só reaparece se a carteira já
@@ -90,7 +90,7 @@ function renderEmpreendimentos() {
    de venda dele é a informação principal e fica à vista. */
 function listaEmpreendimentosHtml() {
   const podeCriar = pode('config.editar') || pode('lotes.editar');
-  return `<div class="card"><h3>🏠 Imóveis ${podeCriar ? '<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()">＋ Novo</button></span>' : ''}</h3>
+  return `<div class="card"><h3>Imóveis ${podeCriar ? '<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span>' : ''}</h3>
     <p class="help mb">Os empreendimentos, com planta e lotes, e cada imóvel avulso que você vende — apartamento, casa, lote, sala… Abra um para ver preços e situação. Contratos, recebíveis e relatórios ficam no menu, com todos juntos.</p>
     ${db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)).map(l => {
       if (ehCarteira(l)) {
@@ -103,10 +103,10 @@ function listaEmpreendimentosHtml() {
       const ls = lotesDo(l.id);
       const pend = db.reservas.filter(r => r.loteamentoId === l.id && reservaStatus(r) === 'pendente').length;
       return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
-        <div class="title">🏘️ ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${pend} reserva(s) a aprovar</span>` : ''}</div>
+        <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${pend} reserva(s) a aprovar</span>` : ''}</div>
         <div class="meta">${esc(l.cidade || '')}<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span><span>· ${ls.filter(x => x.status === 'disponivel').length} disponíveis</span></div>
       </div><div class="side"><span class="muted">›</span></div></div>`;
-    }).join('') || `<div class="empty"><div class="ic">🏠</div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}</div>`;
+    }).join('') || `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}</div>`;
 }
 function fabShow(action) { const f = $('#fab'); f.classList.add('show'); f.setAttribute('onclick', action); }
 
@@ -166,28 +166,28 @@ function renderPainel() {
   const custosAtr = db.custos.filter(c => custoStatus(c) === 'atrasado');
 
   let alerts = '';
-  if (resPend.length) alerts += `<div class="alert warn" onclick="switchTab('reservas')"><span><b>${resPend.length} reserva(s) aguardando aprovação</b></span><span>›</span></div>`;
-  if (resExp.length) alerts += `<div class="alert" onclick="aSetFiltroRes('expirada')"><span><b>${resExp.length} reserva(s) vencida(s)</b> — libere o lote ou renove</span><span>›</span></div>`;
-  if (resVencendo.length) alerts += `<div class="alert info" onclick="switchTab('reservas')"><span><b>${resVencendo.length} reserva(s) vencem em até 2 dias</b></span><span>›</span></div>`;
-  if (k.nAtrasados) alerts += `<div class="alert" onclick="abrirPainelCobranca()"><span><b>${k.nAtrasados} parcela(s) em atraso</b> — ${fmtMoney(k.atrasado)} · cobrar</span><span>›</span></div>`;
-  if (custosAtr.length) alerts += `<div class="alert" onclick="aSetFiltroCusto('atrasado')"><span><b>${custosAtr.length} conta(s) a pagar vencida(s)</b> — ${fmtMoney(custosAtr.reduce((s, c) => s + num(c.valor), 0))}</span><span>›</span></div>`;
-  if (!alerts) alerts = `<div class="alert ok"><span>Tudo em dia. 👍</span></div>`;
+  if (resPend.length) alerts += `<div class="alert warn" onclick="switchTab('reservas')"><span><b>${resPend.length} reserva(s) aguardando aprovação</b></span><i class=ico data-i=caret-right></i></div>`;
+  if (resExp.length) alerts += `<div class="alert" onclick="aSetFiltroRes('expirada')"><span><b>${resExp.length} reserva(s) vencida(s)</b> — libere o lote ou renove</span><i class=ico data-i=caret-right></i></div>`;
+  if (resVencendo.length) alerts += `<div class="alert info" onclick="switchTab('reservas')"><span><b>${resVencendo.length} reserva(s) vencem em até 2 dias</b></span><i class=ico data-i=caret-right></i></div>`;
+  if (k.nAtrasados) alerts += `<div class="alert" onclick="abrirPainelCobranca()"><span><b>${k.nAtrasados} parcela(s) em atraso</b> — ${fmtMoney(k.atrasado)} · cobrar</span><i class=ico data-i=caret-right></i></div>`;
+  if (custosAtr.length) alerts += `<div class="alert" onclick="aSetFiltroCusto('atrasado')"><span><b>${custosAtr.length} conta(s) a pagar vencida(s)</b> — ${fmtMoney(custosAtr.reduce((s, c) => s + num(c.valor), 0))}</span><i class=ico data-i=caret-right></i></div>`;
+  if (!alerts) alerts = `<div class="alert ok"><span>Tudo em dia. <i class=ico data-i=thumbs-up></i></span></div>`;
 
   const serie = recebimentosPorMes(12);
   const tot = serie.reduce((a, x) => ({ vencido: a.vencido + x.vencido, atraso: a.atraso + x.atraso }), { vencido: 0, atraso: 0 });
   v.innerHTML = `
     ${alerts}
-    <div class="kpi-grid cols5">
-      <div class="kpi c-blue" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoneyShort(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
-      <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoneyShort(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
-      <div class="kpi c-green" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoneyShort(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
-      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoneyShort(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s) ›</div></div>
-      <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoneyShort(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
+    <div class="kpi-grid inicio">
+      <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
+      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>inadimplência de ${tot.vencido ? fmtNum(tot.atraso / tot.vencido * 100, 1) : '0,0'}% em 12 meses ›</div></div>
+      <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
+      <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
+      <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
     </div>
     <div class="grid2">
-      <div class="card"><h3>📈 Fluxo previsto (12 meses)</h3><canvas class="chart" id="chartFluxo" height="220"></canvas>
-        <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos previstos</div><div><span class="dot" style="background:#f97316"></span>Despesas previstas</div></div></div>
-      <div class="card"><h3>💵 Recebido × inadimplência (12 meses)</h3>
+      <div class="card"><h3>Fluxo previsto (12 meses)</h3><canvas class="chart" id="chartFluxo" height="220"></canvas>
+        <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos previstos</div><div><span class="dot" style="background:#f97316"></span>Despesas previstas</div><div class="muted">tom mais escuro: mês atual</div></div></div>
+      <div class="card"><h3>Recebido × inadimplência (12 meses)</h3>
         <p class="help" style="margin-top:-4px">Parcelas que venceram em cada mês. Inadimplência nos 12 meses: <b>${tot.vencido ? fmtNum(tot.atraso / tot.vencido * 100, 1) : '0,0'}%</b> (${fmtMoneyShort(tot.atraso)} em atraso).</p>
         <div style="position:relative"><canvas class="chart" id="chartReceb" height="220"></canvas><div class="chart-tip" id="chartRecebTip"></div></div>
         <div class="legend-list" style="flex-direction:row;gap:14px;flex-wrap:wrap"><div><span class="dot" style="background:${COR_RECEBIDO}"></span>Recebido</div><div><span class="dot" style="background:${COR_ATRASO}"></span>Em atraso</div><div><span class="dot" style="background:${COR_A_VENCER}"></span>A vencer</div></div>
@@ -208,10 +208,10 @@ function renderPlantaEditor(alvo) {
   if (!state.plantaAdmin || !v.querySelector('.planta-wrap')) {
     v.innerHTML = `
       <div class="toolbar">
-        <label class="btn btn-primary btn-sm" style="cursor:pointer">📄 ${hasImg ? 'Importar outro PDF/DXF' : 'Importar planta (PDF ou DXF)'}<input type="file" accept=".pdf,.dxf,application/pdf" style="display:none" onchange="importarPlantaPDF(this)"></label>
-        <label class="btn btn-outline btn-sm" style="cursor:pointer">🖼️ ${hasImg ? 'Trocar por imagem' : 'Enviar imagem (JPG/PNG)'}<input type="file" accept="image/*" style="display:none" onchange="uploadPlanta(this)"></label>
+        <label class="btn btn-primary btn-sm" style="cursor:pointer">${hasImg ? 'Importar outro PDF/DXF' : 'Importar planta (PDF ou DXF)'}<input type="file" accept=".pdf,.dxf,application/pdf" style="display:none" onchange="importarPlantaPDF(this)"></label>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">${hasImg ? 'Trocar por imagem' : 'Enviar imagem (JPG/PNG)'}<input type="file" accept="image/*" style="display:none" onchange="uploadPlanta(this)"></label>
         ${hasImg ? `<button class="btn btn-outline-danger btn-sm" onclick="removerPlanta()">Remover imagem</button>` : ''}
-        <select id="aPlantaModo" onchange="aTrocarModo(this.value)" style="width:auto;flex:none;padding:6px 10px;font-size:0.8rem"><option value="imagem" ${!hasImg ? 'disabled' : ''}>🗺️ Planta real</option><option value="esquema">▦ Esquemática</option></select>
+        <select id="aPlantaModo" onchange="aTrocarModo(this.value)" style="width:auto;flex:none;padding:6px 10px;font-size:0.8rem"><option value="imagem" ${!hasImg ? 'disabled' : ''}>Planta real</option><option value="esquema">▦ Esquemática</option></select>
       </div>
       <div class="planta-layout">
         <div>
@@ -221,7 +221,7 @@ function renderPlantaEditor(alvo) {
         </div>
         <div>
           <div class="card" style="padding:10px 12px"><h3 style="margin-bottom:6px">Lotes <span class="small muted" id="aPosInfo"></span></h3>
-            <div class="filters" style="margin-bottom:8px"><input type="text" id="aPickBusca" placeholder="🔎 Filtrar" oninput="renderLotePicker()"><button class="btn btn-primary btn-sm" onclick="abrirLoteForm()" title="Cadastrar um lote novo e posicionar na planta">＋ Lote</button></div>
+            <div class="filters" style="margin-bottom:8px"><input type="text" id="aPickBusca" placeholder="Filtrar" oninput="renderLotePicker()"><button class="btn btn-primary btn-sm" onclick="abrirLoteForm()" title="Cadastrar um lote novo e posicionar na planta"><i class=ico data-i=plus></i>Lote</button></div>
             <label class="check small" style="margin-bottom:8px"><input type="checkbox" id="aPickSemPos" onchange="renderLotePicker()"> Só lotes sem posição</label>
             <div class="lote-picker" id="lotePicker"></div>
             <p class="help mt" id="aEditorHelp"></p>
@@ -252,12 +252,12 @@ function renderEditorTools() {
   }
   const sel = state.editorLoteId ? getLote(state.editorLoteId) : null;
   box.innerHTML = `
-    <div class="chip ${pv.tool === 'select' ? 'active' : ''}" onclick="setTool('select')">✋ Mover / selecionar</div>
+    <div class="chip ${pv.tool === 'select' ? 'active' : ''}" onclick="setTool('select')">Mover / selecionar</div>
     <div class="chip ${pv.tool === 'rect' ? 'active' : ''}" onclick="setTool('rect')">▭ Retângulo</div>
-    <div class="chip ${pv.tool === 'poly' ? 'active' : ''}" onclick="setTool('poly')">⬠ Polígono</div>
-    ${pv.tool === 'poly' ? `<div class="chip" onclick="state.plantaAdmin.finishPoly()">✔ Concluir</div><div class="chip" onclick="state.plantaAdmin.undoPoint()">↶ Desfazer ponto</div>` : ''}
-    ${sel && sel.pts && sel.pts.length ? `<div class="chip" onclick="apagarForma('${sel.id}')">🗑 Apagar forma</div>` : ''}
-    ${sel ? `<div class="chip" onclick="abrirLoteAdmin('${sel.id}')">✏️ ${esc(loteShort(sel))}</div>` : ''}`;
+    <div class="chip ${pv.tool === 'poly' ? 'active' : ''}" onclick="setTool('poly')">Polígono</div>
+    ${pv.tool === 'poly' ? `<div class="chip" onclick="state.plantaAdmin.finishPoly()">Concluir</div><div class="chip" onclick="state.plantaAdmin.undoPoint()">Desfazer ponto</div>` : ''}
+    ${sel && sel.pts && sel.pts.length ? `<div class="chip" onclick="apagarForma('${sel.id}')">Apagar forma</div>` : ''}
+    ${sel ? `<div class="chip" onclick="abrirLoteAdmin('${sel.id}')">${esc(loteShort(sel))}</div>` : ''}`;
   if (!sel) { help.innerHTML = 'Selecione um lote na lista ao lado (ou toque em um lote já desenhado), escolha <b>Retângulo</b> ou <b>Polígono</b> e desenhe sobre a planta.'; pv.setHint(pv.tool !== 'select' ? 'Selecione um lote na lista primeiro' : ''); }
   else if (pv.tool === 'rect') { help.innerHTML = `Arraste sobre a planta para desenhar o retângulo do lote <b>${esc(loteShort(sel))}</b>.`; pv.setHint(`Arraste para desenhar ${loteShort(sel)}`); }
   else if (pv.tool === 'poly') { help.innerHTML = `Toque nos cantos do lote <b>${esc(loteShort(sel))}</b>; feche tocando no primeiro ponto ou em Concluir.`; pv.setHint(`Toque nos cantos de ${loteShort(sel)}`); }
@@ -342,24 +342,24 @@ function renderALotes(alvo) {
   const vgvFiltro = list.reduce((s, l) => s + num(l.preco), 0), areaFiltro = list.reduce((s, l) => s + num(l.area), 0);
   v.innerHTML = `
     <div class="toolbar">
-      <button class="btn btn-primary btn-sm" onclick="abrirLoteForm()">＋ Lote</button>
-      <button class="btn btn-outline btn-sm" onclick="abrirGerarLotes()">⚡ Gerar em massa</button>
-      <button class="btn btn-outline btn-sm" onclick="abrirImportarLotes()">📥 Importar CSV</button>
-      <button class="btn btn-outline btn-sm" onclick="abrirReajuste()">💲 Reajustar preços</button>
-      <button class="btn btn-secondary btn-sm" onclick="exportarLotesCSV()">⬇️ Exportar</button>
+      <button class="btn btn-primary btn-sm" onclick="abrirLoteForm()"><i class=ico data-i=plus></i>Lote</button>
+      <button class="btn btn-outline btn-sm" onclick="abrirGerarLotes()">Gerar em massa</button>
+      <button class="btn btn-outline btn-sm" onclick="abrirImportarLotes()">Importar CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="abrirReajuste()">Reajustar preços</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportarLotesCSV()">Exportar</button>
     </div>
     <div class="chips">
       ${[['all', 'Todos', ls.length], ['disponivel', 'Disponíveis', cnt('disponivel')], ['reservado', 'Reservados', cnt('reservado')], ['vendido', 'Vendidos', cnt('vendido')], ['bloqueado', 'Indisponíveis', cnt('bloqueado')]].map(([k, l, n]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="aSetFiltro('alotes','status','${k}',renderALotes)">${l}<span class="n">${n}</span></div>`).join('')}
     </div>
     <div class="filters">
       <select onchange="aSetFiltro('alotes','quadra',this.value,renderALotes)"><option value="all">Todas as quadras</option>${quadras.map(q => `<option value="${esc(q)}" ${f.quadra === q ? 'selected' : ''}>Quadra ${esc(q)}</option>`).join('')}</select>
-      <input type="text" placeholder="🔎 Buscar" value="${esc(f.busca)}" oninput="aSetFiltro('alotes','busca',this.value,renderALotes,this)">
+      <input type="text" placeholder="Buscar" value="${esc(f.busca)}" oninput="aSetFiltro('alotes','busca',this.value,renderALotes,this)">
     </div>
     <p class="small muted mb">${list.length} lote(s) · ${fmtNum(areaFiltro, 0)} m² · ${fmtMoney(vgvFiltro)}</p>
     ${list.length ? `<div class="card" style="padding:0"><div class="table-wrap"><table class="tbl">
       <thead><tr><th>Quadra</th><th>Lote</th><th class="num">Área m²</th><th class="num">Preço</th><th class="num">R$/m²</th><th>Status</th><th>Cliente</th><th></th></tr></thead>
-      <tbody>${list.map(l => { const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id); const cli = vd ? vd.cliente.nome : r ? r.cliente.nome : ''; return `<tr class="clickable" onclick="abrirLoteAdmin('${l.id}')"><td>${esc(l.quadra)}</td><td><b>${esc(l.numero)}</b>${l.tipo === 'comercial' ? ' <span class="tiny muted">com.</span>' : ''}</td><td class="num">${fmtNum(l.area, 0)}</td><td class="num"><b>${fmtMoney(l.preco)}</b></td><td class="num">${l.area ? fmtNum(l.preco / l.area, 0) : '—'}</td><td><span class="badge ${l.status}">${statusLabel(l.status)}</span></td><td>${esc(cli)}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="abrirLoteForm('${l.id}')">✏️</button></td></tr>`; }).join('')}</tbody>
-    </table></div></div>` : `<div class="empty"><div class="ic">📦</div><p>Nenhum lote.<br>Use <b>Gerar em massa</b> para criar as quadras rapidamente.</p></div>`}`;
+      <tbody>${list.map(l => { const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id); const cli = vd ? vd.cliente.nome : r ? r.cliente.nome : ''; return `<tr class="clickable" onclick="abrirLoteAdmin('${l.id}')"><td>${esc(l.quadra)}</td><td><b>${esc(l.numero)}</b>${l.tipo === 'comercial' ? ' <span class="tiny muted">com.</span>' : ''}</td><td class="num">${fmtNum(l.area, 0)}</td><td class="num"><b>${fmtMoney(l.preco)}</b></td><td class="num">${l.area ? fmtNum(l.preco / l.area, 0) : '—'}</td><td><span class="badge ${l.status}">${statusLabel(l.status)}</span></td><td>${esc(cli)}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="abrirLoteForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
+    </table></div></div>` : `<div class="empty"><div class="ic"><i class=ico data-i=package></i></div><p>Nenhum lote.<br>Use <b>Gerar em massa</b> para criar as quadras rapidamente.</p></div>`}`;
 }
 function aSetFiltro(group, k, v, fn, inputEl) {
   state.filters[group][k] = v;
@@ -371,8 +371,8 @@ function abrirLoteAdmin(id) {
   const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id);
   const m2 = l.area ? l.preco / l.area : 0;
   let vinc = '';
-  if (vd) { const res = vendaResumo(vd); vinc = `<div class="alert info" onclick="abrirVendaAdmin('${vd.id}')"><span><b>Venda</b> para ${esc(vd.cliente.nome)} em ${fmtDate(vd.dataVenda)} · ${fmtMoney(vd.valorTotal)} · recebido ${fmtMoney(res.pago)}</span><span>›</span></div>`; }
-  else if (r) { vinc = `<div class="alert warn" onclick="abrirReservaAdmin('${r.id}')"><span><b>Reserva ${statusLabel(reservaStatus(r)).toLowerCase()}</b> · ${esc(r.cliente.nome)} · corretor ${esc(r.corretor.nome)} · até ${fmtDate(r.validade)}</span><span>›</span></div>`; }
+  if (vd) { const res = vendaResumo(vd); vinc = `<div class="alert info" onclick="abrirVendaAdmin('${vd.id}')"><span><b>Venda</b> para ${esc(vd.cliente.nome)} em ${fmtDate(vd.dataVenda)} · ${fmtMoney(vd.valorTotal)} · recebido ${fmtMoney(res.pago)}</span><i class=ico data-i=caret-right></i></div>`; }
+  else if (r) { vinc = `<div class="alert warn" onclick="abrirReservaAdmin('${r.id}')"><span><b>Reserva ${statusLabel(reservaStatus(r)).toLowerCase()}</b> · ${esc(r.cliente.nome)} · corretor ${esc(r.corretor.nome)} · até ${fmtDate(r.validade)}</span><i class=ico data-i=caret-right></i></div>`; }
   const body = `${vinc}
     <div class="row-between mb"><div><div class="price-big">${fmtMoney(l.preco)}</div><div class="price-sub">${m2 ? fmtMoney(m2) + ' por m²' : 'sem preço definido'}</div></div><span class="badge ${l.status}" style="font-size:0.75rem">${statusLabel(l.status)}</span></div>
     <div class="detail-grid">
@@ -381,11 +381,11 @@ function abrirLoteAdmin(id) {
       <div><div class="k">Matrícula</div><div class="v">${esc(l.matricula) || '—'}</div></div><div><div class="k">Na planta</div><div class="v">${l.pts && l.pts.length >= 3 ? '✓ posicionado' : 'sem posição'}</div></div>
       ${l.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(l.obs)}</div></div>` : ''}
     </div>`;
-  let footer = `<button class="btn btn-secondary" onclick="abrirLoteForm('${l.id}')">✏️ Editar</button>`;
-  if (l.status === 'disponivel') footer += `<button class="btn btn-accent" onclick="abrirReservaAdminForm('${l.id}')">📝 Reservar</button><button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}')">💰 Vender</button><button class="btn btn-outline-danger" onclick="bloquearLote('${l.id}',true)">Bloquear</button>`;
+  let footer = `<button class="btn btn-secondary" onclick="abrirLoteForm('${l.id}')">Editar</button>`;
+  if (l.status === 'disponivel') footer += `<button class="btn btn-accent" onclick="abrirReservaAdminForm('${l.id}')">Reservar</button><button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}')">Vender</button><button class="btn btn-outline-danger" onclick="bloquearLote('${l.id}',true)">Bloquear</button>`;
   else if (l.status === 'bloqueado') footer += `<button class="btn btn-success" onclick="bloquearLote('${l.id}',false)">Liberar para venda</button>`;
-  else if (l.status === 'reservado' && r) footer += `<button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}','${r.id}')">💰 Converter em venda</button>`;
-  openModal({ title: `📍 ${esc(loteLabel(l))}`, body, footer });
+  else if (l.status === 'reservado' && r) footer += `<button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}','${r.id}')">Converter em venda</button>`;
+  openModal({ title: `${esc(loteLabel(l))}`, body, footer });
 }
 function bloquearLote(id, bloquear) {
   const l = getLote(id); if (!l) return;
@@ -407,7 +407,7 @@ function abrirLoteForm(id) {
       <div class="fg"><label>Tipo</label><select id="lfTipo"><option value="residencial" ${!l || l.tipo !== 'comercial' ? 'selected' : ''}>Residencial</option><option value="comercial" ${l && l.tipo === 'comercial' ? 'selected' : ''}>Comercial</option></select></div></div>
     <div class="frow"><div class="fg"><label>Matrícula</label><input type="text" id="lfMatricula" value="${esc(l ? l.matricula || '' : '')}"></div>
       <div class="fg"><label>Status</label><select id="lfStatus" ${l && (l.status === 'vendido' || l.status === 'reservado') ? 'disabled' : ''}><option value="disponivel" ${!l || l.status === 'disponivel' ? 'selected' : ''}>Disponível</option><option value="bloqueado" ${l && l.status === 'bloqueado' ? 'selected' : ''}>Indisponível / bloqueado</option>${l && l.status === 'reservado' ? '<option value="reservado" selected>Reservado</option>' : ''}${l && l.status === 'vendido' ? '<option value="vendido" selected>Vendido</option>' : ''}</select></div></div>
-    <details class="qualif"><summary>📋 Qualificação do imóvel para contrato e escritura</summary>
+    <details class="qualif"><summary>Qualificação do imóvel para contrato e escritura</summary>
       <div class="fg"><label>Descrição conforme a matrícula</label><textarea id="lfDescMat" rows="3" placeholder="Copie do registro, com as confrontações, exatamente como está na matrícula.">${esc(l ? l.descricaoMatricula || '' : '')}</textarea>
         <div class="hint">O contrato descreve o imóvel com as mesmas palavras da matrícula; qualquer diferença vira exigência no cartório.</div></div>
       <div class="frow3"><div class="fg"><label>CEP</label><input type="text" id="lfCep" value="${esc(l ? l.cep || '' : '')}"></div>
@@ -416,7 +416,7 @@ function abrirLoteForm(id) {
         <div class="fg"><label>Bairro</label><input type="text" id="lfBairro" value="${esc(l ? l.bairro || '' : '')}" placeholder="${esc(lot.bairro || '')}"></div></div>
       <p class="help">Em branco, o contrato usa o endereço do empreendimento.</p></details>
     <div class="fg"><label>Observações</label><textarea id="lfObs">${esc(l ? l.obs || '' : '')}</textarea></div>`;
-  openModal({ title: l ? `✏️ Editar ${esc(loteShort(l))}` : '＋ Novo lote', body, footer: `${l ? `<button class="btn btn-outline-danger" onclick="excluirLote('${l.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarLote('${l ? l.id : ''}')">Salvar</button>` });
+  openModal({ title: l ? `Editar ${esc(loteShort(l))}` : 'Novo lote', body, footer: `${l ? `<button class="btn btn-outline-danger" onclick="excluirLote('${l.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarLote('${l ? l.id : ''}')">Salvar</button>` });
   lfCalc();
 }
 function lfCalc() { const a = num(val('lfArea')), p = num(val('lfPreco')); const el = $('#lfM2'); if (el) el.textContent = a && p ? `${fmtMoney(p / a)} por m²` : ''; }
@@ -458,7 +458,7 @@ function abrirGerarLotes() {
     <div class="frow3"><div class="fg"><label>Área padrão (m²)</label><input type="number" id="glArea" value="360" step="0.01"></div><div class="fg"><label>Frente (m)</label><input type="number" id="glFrente" value="12" step="0.01"></div><div class="fg"><label>Fundos (m)</label><input type="number" id="glFundos" value="30" step="0.01"></div></div>
     <div class="frow"><div class="fg"><label>Preço por m² (R$)</label><input type="number" id="glM2" value="400" step="0.01" oninput="glCalc()"></div><div class="fg"><label>ou preço fixo por lote (R$)</label><input type="number" id="glPreco" step="0.01" placeholder="deixe vazio p/ usar R$/m²" oninput="glCalc()"></div></div>
     <div class="sim-result" id="glPreview"></div>`;
-  openModal({ title: '⚡ Gerar lotes em massa', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarLotes()">Gerar</button>` });
+  openModal({ title: 'Gerar lotes em massa', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarLotes()">Gerar</button>` });
   glCalc();
 }
 function glCalc() { const a = num(val('glArea')), m2 = num(val('glM2')), fixo = num(val('glPreco')); const de = Math.round(num(val('glDe'))), ate = Math.round(num(val('glAte'))); const preco = fixo || a * m2; const n = Math.max(0, ate - de + 1); const el = $('#glPreview'); if (el) el.innerHTML = `<b>${n}</b> lote(s) de ${fmtNum(a, 0)} m² a <b>${fmtMoney(preco)}</b> cada · VGV ${fmtMoney(preco * n)}`; }
@@ -480,7 +480,7 @@ function abrirImportarLotes() {
   const body = `<p class="help mb">Cole abaixo uma lista com <b>uma linha por lote</b>, colunas separadas por <b>;</b> (ponto e vírgula) ou tabulação, na ordem:<br><code>quadra; lote; área; preço; frente; fundos; tipo; matrícula</code> — só as 2 primeiras são obrigatórias. Pode copiar direto de uma planilha.</p>
     <div class="fg"><textarea id="impTexto" style="min-height:160px;font-family:monospace;font-size:0.8rem" placeholder="A;1;360;150000;12;30\nA;2;360;150000\nB;1;420;170000"></textarea></div>
     <label class="check"><input type="checkbox" id="impAtualiza" checked> Atualizar lotes que já existem (mesma quadra e número)</label>`;
-  openModal({ title: '📥 Importar lotes', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="importarLotes()">Importar</button>` });
+  openModal({ title: 'Importar lotes', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="importarLotes()">Importar</button>` });
 }
 function importarLotes() {
   const lot = curLot(); const linhas = val('impTexto').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
@@ -509,7 +509,7 @@ function abrirReajuste() {
       <div class="fg"><label>Aplicar em</label><select id="rjStatus"><option value="disponivel">Somente disponíveis</option><option value="all">Disponíveis, reservados e bloqueados</option></select></div></div>
     <div class="frow"><div class="fg"><label>Reajuste (%)</label><input type="number" id="rjPct" step="0.1" placeholder="ex.: 5 ou -3"></div><div class="fg"><label>ou novo preço por m² (R$)</label><input type="number" id="rjM2" step="0.01" placeholder="ex.: 450"></div></div>
     <label class="check"><input type="checkbox" id="rjArredonda" checked> Arredondar para centena (R$ 100)</label>`;
-  openModal({ title: '💲 Reajustar preços', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="aplicarReajuste()">Aplicar</button>` });
+  openModal({ title: 'Reajustar preços', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="aplicarReajuste()">Aplicar</button>` });
 }
 function aplicarReajuste() {
   const lot = curLot(); const q = val('rjQuadra'), st = val('rjStatus'); const pct = num(val('rjPct')), m2 = num(val('rjM2'));
@@ -540,17 +540,17 @@ function renderAReservas(alvo) {
   v.innerHTML = `
     ${db.loteamentos.length > 1 ? `<div class="filters">${escopoSelectHtml('renderAReservas()')}</div>` : ''}
     <div class="chips">${[['ativas', 'Ativas'], ['pendente', 'Aguardando'], ['aprovada', 'Aprovadas'], ['expirada', 'Vencidas'], ['historico', 'Histórico']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.ares.status='${k}';renderAReservas()">${l}<span class="n">${all.filter(grupos[k]).length}</span></div>`).join('')}</div>
-    ${list.length ? list.map(r => reservaCardHtml(r, true)).join('') : `<div class="empty"><div class="ic">📝</div><p>Nenhuma reserva nesta lista.</p></div>`}`;
+    ${list.length ? list.map(r => reservaCardHtml(r, true)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Nenhuma reserva nesta lista.</p></div>`}`;
 }
 function abrirReservaAdmin(id) {
   const r = getReserva(id); if (!r) return; const l = getLote(r.loteId); const st = reservaStatus(r);
   const body = reservaDetalheHtml(r);
   let footer = '';
-  if (r.status === 'pendente' && pode('reservas.aprovar')) footer += `<button class="btn btn-success" onclick="aprovarReserva('${r.id}')">✔ Aprovar</button><button class="btn btn-outline-danger" onclick="encerrarReserva('${r.id}','recusada')">Recusar</button>`;
-  if (['pendente', 'aprovada'].includes(r.status)) footer += `<button class="btn btn-primary" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">💰 Converter em venda</button><button class="btn btn-secondary" onclick="renovarReserva('${r.id}')">🔁 Renovar prazo</button>${r.status === 'aprovada' ? `<button class="btn btn-outline-danger" onclick="encerrarReserva('${r.id}','cancelada')">Liberar lote</button>` : ''}`;
-  footer += `<button class="btn btn-secondary" onclick="editarReservaAdmin('${r.id}')">✏️ Editar dados</button>`;
-  if (r.corretor.telefone) footer += `<a class="btn btn-wa" target="_blank" href="${waLink(r.corretor.telefone, `Olá ${r.corretor.nome.split(' ')[0]}, sobre a reserva do ${l ? loteLabel(l) : 'lote'} para ${r.cliente.nome}: `)}">💬 Corretor</a>`;
-  openModal({ title: `📝 Reserva · ${l ? esc(loteShort(l)) : ''}`, body, footer });
+  if (r.status === 'pendente' && pode('reservas.aprovar')) footer += `<button class="btn btn-success" onclick="aprovarReserva('${r.id}')">Aprovar</button><button class="btn btn-outline-danger" onclick="encerrarReserva('${r.id}','recusada')">Recusar</button>`;
+  if (['pendente', 'aprovada'].includes(r.status)) footer += `<button class="btn btn-primary" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">Converter em venda</button><button class="btn btn-secondary" onclick="renovarReserva('${r.id}')">Renovar prazo</button>${r.status === 'aprovada' ? `<button class="btn btn-outline-danger" onclick="encerrarReserva('${r.id}','cancelada')">Liberar lote</button>` : ''}`;
+  footer += `<button class="btn btn-secondary" onclick="editarReservaAdmin('${r.id}')">Editar dados</button>`;
+  if (r.corretor.telefone) footer += `<a class="btn btn-wa" target="_blank" href="${waLink(r.corretor.telefone, `Olá ${r.corretor.nome.split(' ')[0]}, sobre a reserva do ${l ? loteLabel(l) : 'lote'} para ${r.cliente.nome}: `)}">Corretor</a>`;
+  openModal({ title: `Reserva · ${l ? esc(loteShort(l)) : ''}`, body, footer });
 }
 function aprovarReserva(id) {
   const r = getReserva(id); if (!r) return;
@@ -577,20 +577,20 @@ function encerrarReserva(id, status) {
 function editarReservaAdmin(id) {
   const r = getReserva(id); if (!r) return; const c = r.cliente, k = r.corretor, p = r.proposta || {};
   const body = `
-    <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Cliente</span>
+    <div class="fieldset"><span class="lg">Cliente</span>
       <div class="fg"><label>Nome *</label><input type="text" id="erNome" value="${esc(c.nome)}"></div>
       <div class="frow"><div class="fg"><label>CPF/CNPJ</label><input type="text" id="erCpf" value="${esc(c.cpf)}"></div><div class="fg"><label>Telefone *</label><input type="tel" id="erTel" value="${esc(c.telefone)}"></div></div>
       <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="erEmail" value="${esc(c.email)}"></div><div class="fg"><label>Cidade</label><input type="text" id="erCidade" value="${esc(c.cidade)}"></div></div>
       <div class="fg"><label>Endereço</label><input type="text" id="erEnd" value="${esc(c.endereco)}"></div></div>
-    <div class="fieldset"><span class="lg">🧑‍💼 Corretor</span>
+    <div class="fieldset"><span class="lg">Corretor</span>
       <div class="fg"><label>Nome *</label><input type="text" id="ekNome" value="${esc(k.nome)}"></div>
       <div class="frow"><div class="fg"><label>CRECI</label><input type="text" id="ekCreci" value="${esc(k.creci)}"></div><div class="fg"><label>Telefone</label><input type="tel" id="ekTel" value="${esc(k.telefone)}"></div></div>
       <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="ekEmail" value="${esc(k.email)}"></div><div class="fg"><label>Imobiliária</label><input type="text" id="ekImob" value="${esc(k.imobiliaria)}"></div></div></div>
-    <div class="fieldset"><span class="lg">💰 Proposta / prazo</span>
+    <div class="fieldset"><span class="lg">Proposta / prazo</span>
       <div class="frow3"><div class="fg"><label>Valor</label><input type="number" id="epValor" value="${p.valor || ''}"></div><div class="fg"><label>Entrada</label><input type="number" id="epEntrada" value="${p.entrada || ''}"></div><div class="fg"><label>Parcelas</label><input type="number" id="epParc" value="${p.nParcelas || ''}"></div></div>
       <div class="frow"><div class="fg"><label>Validade</label><input type="date" id="epValidade" value="${r.validade || ''}"></div><div class="fg"><label>Data do pedido</label><input type="date" id="epData" value="${r.dataReserva || ''}"></div></div>
       <div class="fg"><label>Observações</label><textarea id="epObs">${esc(r.obs || '')}</textarea></div></div>`;
-  openModal({ title: '✏️ Editar reserva', body, footer: `<button class="btn btn-secondary" onclick="abrirReservaAdmin('${r.id}')">Voltar</button><button class="btn btn-primary" onclick="salvarReservaAdmin('${r.id}')">Salvar</button>` });
+  openModal({ title: 'Editar reserva', body, footer: `<button class="btn btn-secondary" onclick="abrirReservaAdmin('${r.id}')">Voltar</button><button class="btn btn-primary" onclick="salvarReservaAdmin('${r.id}')">Salvar</button>` });
 }
 function salvarReservaAdmin(id) {
   const r = getReserva(id); if (!r) return;
@@ -606,7 +606,7 @@ function salvarReservaAdmin(id) {
 }
 /* Reserva lançada pela própria empresa, a partir da lista geral: primeiro o loteamento. */
 function novaReservaEscolhendoEmp() {
-  comEmpreendimento('📝 Nova reserva', 'Em qual loteamento?', () => abrirReservaAdminForm(), l => !ehCarteira(l));
+  comEmpreendimento('Nova reserva', 'Em qual loteamento?', () => abrirReservaAdminForm(), l => !ehCarteira(l));
 }
 function abrirReservaAdminForm(loteId) {
   const lot = curLot();
@@ -615,17 +615,17 @@ function abrirReservaAdminForm(loteId) {
   const corrs = db.corretores.filter(c => c.ativo !== false);
   const body = `<p class="help mb">Registre uma reserva feita diretamente com você ou por um corretor. Ela já entra como <b>aprovada</b>.</p>
     <div class="fg"><label>Lote *</label><select id="raLote">${optionsHtml(disp, loteId || disp[0].id, l => `${loteLabel(l)} — ${fmtMoney(l.preco)}`)}</select></div>
-    <div class="fieldset"><span class="lg">🧑‍💼 Corretor</span>
+    <div class="fieldset"><span class="lg">Corretor</span>
       <div class="fg"><label>Corretor cadastrado</label><select id="raCorr" onchange="raPreencheCorr()"><option value="">— Venda direta / digitar —</option>${optionsHtml(corrs, '', c => c.nome + (c.imobiliaria ? ' (' + c.imobiliaria + ')' : ''))}</select></div>
       <div class="frow"><div class="fg"><label>Nome</label><input type="text" id="rkNome" value="${esc(db.config.empresa || 'Venda direta')}"></div><div class="fg"><label>CRECI</label><input type="text" id="rkCreci"></div></div>
       <div class="frow"><div class="fg"><label>Telefone</label><input type="tel" id="rkTel"></div><div class="fg"><label>Imobiliária</label><input type="text" id="rkImob"></div></div></div>
-    <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Cliente</span>
+    <div class="fieldset"><span class="lg">Cliente</span>
       <div class="fg"><label>Nome *</label><input type="text" id="rlNome"></div>
       <div class="frow"><div class="fg"><label>CPF/CNPJ</label><input type="text" id="rlCpf"></div><div class="fg"><label>Telefone *</label><input type="tel" id="rlTel"></div></div>
       <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="rlEmail"></div><div class="fg"><label>Cidade</label><input type="text" id="rlCidade"></div></div>
       <div class="fg"><label>Endereço</label><input type="text" id="rlEnd"></div></div>
     <div class="frow"><div class="fg"><label>Validade (dias)</label><input type="number" id="raDias" value="${db.config.reservaDias}"></div><div class="fg"><label>Observações</label><input type="text" id="raObs"></div></div>`;
-  openModal({ title: '📝 Nova reserva', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarReservaAdminNova()">Reservar</button>` });
+  openModal({ title: 'Nova reserva', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarReservaAdminNova()">Reservar</button>` });
 }
 function raPreencheCorr() { const c = db.corretores.find(x => x.id === val('raCorr')); if (!c) return; setVal('rkNome', c.nome); setVal('rkCreci', c.creci); setVal('rkTel', c.telefone); setVal('rkImob', c.imobiliaria); }
 function corretorSelecionado(selId) { const c = db.corretores.find(x => x.id === val(selId)); return c || null; }
@@ -655,22 +655,22 @@ function renderAVendas() {
   const ativas = all.filter(x => x.status !== 'distrato');
   const tot = ativas.reduce((s, x) => s + num(x.valorTotal), 0);
   v.innerHTML = `
-    ${nSemNumero && (pode('vendas.editar') || pode('vendas.criar')) ? `<div class="alert info" onclick="numerarContratosAntigos()"><span><b>${nSemNumero} contrato(s) sem número.</b> Numerar na ordem da data da venda? <u>Numerar agora</u></span><span>›</span></div>` : ''}
-    <div class="subtabs"><div class="chip active">💰 Vendas</div><div class="chip" onclick="state.filters.avendas.sub='comissoes';renderAVendas()">🤝 Comissões</div></div>
+    ${nSemNumero && (pode('vendas.editar') || pode('vendas.criar')) ? `<div class="alert info" onclick="numerarContratosAntigos()"><span><b>${nSemNumero} contrato(s) sem número.</b> Numerar na ordem da data da venda? <u>Numerar agora</u></span><i class=ico data-i=caret-right></i></div>` : ''}
+    <div class="subtabs"><div class="chip active">Vendas</div><div class="chip" onclick="state.filters.avendas.sub='comissoes';renderAVendas()">Comissões</div></div>
     <div class="kpi-grid cols3">
       <div class="kpi c-blue"><div class="lbl">Vendas</div><div class="val">${ativas.length}</div><div class="sub">${fmtMoneyShort(tot)}</div></div>
       <div class="kpi c-green"><div class="lbl">Quitadas</div><div class="val">${all.filter(x => x.status === 'quitada').length}</div></div>
       <div class="kpi c-primary"><div class="lbl">Ticket médio</div><div class="val">${fmtMoneyShort(ativas.length ? tot / ativas.length : 0)}</div></div>
     </div>
     <div class="chips">${[['all', 'Todas'], ['ativa', 'Ativas'], ['quitada', 'Quitadas'], ['distrato', 'Distratos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.avendas.status='${k}';renderAVendas()">${l}<span class="n">${k === 'all' ? all.length : all.filter(x => x.status === k).length}</span></div>`).join('')}</div>
-    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="🔎 Cliente, imóvel ou nº do contrato" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()">＋ Nova venda</button></div>
-    ${list.length ? list.map(x => vendaCardHtml(x)).join('') : `<div class="empty"><div class="ic">💰</div><p>Nenhuma venda registrada.<br>Converta uma reserva ou registre uma venda direta.</p></div>`}`;
+    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="Cliente, imóvel ou nº do contrato" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()"><i class=ico data-i=plus></i>Nova venda</button></div>
+    ${list.length ? list.map(x => vendaCardHtml(x)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=coins></i></div><p>Nenhuma venda registrada.<br>Converta uma reserva ou registre uma venda direta.</p></div>`}`;
 }
 function vendaCardHtml(x) {
   const r = vendaResumo(x); const pct = r.total ? Math.round(r.pago / r.total * 100) : 0;
   return `<div class="item ${x.status === 'distrato' ? 'cancelada' : x.status}" onclick="abrirVendaAdmin('${x.id}')">
     <div class="info"><div class="title">${x.numeroContrato ? `<span class="ct-nº">Nº ${esc(x.numeroContrato)}</span> ` : ''}${esc(imovelLabel(x))} · ${esc(x.cliente.nome)}${!escopoAtual() ? ` <span class="tiny muted">· ${esc((getLoteamento(x.loteamentoId) || {}).nome || '')}</span>` : ''}</div>
-      <div class="meta"><span>📅 ${fmtDate(x.dataVenda)}</span><span>· 🧑‍💼 ${esc(x.corretor.nome)}</span><span>· ${x.nParcelas}× ${fmtMoney(x.valorParcela)}</span>${r.atrasado ? `<span style="color:var(--danger)">· ${fmtMoney(r.atrasado)} em atraso</span>` : ''}</div>
+      <div class="meta"><span>${fmtDate(x.dataVenda)}</span><span>· ${esc(x.corretor.nome)}</span><span>· ${x.nParcelas}× ${fmtMoney(x.valorParcela)}</span>${r.atrasado ? `<span style="color:var(--danger)">· ${fmtMoney(r.atrasado)} em atraso</span>` : ''}</div>
       ${x.status !== 'distrato' ? `<div class="progress"><div style="width:${pct}%"></div></div><div class="tiny muted">${r.nPagas}/${r.n} parcelas · ${fmtMoney(r.pago)} recebido (${pct}%)</div>` : ''}</div>
     <div class="side"><div class="value">${fmtMoney(x.valorTotal)}</div><span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${statusLabel(x.status)}</span></div></div>`;
 }
@@ -690,11 +690,11 @@ function novaVendaEscolhendoEmp() {
   const podeNovo = podeCadastrarImovel();
   if (!lista.length && !podeNovo) { toast('⚠️', 'Nenhum imóvel disponível', 'Peça ao administrador para cadastrar o imóvel.', true); return; }
   const pre = lista.find(l => l.id === escopoAtual()) ? escopoAtual() : (lista[0] || {}).id;
-  const botao = podeNovo ? `<button type="button" class="btn btn-secondary" style="flex:none" onclick="novoImovelParaContrato()">＋ Novo imóvel</button>` : '';
-  openModal({ title: '💰 Novo contrato',
+  const botao = podeNovo ? `<button type="button" class="btn btn-secondary" style="flex:none" onclick="novoImovelParaContrato()"><i class=ico data-i=plus></i>Novo imóvel</button>` : '';
+  openModal({ title: 'Novo contrato',
     body: `${lista.length ? `<div class="fg"><label>Imóvel</label><div class="row-between" style="gap:8px"><select id="ceEmp" style="flex:1">${lista.map(l => `<option value="${esc(l.id)}" ${l.id === pre ? 'selected' : ''}>${esc(l.nome)} — ${esc(empLabel(l))}${ehCarteira(l) && num(l.preco) ? ' · ' + esc(fmtMoney(l.preco)) : ''}</option>`).join('')}</select>${botao}</div>
         <div class="hint">Num empreendimento, se o lote ainda não foi cadastrado, dá para cadastrar ele no próprio contrato.</div></div>`
-        : `<div class="empty"><div class="ic">🏠</div><p><b>Nenhum imóvel disponível para vender.</b></p><div class="btn-row" style="justify-content:center">${botao}</div></div>`}`,
+        : `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel disponível para vender.</b></p><div class="btn-row" style="justify-content:center">${botao}</div></div>`}`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>${lista.length ? '<button class="btn btn-primary" onclick="continuarNovoContrato()">Continuar</button>' : ''}` });
 }
 function continuarNovoContrato() {
@@ -737,19 +737,19 @@ function abrirVendaForm(id, loteId, reservaId) {
     : !!res;
   const body = `
     ${res ? `<div class="alert info" style="cursor:default"><span>Convertendo a reserva de <b>${esc(res.cliente.nome)}</b> (corretor ${esc(res.corretor.nome)}).</span></div>` : ''}
-    ${carteira ? `<div class="fieldset"><span class="lg">🏠 Imóvel</span>
+    ${carteira ? `<div class="fieldset"><span class="lg">Imóvel</span>
       <div class="fg"><label>Descrição *</label><input type="text" id="vfImDesc" value="${esc(im.descricao || '')}" placeholder="Ex.: Apartamento 302, Ed. Aurora"></div>
       <div class="frow"><div class="fg"><label>Endereço</label><input type="text" id="vfImEnd" value="${esc(im.endereco || '')}"></div>
         <div class="fg"><label>Matrícula</label><input type="text" id="vfImMat" value="${esc(im.matricula || '')}"></div></div>
-      <details class="qualif"><summary>📋 Qualificação do imóvel para contrato e escritura</summary>
+      <details class="qualif"><summary>Qualificação do imóvel para contrato e escritura</summary>
         <div class="fg"><label>Descrição conforme a matrícula</label><textarea id="vfImDescMat" rows="3" placeholder="Copie do registro, com as confrontações, exatamente como está na matrícula.">${esc(im.descricaoMatricula || '')}</textarea></div>
         <div class="frow"><div class="fg"><label>Cartório de Registro de Imóveis</label><input type="text" id="vfImCart" value="${esc(im.cartorio || '')}"></div>
           <div class="fg"><label>Área (m²)</label><input type="number" id="vfImArea" step="0.01" value="${im.area || ''}"></div></div>
         <div class="frow3"><div class="fg"><label>CEP</label><input type="text" id="vfImCep" value="${esc(im.cep || '')}"></div>
           <div class="fg"><label>Bairro</label><input type="text" id="vfImBairro" value="${esc(im.bairro || '')}"></div>
           <div class="fg"><label>Cidade</label><input type="text" id="vfImCidade" value="${esc(im.cidade || '')}"></div></div></details></div>`
-    : `<div class="fg"><label>Lote *</label><div class="row-between" style="gap:8px"><select id="vfLote" style="flex:1" onchange="vfLoteChange()" ${x ? 'disabled' : ''}>${optionsHtml(lotes, sel, l => `${loteLabel(l)} — ${fmtMoney(l.preco)}${vendidoSemContrato(l) ? ' · marcado vendido, sem contrato' : ''}`)}${novoLote ? `<option value="__novo" ${sel === '__novo' ? 'selected' : ''}>＋ Cadastrar novo lote…</option>` : ''}</select>${novoLote ? `<button type="button" class="btn btn-secondary" style="flex:none" onclick="setVal('vfLote','__novo');vfLoteChange()">＋ Novo lote</button>` : ''}</div></div>
-      ${novoLote ? `<div class="fieldset" id="vfNovoLoteBox" style="${sel === '__novo' ? '' : 'display:none'}"><span class="lg">＋ Novo lote no ${esc(lot.nome)}</span>
+    : `<div class="fg"><label>Lote *</label><div class="row-between" style="gap:8px"><select id="vfLote" style="flex:1" onchange="vfLoteChange()" ${x ? 'disabled' : ''}>${optionsHtml(lotes, sel, l => `${loteLabel(l)} — ${fmtMoney(l.preco)}${vendidoSemContrato(l) ? ' · marcado vendido, sem contrato' : ''}`)}${novoLote ? `<option value="__novo" ${sel === '__novo' ? 'selected' : ''}>+ Cadastrar novo lote…</option>` : ''}</select>${novoLote ? `<button type="button" class="btn btn-secondary" style="flex:none" onclick="setVal('vfLote','__novo');vfLoteChange()"><i class=ico data-i=plus></i>Novo lote</button>` : ''}</div></div>
+      ${novoLote ? `<div class="fieldset" id="vfNovoLoteBox" style="${sel === '__novo' ? '' : 'display:none'}"><span class="lg"><i class=ico data-i=plus></i>Novo lote no ${esc(lot.nome)}</span>
         <div class="frow3"><div class="fg"><label>Quadra *</label><input type="text" id="vfNlQuadra" list="vfQuadras" value=""><datalist id="vfQuadras">${quadrasDo(lot.id).map(q => `<option value="${esc(q)}">`).join('')}</datalist></div>
           <div class="fg"><label>Número do lote *</label><input type="text" id="vfNlNumero"></div>
           <div class="fg"><label>Área (m²)</label><input type="number" id="vfNlArea" step="0.01" min="0"></div></div>
@@ -758,13 +758,13 @@ function abrirVendaForm(id, loteId, reservaId) {
           <div class="fg"><label>Matrícula</label><input type="text" id="vfNlMat"></div></div>
         <div class="fg"><label>Preço de tabela (R$)</label><input type="number" id="vfNlPreco" step="0.01" min="0" oninput="if(num(this.value)){setVal('vfTotal',this.value);window.vfManual=false;vfCalc();}"><div class="hint">Em branco, vale o valor da venda.</div></div>
         <div class="hint">O lote entra no loteamento já vendido para este contrato. A posição na planta você marca depois, em Imóveis › Planta.</div></div>` : ''}`}
-    <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Comprador</span>
+    <div class="fieldset"><span class="lg">Comprador</span>
       ${pessoasListaHtml('vc', compradores, { recolher: true, conjuge: true, telObrigatorio: true, obrigatorio: true, cadastro: true, rotulo: 'Comprador', rotuloBotao: 'Adicionar comprador' })}
       <p class="help mt">O primeiro comprador é quem aparece nas telas de venda, recebível e cobrança. Os demais existem para o contrato. Marido e mulher não precisam de dois blocos: use o estado civil e o cônjuge.</p></div>
-    <div class="fieldset"><span class="lg">✍️ Vendedor</span>
+    <div class="fieldset"><span class="lg">Vendedor</span>
       ${vendedoresListaHtml('vfVend', vsel)}
       <p class="help mt">Cadastre outros CNPJs do grupo em Configurações › Dados da empresa. O contrato sai com a qualificação de todos os escolhidos aqui.</p></div>
-    <div class="fieldset"><span class="lg">🤝 Intermediação</span>
+    <div class="fieldset"><span class="lg">Intermediação</span>
       <div class="fg"><label>O negócio foi intermediado por corretor de imóveis?</label>
         <select id="vfTemCorretor" onchange="vfCorretorChange()">
           <option value="nao" ${temCorr ? '' : 'selected'}>Não — venda direta pela empresa</option>
@@ -775,7 +775,7 @@ function abrirVendaForm(id, loteId, reservaId) {
         <div class="frow"><div class="fg"><label>CRECI *</label><input type="text" id="vkCreci" value="${esc(k.creci || '')}"></div><div class="fg"><label>Imobiliária</label><input type="text" id="vkImob" value="${esc(k.imobiliaria || '')}"></div></div>
         <div class="frow"><div class="fg"><label>Comissão (%)</label><input type="number" id="vkPct" step="0.1" value="${x ? x.comissaoPct : db.config.comissaoPct}" oninput="vfCalc()"></div><div class="fg"><label>Comissão (R$)</label><input type="number" id="vkVal" step="0.01" value="${x ? x.comissaoValor : ''}" oninput="vfCalcPct()"></div></div>
       </div></div>
-    <div class="fieldset"><span class="lg">💰 Condições de pagamento</span>
+    <div class="fieldset"><span class="lg">Condições de pagamento</span>
       <div class="frow"><div class="fg"><label>Data da venda *</label><input type="date" id="vfData" value="${x ? x.dataVenda : hoje}"></div><div class="fg"><label>Valor da venda (R$) *</label><input type="number" id="vfTotal" step="0.01" value="${total}" oninput="vfCalc()"></div></div>
       <div class="fg"><label>Forma de pagamento</label><select id="vfForma" onchange="vfFormaChange()">
         <option value="parcelado" ${aVista ? '' : 'selected'}>Parcelado</option>
@@ -787,13 +787,13 @@ function abrirVendaForm(id, loteId, reservaId) {
       <div class="frow3"><div class="fg"><label>Nº parcelas</label><input type="text" inputmode="numeric" id="vfN" value="${n}" oninput="vfCalc()"></div><div class="fg"><label>Juros (% a.m.)</label><input type="number" id="vfJuros" step="0.01" value="${x ? (x.jurosMes || 0) : (cond.jurosMes || 0)}" oninput="vfCalc()"></div><div class="fg"><label>1º vencimento</label><input type="date" id="vfPrimeiro" value="${x ? x.primeiroVencimento : addMonths(hoje, 1)}"></div></div>
       <div class="fg"><label>Valor da parcela (R$) <span class="tiny muted">— calculado; pode ajustar</span></label><input type="number" id="vfParcela" step="0.01" value="${x ? x.valorParcela : ''}" oninput="vfManual=true;vfCalc()"></div>
       ${indiceSelectHtml(x ? x.indiceId : '', x ? x.indiceBase : '', x ? x.dataVenda : hoje)}
-      <div class="fg"><label>Reforços / balões (opcional)</label><div id="vfBaloes"></div><button class="btn btn-secondary btn-sm" onclick="addBalao()">＋ Adicionar reforço</button></div>
+      <div class="fg"><label>Reforços / balões (opcional)</label><div id="vfBaloes"></div><button class="btn btn-secondary btn-sm" onclick="addBalao()"><i class=ico data-i=plus></i>Adicionar reforço</button></div>
       </div>
       <div class="sim-result" id="vfResumo"></div>
-      ${temPagos ? '<p class="tiny muted mt">⚠️ Esta venda já tem pagamentos registrados: as parcelas <b>não serão regeradas</b> ao salvar. Edite parcelas individualmente na tela da venda.</p>' : ''}
+      ${temPagos ? '<p class="tiny muted mt">Esta venda já tem pagamentos registrados: as parcelas <b>não serão regeradas</b> ao salvar. Edite parcelas individualmente na tela da venda.</p>' : ''}
     </div>
     <div class="fg"><label>Observações / contrato</label><textarea id="vfObs">${esc(x ? x.obs || '' : (res && res.obs ? res.obs : ''))}</textarea></div>`;
-  openModal({ title: x ? '✏️ Editar venda' : '💰 Registrar venda', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarVenda('${x ? x.id : ''}','${reservaId || ''}')">Salvar venda</button>`, wide: true });
+  openModal({ title: x ? 'Editar venda' : 'Registrar venda', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarVenda('${x ? x.id : ''}','${reservaId || ''}')">Salvar venda</button>`, wide: true });
   window.vfManual = !!x; window.vfBaloes = x ? (x.baloes || []).map(b => ({ ...b })) : [];
   renderBaloes(); vfCalc();
 }
@@ -821,7 +821,7 @@ function addBalao() { window.vfBaloes.push({ data: addMonths(val('vfPrimeiro') |
 function delBalao(i) { window.vfBaloes.splice(i, 1); renderBaloes(); vfCalc(); }
 function renderBaloes() {
   const box = $('#vfBaloes'); if (!box) return;
-  box.innerHTML = (window.vfBaloes || []).map((b, i) => `<div class="frow" style="grid-template-columns:1fr 1fr auto;margin-bottom:6px"><input type="date" value="${b.data || ''}" onchange="vfBaloes[${i}].data=this.value;vfCalc()"><input type="number" step="0.01" placeholder="Valor" value="${b.valor || ''}" oninput="vfBaloes[${i}].valor=num(this.value);vfCalc()"><button class="btn-icon del" onclick="delBalao(${i})">🗑</button></div>`).join('');
+  box.innerHTML = (window.vfBaloes || []).map((b, i) => `<div class="frow" style="grid-template-columns:1fr 1fr auto;margin-bottom:6px"><input type="date" value="${b.data || ''}" onchange="vfBaloes[${i}].data=this.value;vfCalc()"><input type="number" step="0.01" placeholder="Valor" value="${b.valor || ''}" oninput="vfBaloes[${i}].valor=num(this.value);vfCalc()"><button class="btn-icon del" onclick="delBalao(${i})" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div>`).join('');
 }
 function vfCalc() {
   if (val('vfForma') === 'vista') {
@@ -939,9 +939,9 @@ function perguntarContrato(vendaId) {
   const v = getVenda(vendaId); if (!v) return;
   if (typeof gerarContratoVenda !== 'function') return;
   openModal({
-    title: '📄 Emitir o contrato agora?',
+    title: 'Emitir o contrato agora?',
     body: `<p class="help">A venda de <b>${esc(imovelLabel(v))}</b> para <b>${esc(v.cliente.nome)}</b> foi registrada. Quer gerar o contrato agora? Você ainda vai poder conferir e corrigir o texto antes de imprimir.</p>`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Agora não</button><button class="btn btn-primary" onclick="closeModal();gerarContratoVenda('${v.id}')">📄 Gerar contrato</button>`
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Agora não</button><button class="btn btn-primary" onclick="closeModal();gerarContratoVenda('${v.id}')">Gerar contrato</button>`
   });
 }
 /* Exclusão do contrato, no lugar do distrato — que ficou mal resolvido e a gente ainda não
@@ -954,7 +954,7 @@ function excluirVenda(id) {
   const totalPago = pagos.reduce((s, r) => s + num(r.valorPago), 0);
   const l = x.loteId ? getLote(x.loteId) : null;
   openModal({
-    title: '🗑️ Excluir contrato',
+    title: 'Excluir contrato',
     body: `<p class="help mb">Isto apaga a venda de <b>${esc(imovelLabel(x))}</b> para <b>${esc(x.cliente.nome)}</b>. Não dá para desfazer.</p>
       <div class="detail-grid">
         <div><div class="k">Parcelas</div><div class="v">${recs.length} serão apagadas</div></div>
@@ -987,10 +987,10 @@ function renderCadastros() {
   /* Só o que se ajusta uma vez. Índices, corretores e vitrine saíram daqui: os dois primeiros
      são rotina e têm lugar no menu; a vitrine saiu do produto. No modo local não existe
      equipe — os corretores ficam em Comercial › Corretores. */
-  const todasTabs = [...(Cloud.active ? [['corretores', '👥 Equipe', 'equipe.gerenciar']] : []),
-    ['empresa', '🏢 Dados da empresa', 'config.editar'], ['permissoes', '🔐 Permissões', 'equipe.gerenciar'], ['categorias', '🏷️ Categorias', 'custos.editar'], ['documentos', '📄 Modelos de documento', 'documentos.editar'],
-    ['banco', '🏦 Contas bancárias', 'config.editar'], ['cobranca', '🔔 Régua de cobrança', 'cobranca.registrar'],
-    ['config', '⚙️ Geral', 'config.editar'], ['nuvem', Cloud.active ? '☁️ Conta' : '☁️ Nuvem', null], ['backup', '💾 Backup', 'backup.usar']];
+  const todasTabs = [...(Cloud.active ? [['corretores', 'Equipe', 'equipe.gerenciar']] : []),
+    ['empresa', 'Dados da empresa', 'config.editar'], ['permissoes', 'Permissões', 'equipe.gerenciar'], ['categorias', 'Categorias', 'custos.editar'], ['documentos', 'Modelos de documento', 'documentos.editar'],
+    ['banco', 'Contas bancárias', 'config.editar'], ['cobranca', 'Régua de cobrança', 'cobranca.registrar'],
+    ['config', 'Geral', 'config.editar'], ['nuvem', Cloud.active ? 'Conta' : 'Nuvem', null], ['backup', 'Backup', 'backup.usar']];
   const tabs = todasTabs.filter(t => !t[2] || pode(t[2])).map(t => [t[0], t[1]]);
   if (!tabs.find(t => t[0] === state.sub.cad)) state.sub.cad = tabs.length ? tabs[0][0] : 'config';
   const sub = state.sub.cad;
@@ -1009,17 +1009,17 @@ function renderCadastros() {
   if (sub === 'nuvem') renderSyncStatus();
 }
 function cadLoteamentoHtml() {
-  const lot = curLot(); if (!lot) return `<div class="card"><p class="help">Nenhum loteamento. <button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()">＋ Cadastrar</button></p></div>`;
+  const lot = curLot(); if (!lot) return `<div class="card"><p class="help">Nenhum loteamento. <button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Cadastrar</button></p></div>`;
   if (ehCarteira(lot)) return terceiroResumoHtml(lot) + (custosDo(lot.id).length ? orcamentoCardHtml(lot) : '');
   const c = lot.cond || {};
-  return `<div class="card"><h3>🏘️ ${esc(lot.nome)} <span class="badge neutral">Empreendimento</span> <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">✏️ Editar</button></span></h3>
+  return `<div class="card"><h3>${esc(lot.nome)} <span class="badge neutral">Empreendimento</span> <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">Editar</button></span></h3>
       <div class="detail-grid"><div><div class="k">Cidade</div><div class="v">${esc(lot.cidade) || '—'}</div></div><div><div class="k">Endereço</div><div class="v">${esc(lot.endereco) || '—'}</div></div><div class="full"><div class="k">Descrição (aparece para os corretores)</div><div class="v">${esc(lot.descricao) || '—'}</div></div>
       <div><div class="k">Entrada mínima</div><div class="v">${fmtNum(c.entradaMinPct || 0, 0)}%</div></div><div><div class="k">Parcelas máx.</div><div class="v">${c.maxParcelas || '—'}</div></div><div><div class="k">Juros</div><div class="v">${c.jurosMes ? fmtNum(c.jurosMes, 2) + '% a.m.' : 'sem juros'}</div></div><div><div class="k">Desconto à vista</div><div class="v">${fmtNum(c.descontoVistaPct || 0, 0)}%</div></div></div></div>
     ${orcamentoCardHtml(lot)}`;
 }
 function orcamentoCardHtml(lot) {
   const orc = lot.orcamento || {}; const cs = custosDo(lot.id);
-  return `<div class="card"><h3>📋 Orçamento de custos por categoria <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirOrcamentoForm()">✏️ Editar</button></span></h3>
+  return `<div class="card"><h3>Orçamento de custos por categoria <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirOrcamentoForm()">Editar</button></span></h3>
       ${db.categorias.filter(cat => num(orc[cat.id]) > 0).map(cat => { const real = cs.filter(x => x.categoriaId === cat.id).reduce((s, x) => s + num(x.valor), 0); const pct = Math.round(real / orc[cat.id] * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${cat.cor}"></span> ${esc(cat.nome)}</span><span class="muted">${fmtMoney(real)} de ${fmtMoney(orc[cat.id])} (${pct}%)</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Nenhum orçamento definido. Defina o valor planejado por categoria para acompanhar orçado × realizado.</p>'}
       ${Object.values(orc).some(x => num(x) > 0) ? `<p class="small mt"><b>Total orçado: ${fmtMoney(Object.values(orc).reduce((s, x) => s + num(x), 0))}</b> · realizado ${fmtMoney(cs.reduce((s, x) => s + num(x.valor), 0))}</p>` : ''}</div>`;
 }
@@ -1029,11 +1029,11 @@ function terceiroResumoHtml(lot) {
   const temCond = ['entradaMinPct', 'maxParcelas', 'jurosMes', 'descontoVistaPct'].some(k => num(c[k]));
   const end = enderecoLinha(lot) || lot.endereco || '';
   return `<div class="card"><h3><span>${empIcone(lot)} ${esc(lot.nome)} <span class="badge neutral">${esc(empLabel(lot))}</span> <span class="badge ${vd ? 'vendido' : 'disponivel'}">${vd ? 'Vendido' : 'Disponível'}</span></span>
-      ${pode('config.editar') || pode('lotes.editar') ? `<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">✏️ Editar</button></span>` : ''}</h3>
+      ${pode('config.editar') || pode('lotes.editar') ? `<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">Editar</button></span>` : ''}</h3>
     <div class="row-between mb" style="flex-wrap:wrap;gap:10px">
       <div><div class="price-big">${num(lot.preco) ? fmtMoney(lot.preco) : '—'}</div><div class="price-sub">${num(lot.preco) ? 'valor de venda' : 'valor de venda ainda não informado'}</div></div>
-      ${vd ? `<button class="btn btn-secondary" style="flex:none" onclick="abrirVendaAdmin('${vd.id}')">📄 Contrato de ${esc(vd.cliente.nome)} · ${fmtMoney(vd.valorTotal)}</button>`
-        : pode('vendas.criar') ? `<button class="btn btn-primary" style="flex:none" onclick="setCurLotSilencioso('${lot.id}');abrirVendaForm()">💰 Registrar venda</button>` : ''}
+      ${vd ? `<button class="btn btn-secondary" style="flex:none" onclick="abrirVendaAdmin('${vd.id}')">Contrato de ${esc(vd.cliente.nome)} · ${fmtMoney(vd.valorTotal)}</button>`
+        : pode('vendas.criar') ? `<button class="btn btn-primary" style="flex:none" onclick="setCurLotSilencioso('${lot.id}');abrirVendaForm()">Registrar venda</button>` : ''}
     </div>
     <div class="detail-grid">
       <div><div class="k">Matrícula</div><div class="v">${esc(lot.matricula) || '—'}</div></div><div><div class="k">Área</div><div class="v">${num(lot.area) ? fmtNum(lot.area, 2) + ' m²' : '—'}</div></div>
@@ -1067,7 +1067,7 @@ function abrirLoteamentoForm(id, opc) {
         <div class="fg"><label>Área (m²)</label><input type="number" id="lmArea" step="0.01" value="${l && num(l.area) ? l.area : ''}"></div></div></div>
     <div class="frow"><div class="fg"><label>Cidade / UF</label><input type="text" id="lmCidade" value="${esc(l ? l.cidade || '' : '')}"></div><div class="fg"><label>Endereço / acesso</label><input type="text" id="lmEnd" value="${esc(l ? l.endereco || '' : '')}"></div></div>
     <div class="fg"><label id="lmDescLbl">${terc ? 'Observações' : 'Descrição para os corretores'}</label><textarea id="lmDesc" placeholder="${terc ? 'Quem é o proprietário, chaves, o que for útil…' : 'Infraestrutura, diferenciais, área de lazer…'}">${esc(l ? l.descricao || '' : '')}</textarea></div>
-    <details class="qualif"><summary>📋 Endereço e registro — para contrato, escritura e declaração fiscal</summary>
+    <details class="qualif"><summary>Endereço e registro — para contrato, escritura e declaração fiscal</summary>
       <div class="frow3"><div class="fg"><label>CEP</label><input type="text" id="lmCep" value="${esc(l ? l.cep || '' : '')}"></div>
         <div class="fg" style="grid-column:span 2"><label>Logradouro</label><input type="text" id="lmLogr" value="${esc(l ? l.logradouro || '' : '')}" placeholder="Rua, avenida, rodovia…"></div></div>
       <div class="frow3"><div class="fg"><label>Número</label><input type="text" id="lmNum" value="${esc(l ? l.numeroEnd || '' : '')}"></div>
@@ -1079,10 +1079,10 @@ function abrirLoteamentoForm(id, opc) {
         <div class="hint">O contrato sai com este texto. O cartório compara com a matrícula palavra por palavra.</div></div>
       <div class="fg"><label>Código do município no IBGE</label><input type="text" id="lmIbge" value="${esc(l ? l.codigoIbge || '' : '')}" placeholder="7 dígitos">
         <div class="hint">Só a declaração fiscal usa. Se não souber agora, deixe em branco e preencha depois.</div></div></details>
-    <details class="qualif" id="lmCondBox" ${terc ? '' : 'open'}><summary>💳 Condições de pagamento padrão <span class="tiny muted" id="lmCondOpc">${terc ? '— opcional' : ''}</span></summary>
+    <details class="qualif" id="lmCondBox" ${terc ? '' : 'open'}><summary>Condições de pagamento padrão <span class="tiny muted" id="lmCondOpc">${terc ? '— opcional' : ''}</span></summary>
       <div class="frow"><div class="fg"><label>Entrada mínima (%)</label><input type="number" id="lmEntrada" step="0.1" value="${c.entradaMinPct ?? 10}"></div><div class="fg"><label>Máximo de parcelas</label><input type="number" id="lmMaxP" value="${c.maxParcelas ?? 120}"></div></div>
       <div class="frow"><div class="fg"><label>Juros do parcelamento (% a.m.)</label><input type="number" id="lmJuros" step="0.01" value="${c.jurosMes ?? 0}"><div class="hint">0 = sem juros (parcelas lineares)</div></div><div class="fg"><label>Desconto à vista (%)</label><input type="number" id="lmDesc2" step="0.1" value="${c.descontoVistaPct ?? 0}"></div></div></details>`;
-  openModal({ title: l ? `✏️ Editar ${empLabel(l).toLowerCase()}` : '＋ Novo imóvel', body, footer: `${l && db.loteamentos.length > 1 ? `<button class="btn btn-outline-danger" onclick="excluirLoteamento('${l.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="${opc.paraContrato ? 'novaVendaEscolhendoEmp()' : 'closeModal()'}">${opc.paraContrato ? '‹ Voltar' : 'Cancelar'}</button><button class="btn btn-primary" onclick="salvarLoteamento('${l ? l.id : ''}')">${opc.paraContrato ? 'Salvar e abrir o contrato' : 'Salvar'}</button>` });
+  openModal({ title: l ? `Editar ${empLabel(l).toLowerCase()}` : 'Novo imóvel', body, footer: `${l && db.loteamentos.length > 1 ? `<button class="btn btn-outline-danger" onclick="excluirLoteamento('${l.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="${opc.paraContrato ? 'novaVendaEscolhendoEmp()' : 'closeModal()'}">${opc.paraContrato ? '‹ Voltar' : 'Cancelar'}</button><button class="btn btn-primary" onclick="salvarLoteamento('${l ? l.id : ''}')">${opc.paraContrato ? 'Salvar e abrir o contrato' : 'Salvar'}</button>` });
   lmTipoChange(true);
   focarSeLivre('lmNome');
 }
@@ -1141,13 +1141,13 @@ function excluirLoteamento(id) {
   closeModal(); renderCurrent(); toast('🗑️', 'Imóvel excluído', `${empLabel(l)} · ${l.nome}`);
 }
 function cadLoteamentosHtml() {
-  return `<div class="card"><h3>📋 Loteamentos <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()">＋ Novo</button></span></h3>
-    ${db.loteamentos.map(l => { const ls = lotesDo(l.id); return `<div class="item ${l.id === state.lotId ? '' : 'bloqueado'}" onclick="setCurLot('${l.id}');state.sub.cad='loteamento';renderCurrent()"><div class="info"><div class="title">${esc(l.nome)} ${l.id === state.lotId ? '<span class="badge aprovada">atual</span>' : ''}</div><div class="meta"><span class="badge neutral">${esc(empLabel(l))}</span><span>${esc(l.cidade || '')}</span>${ehCarteira(l) ? `<span>· ${db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato').length} venda(s)</span>` : `<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span>`}</div></div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();abrirLoteamentoForm('${l.id}')">✏️</button></div></div>`; }).join('') || '<p class="help">Nenhum empreendimento.</p>'}</div>`;
+  return `<div class="card"><h3>Loteamentos <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span></h3>
+    ${db.loteamentos.map(l => { const ls = lotesDo(l.id); return `<div class="item ${l.id === state.lotId ? '' : 'bloqueado'}" onclick="setCurLot('${l.id}');state.sub.cad='loteamento';renderCurrent()"><div class="info"><div class="title">${esc(l.nome)} ${l.id === state.lotId ? '<span class="badge aprovada">atual</span>' : ''}</div><div class="meta"><span class="badge neutral">${esc(empLabel(l))}</span><span>${esc(l.cidade || '')}</span>${ehCarteira(l) ? `<span>· ${db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato').length} venda(s)</span>` : `<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span>`}</div></div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();abrirLoteamentoForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></div></div>`; }).join('') || '<p class="help">Nenhum empreendimento.</p>'}</div>`;
 }
 function abrirOrcamentoForm() {
   const lot = curLot(); const orc = lot.orcamento || {};
   const body = `<p class="help mb">Valor planejado por categoria. O painel compara com os custos lançados.</p>${db.categorias.map(c => `<div class="fg"><label><span class="dot" style="background:${c.cor}"></span> ${esc(c.nome)}</label><input type="number" step="0.01" id="orc_${c.id}" value="${orc[c.id] || ''}" placeholder="0,00"></div>`).join('')}`;
-  openModal({ title: '📋 Orçamento por categoria', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarOrcamento()">Salvar</button>` });
+  openModal({ title: 'Orçamento por categoria', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarOrcamento()">Salvar</button>` });
 }
 function salvarOrcamento() {
   const lot = curLot(); const orc = {};
@@ -1161,15 +1161,15 @@ function renderCorretoresAdmin() {
   const v = $('#av-corretores');
   if (!Cloud.active) { v.innerHTML = cadCorretoresHtml(); return; }
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()) || (c.userId && x.userId === c.userId); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v2 => v2.status !== 'distrato' && m(v2.corretor)) }; };
-  v.innerHTML = `<div class="card"><h3>🧑‍💼 Corretores ${pode('equipe.gerenciar') ? `<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')">＋ Convidar corretor</button></span>` : ''}</h3>
+  v.innerHTML = `<div class="card"><h3>Corretores ${pode('equipe.gerenciar') ? `<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')"><i class=ico data-i=plus></i>Convidar corretor</button></span>` : ''}</h3>
     <p class="help mb">Os corretores entram por convite e usam o portal deles para ver a planta, simular e pedir reserva.</p>
     ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const st = stats(c); return `<div class="item"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${st.res} reserva(s) · ${st.vend.length} venda(s) · ${fmtMoneyShort(st.vend.reduce((t, x) => t + num(x.valorTotal), 0))}</span></div></div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda. Convide o primeiro.</p>'}</div>`;
 }
 function cadCorretoresHtml() {
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v => v.status !== 'distrato' && m(v.corretor)) }; };
-  return `<div class="card"><h3>🧑‍💼 Corretores <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()">＋ Novo</button></span></h3>
+  return `<div class="card"><h3>Corretores <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()"><i class=ico data-i=plus></i>Novo</button></span></h3>
     <p class="help mb">Corretores são cadastrados automaticamente quando fazem o primeiro pedido de reserva. Você também pode cadastrá-los aqui.</p>
-    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${s.res} reserva(s) · ${s.vend.length} venda(s) · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()">💬</a>` : ''}</div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda.</p>'}</div>`;
+    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${s.res} reserva(s) · ${s.vend.length} venda(s) · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda.</p>'}</div>`;
 }
 
 /* ---- Vendedores (outorgantes) ----------------------------------------------------------
@@ -1181,17 +1181,17 @@ function cadCorretoresHtml() {
 function cadEmpresaHtml() {
   const emp = vendedorPadrao();
   const reps = (db.config.representantes || []).filter(r => r && r.nome);
-  return `<div class="card"><h3>🏢 A sua empresa</h3>
+  return `<div class="card"><h3>A sua empresa</h3>
     <p class="help mb">É com estes dados que a empresa é qualificada no contrato, no boleto e nos documentos.</p>
     ${pessoaFormHtml('emp', Object.assign({}, emp, { tipo: 'pj' }), { semTipo: true, semRepresentante: true })}
     <button class="btn btn-primary" onclick="salvarEmpresa()">Salvar dados da empresa</button></div>
 
-    <div class="card"><h3>✍️ Quem assina pela empresa</h3>
+    <div class="card"><h3>Quem assina pela empresa</h3>
     <p class="help mb">Contrato social costuma exigir mais de uma assinatura. Cadastre aqui cada pessoa que assina, com a qualificação completa — é ela que sai no contrato.</p>
     ${pessoasListaHtml('sig', reps.length ? reps : [null], { rotulo: 'Signatário', rotuloBotao: 'Adicionar quem assina', soGenero: true, comCargo: true })}
     <button class="btn btn-primary mt" onclick="salvarSignatarios()">Salvar quem assina</button></div>
 
-    <div class="card"><h3>🏘️ Outras empresas do grupo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirVendedorForm()">＋ Nova</button></span></h3>
+    <div class="card"><h3>Outras empresas do grupo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirVendedorForm()"><i class=ico data-i=plus></i>Nova</button></span></h3>
     <p class="help mb">Incorporadora costuma ter um CNPJ por empreendimento. Cadastre os outros aqui e, a cada venda, o sistema pergunta qual deles assina o contrato. A empresa acima é sempre a padrão.</p>
     ${db.vendedores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(v => {
       const falta = faltaQualificacao(v);
@@ -1227,7 +1227,7 @@ function abrirVendedorForm(id) {
   const body = `<p class="help mb">Estes dados entram na qualificação do vendedor no contrato, exatamente como serão impressos.</p>
     ${pessoaFormHtml('vdd', v || { tipo: 'pj' }, {})}
     <div class="fg"><label>Observações</label><input type="text" id="vddObs" value="${esc(v ? v.obs || '' : '')}"></div>`;
-  openModal({ title: v ? '✏️ Vendedor' : '＋ Novo vendedor', body, wide: true,
+  openModal({ title: v ? 'Vendedor' : 'Novo vendedor', body, wide: true,
     footer: `${v ? `<button class="btn btn-outline-danger" onclick="excluirVendedor('${v.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarVendedor('${v ? v.id : ''}')">Salvar</button>` });
 }
 function salvarVendedor(id) {
@@ -1248,7 +1248,7 @@ function abrirCorretorForm(id) {
     <div class="frow"><div class="fg"><label>CRECI</label><input type="text" id="cfCreci" value="${esc(c ? c.creci : '')}"></div><div class="fg"><label>Telefone *</label><input type="tel" id="cfTel" value="${esc(c ? c.telefone : '')}"></div></div>
     <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="cfEmail" value="${esc(c ? c.email : '')}"></div><div class="fg"><label>Imobiliária</label><input type="text" id="cfImob" value="${esc(c ? c.imobiliaria : '')}"></div></div>
     <label class="check"><input type="checkbox" id="cfAtivo" ${!c || c.ativo !== false ? 'checked' : ''}> Ativo</label>`;
-  openModal({ title: c ? '✏️ Corretor' : '＋ Novo corretor', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="removeRec('corretores','${c.id}');closeModal();renderCurrent()">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCorretor('${c ? c.id : ''}')">Salvar</button>` });
+  openModal({ title: c ? 'Corretor' : 'Novo corretor', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="removeRec('corretores','${c.id}');closeModal();renderCurrent()">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCorretor('${c ? c.id : ''}')">Salvar</button>` });
 }
 function salvarCorretor(id) {
   if (!val('cfNome') || !val('cfTel')) { toast('⚠️', 'Informe nome e telefone', '', true); return; }
@@ -1257,12 +1257,12 @@ function salvarCorretor(id) {
   closeModal(); renderCurrent(); toast('✅', 'Corretor salvo', '');
 }
 function cadCategoriasHtml() {
-  return `<div class="card"><h3>🏷️ Categorias de custo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()">＋ Nova</button></span></h3>
+  return `<div class="card"><h3>Categorias de custo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()"><i class=ico data-i=plus></i>Nova</button></span></h3>
     ${db.categorias.map(c => `<div class="item" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${db.custos.filter(x => x.categoriaId === c.id).length} lançamento(s)</span></div></div></div>`).join('')}</div>`;
 }
 function abrirCategoriaForm(id) {
   const c = id ? getCategoria(id) : null;
-  openModal({ title: c ? '✏️ Categoria' : '＋ Nova categoria', body: `<div class="fg"><label>Nome *</label><input type="text" id="ctNome" value="${esc(c ? c.nome : '')}"></div><div class="fg"><label>Cor</label><input type="color" id="ctCor" value="${c ? c.cor : '#0e4c73'}"></div>`,
+  openModal({ title: c ? 'Categoria' : 'Nova categoria', body: `<div class="fg"><label>Nome *</label><input type="text" id="ctNome" value="${esc(c ? c.nome : '')}"></div><div class="fg"><label>Cor</label><input type="color" id="ctCor" value="${c ? c.cor : '#0e4c73'}"></div>`,
     footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCategoria('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCategoria('${c ? c.id : ''}')">Salvar</button>` });
 }
 function salvarCategoria(id) {
@@ -1276,18 +1276,18 @@ function excluirCategoria(id) {
 }
 function cadConfigHtml() {
   const c = db.config;
-  return `<div class="card"><h3>⚙️ Configurações gerais</h3>
+  return `<div class="card"><h3>Configurações gerais</h3>
     <div class="frow"><div class="fg"><label>Nome da empresa / incorporadora</label><input type="text" id="cgEmpresa" value="${esc(c.empresa)}"></div><div class="fg"><label>WhatsApp da administração</label><input type="tel" id="cgWa" value="${esc(c.adminWhatsapp)}" placeholder="(00) 00000-0000"><div class="hint">Corretores podem avisar você pelo WhatsApp ao pedir reserva.</div></div></div>
     <div class="frow3"><div class="fg"><label>Validade da reserva (dias)</label><input type="number" id="cgDias" value="${c.reservaDias}"></div><div class="fg"><label>Comissão padrão (%)</label><input type="number" id="cgCom" step="0.1" value="${c.comissaoPct}"></div><div class="fg"><label>Multa por atraso (%)</label><input type="number" id="cgMulta" step="0.1" value="${c.multaPct}"></div></div>
     <div class="frow"><div class="fg"><label>Juros de mora (% ao mês)</label><input type="number" id="cgJuros" step="0.01" value="${c.jurosMesPct}"></div><div class="fg"><label>Corretor vê preço de lotes vendidos?</label><select id="cgMostra"><option value="1" ${c.mostrarPrecoVendido ? 'selected' : ''}>Sim</option><option value="0" ${!c.mostrarPrecoVendido ? 'selected' : ''}>Não</option></select></div></div>
     <button class="btn btn-primary" onclick="salvarConfig()">Salvar configurações</button></div>
-    <div class="card"><h3>🏢 Dados da empresa</h3>
+    <div class="card"><h3>Dados da empresa</h3>
     <p class="help">CNPJ, endereço, quem assina e os outros CNPJs do grupo ficam em <b><a href="#" onclick="state.sub.cad='empresa';renderCurrent();return false">Configurações › Dados da empresa</a></b>.</p></div>
-    ${Cloud.active ? '' : `<div class="card"><h3>🔐 Acesso</h3>
+    ${Cloud.active ? '' : `<div class="card"><h3>Acesso</h3>
     <div class="frow"><div class="fg"><label>Novo PIN do administrador</label><input type="password" inputmode="numeric" id="cgPin" placeholder="mín. 4 dígitos" autocomplete="new-password"><div class="hint">${c.pinPadrao ? '<b style="color:#b45309">Você ainda usa o PIN padrão 1234. Troque agora.</b>' : 'PIN personalizado ativo.'}</div></div>
       <div class="fg"><label>Código de acesso dos corretores</label><input type="text" id="cgCod" value="${esc(c.codigoCorretor)}" placeholder="vazio = acesso livre"><div class="hint">Se definido, o corretor precisa digitar este código na primeira vez que abrir o app.</div></div></div>
     <button class="btn btn-primary" onclick="salvarAcesso()">Salvar acesso</button>
-    <p class="help mt">⚠️ Este controle de acesso é simples (sem servidor). Serve para organizar o uso, não para proteger dados sigilosos.</p></div>`}`;
+    <p class="help mt">Este controle de acesso é simples (sem servidor). Serve para organizar o uso, não para proteger dados sigilosos.</p></div>`}`;
 }
 function salvarConfig() {
   setConfig({ empresa: val('cgEmpresa'), adminWhatsapp: val('cgWa'), reservaDias: Math.max(1, Math.round(num(val('cgDias')) || 7)), comissaoPct: num(val('cgCom')), multaPct: num(val('cgMulta')), jurosMesPct: num(val('cgJuros')), mostrarPrecoVendido: val('cgMostra') === '1' });
@@ -1300,7 +1300,7 @@ function salvarAcesso() {
 }
 function cadNuvemHtml() {
   const link = location.origin + location.pathname + '?modo=corretor';
-  return `<div class="card"><h3>☁️ Sincronização em nuvem <span id="syncStatusBox"></span></h3>
+  return `<div class="card"><h3>Sincronização em nuvem <span id="syncStatusBox"></span></h3>
     <p class="help mb">Este aparelho está no <b>modo local</b>: os dados ficam salvos só neste navegador. Para trabalhar em equipe (corretores em qualquer aparelho, pedidos de reserva em tempo real, login por usuário), o app usa o <b>Supabase</b>.</p>
     <ol class="steps mb">
       <li>Crie o projeto em <a href="https://supabase.com" target="_blank">supabase.com</a> e rode o arquivo <code>supabase/schema.sql</code> no SQL Editor.</li>
@@ -1308,19 +1308,19 @@ function cadNuvemHtml() {
       <li>Preencha os dois valores em <code>config.js</code> e publique. O app passa a abrir com tela de login; crie sua conta e a empresa.</li>
     </ol>
     <p class="help">O guia completo está em <code>supabase/README.md</code>.</p></div>
-    <div class="card"><h3>🔗 Link para os corretores (modo local)</h3>
+    <div class="card"><h3>Link para os corretores (modo local)</h3>
     <p class="help mb">Abre direto na área do corretor. Sem a nuvem, cada aparelho tem os próprios dados; use apenas para demonstração.${db.config.codigoCorretor ? ' O código de acesso configurado será solicitado.' : ''}</p>
     <div class="code-box" id="linkCorretor">${esc(link)}</div>
-    <div class="btn-row"><button class="btn btn-secondary" onclick="copiarTexto(document.getElementById('linkCorretor').textContent)">📋 Copiar link</button></div></div>`;
+    <div class="btn-row"><button class="btn btn-secondary" onclick="copiarTexto(document.getElementById('linkCorretor').textContent)">Copiar link</button></div></div>`;
 }
 function copiarTexto(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('📋', 'Copiado', '')).catch(() => prompt('Copie o link:', t)); }
 function cadBackupHtml() {
   const size = Math.round((localStorage.getItem(DB_KEY) || '').length / 1024);
-  return `<div class="card"><h3>💾 Backup e dados</h3>
+  return `<div class="card"><h3>Backup e dados</h3>
     <p class="help mb">Exporte um arquivo com todos os dados (lotes, planta, reservas, vendas, custos). Guarde uma cópia com regularidade. Tamanho atual: ${size} KB.</p>
-    <div class="btn-row"><button class="btn btn-primary" onclick="exportarBackup()">⬇️ Exportar backup (JSON)</button><label class="btn btn-secondary" style="cursor:pointer">📥 Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importarBackup(this)"></label></div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="exportarBackup()">Exportar backup (JSON)</button><label class="btn btn-secondary" style="cursor:pointer">Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importarBackup(this)"></label></div>
     <div class="btn-row"><button class="btn btn-outline" onclick="exportarLotesCSV()">Lotes (CSV)</button><button class="btn btn-outline" onclick="exportarRecebiveisCSV()">Recebíveis (CSV)</button><button class="btn btn-outline" onclick="exportarCustosCSV()">Custos (CSV)</button></div></div>
-    <div class="card"><h3>✨ Dados de exemplo</h3><p class="help mb">Carregue um loteamento fictício completo para conhecer o app. Substitui os dados atuais.</p><button class="btn btn-accent" onclick="carregarDemo()">Carregar dados de exemplo</button></div>
-    <div class="card"><h3>🗑️ Zona de perigo</h3><p class="help mb">Apaga todos os loteamentos, lotes, reservas, vendas e custos. As configurações são mantidas.</p><button class="btn btn-outline-danger" onclick="apagarTudo()">Apagar todos os dados</button></div>`;
+    <div class="card"><h3>Dados de exemplo</h3><p class="help mb">Carregue um loteamento fictício completo para conhecer o app. Substitui os dados atuais.</p><button class="btn btn-accent" onclick="carregarDemo()">Carregar dados de exemplo</button></div>
+    <div class="card"><h3>Zona de perigo</h3><p class="help mb">Apaga todos os loteamentos, lotes, reservas, vendas e custos. As configurações são mantidas.</p><button class="btn btn-outline-danger" onclick="apagarTudo()">Apagar todos os dados</button></div>`;
 }
 

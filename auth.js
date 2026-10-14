@@ -10,7 +10,7 @@ function renderAuth(tela, aviso) {
   const alerta = aviso ? `<div class="alert" style="cursor:default;margin-bottom:12px"><span>${esc(aviso)}</span></div>` : '';
   const conv = prefs.convitePendente || '';
   if (tela === 'carregando') {
-    box.innerHTML = `<div class="auth-card"><div class="empty"><div class="ic">⏳</div><p>Carregando…</p></div></div>`;
+    box.innerHTML = `<div class="auth-card"><div class="empty"><div class="ic"><i class=ico data-i=hourglass></i></div><p>Carregando…</p></div></div>`;
   } else if (tela === 'login') {
     box.innerHTML = `<div class="auth-card">${alerta}
       <h2>Entrar</h2>
@@ -47,20 +47,20 @@ function renderAuth(tela, aviso) {
       <button class="btn btn-primary btn-block" onclick="authNovaSenha()">Salvar senha</button>
     </div>`;
   } else if (tela === 'confirmar') {
-    box.innerHTML = `<div class="auth-card"><div class="empty"><div class="ic">📬</div><p><b>Confira seu e-mail.</b><br>Enviamos um link de confirmação para <b>${esc(prefs.ultimoEmail || '')}</b>. Depois de confirmar, volte aqui e entre.</p></div>
+    box.innerHTML = `<div class="auth-card"><div class="empty"><div class="ic"><i class=ico data-i=envelope-simple></i></div><p><b>Confira seu e-mail.</b><br>Enviamos um link de confirmação para <b>${esc(prefs.ultimoEmail || '')}</b>. Depois de confirmar, volte aqui e entre.</p></div>
       <button class="btn btn-secondary btn-block" onclick="renderAuth('login')">Voltar para o login</button></div>`;
   } else if (tela === 'entrar') { // logado, sem empresa (ou com convite pendente)
     const m = Cloud.user && Cloud.user.user_metadata ? Cloud.user.user_metadata : {};
     box.innerHTML = `<div class="auth-card">${alerta}
       <div class="row-between mb"><h2 style="margin:0">Olá${m.nome ? ', ' + esc(m.nome.split(' ')[0]) : ''}!</h2><button class="btn btn-sm btn-secondary" onclick="sair()">Sair</button></div>
       ${Cloud.minhasOrgs.length ? `<p class="small muted mb">Você já participa de ${Cloud.minhasOrgs.length} empresa(s). <a href="#" onclick="renderAuth('escolher');return false">Abrir</a></p>` : ''}
-      <div class="fieldset"><span class="lg">🧑‍💼 Tenho um código de convite</span>
+      <div class="fieldset"><span class="lg">Tenho um código de convite</span>
         <p class="help mb">Corretores e equipe entram com o código enviado pelo administrador.</p>
         <div class="frow"><div class="fg"><label>Código *</label><input type="text" id="cvCodigo" value="${esc(conv)}" style="text-transform:uppercase"></div><div class="fg"><label>Seu nome *</label><input type="text" id="cvNome" value="${esc(m.nome || '')}"></div></div>
         <div class="frow"><div class="fg"><label>Telefone / WhatsApp *</label><input type="tel" id="cvTel"></div><div class="fg"><label>CRECI</label><input type="text" id="cvCreci"></div></div>
         <div class="fg"><label>Imobiliária</label><input type="text" id="cvImob"></div>
         <button class="btn btn-primary btn-block" onclick="authEntrarConvite()">Entrar na empresa</button></div>
-      <div class="fieldset"><span class="lg">🏢 Criar minha empresa</span>
+      <div class="fieldset"><span class="lg">Criar minha empresa</span>
         <p class="help mb">Para incorporadoras e administradores de loteamento. Você será o dono.</p>
         <div class="fg"><label>Nome da empresa / incorporadora *</label><input type="text" id="orgNome"></div>
         <div class="frow"><div class="fg"><label>Seu nome *</label><input type="text" id="orgUser" value="${esc(m.nome || '')}"></div><div class="fg"><label>Telefone / WhatsApp</label><input type="tel" id="orgTel"></div></div>
@@ -152,19 +152,19 @@ function conviteVencido(c) {
 function cadEquipeHtml() {
   const link = c => location.origin + location.pathname + '?convite=' + c.codigo;
   const eu = Cloud.user.id;
-  return `<div class="card"><h3>👥 Equipe <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirConviteForm()">＋ Convite</button></span></h3>
+  return `<div class="card"><h3>Equipe <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirConviteForm()"><i class=ico data-i=plus></i>Convite</button></span></h3>
     <p class="help mb">Quem tem acesso a <b>${esc(Cloud.org.nome)}</b>. Corretores veem a planta, os preços e só as próprias reservas. O financeiro cuida do dinheiro, dos contratos e das vendas, mas não mexe na planta.</p>
     ${Cloud.membros.map(m => `<div class="item ${m.ativo ? '' : 'bloqueado'}" onclick="abrirMembroForm('${m.id}')"><div class="info"><div class="title">${esc(m.nome || m.email || '(sem nome)')} ${m.userId === eu ? '<span class="badge aprovada">você</span>' : ''} ${!m.ativo ? '<span class="badge neutral">inativo</span>' : ''}</div>
       <div class="meta"><span class="badge ${m.papel === 'corretor' ? 'neutral' : 'convertida'}">${statusLabel(m.papel)}</span><span>${esc(m.email)}</span>${m.telefone ? `<span>· ${esc(fmtPhone(m.telefone))}</span>` : ''}${m.creci ? `<span>· ${esc(m.creci)}</span>` : ''}${m.imobiliaria ? `<span>· ${esc(m.imobiliaria)}</span>` : ''}</div></div>
-      <div class="side">${m.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(m.telefone, '')}" onclick="event.stopPropagation()">💬</a>` : ''}</div></div>`).join('')}</div>
-    <div class="card"><h3>🔗 Convites</h3>
+      <div class="side">${m.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(m.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`).join('')}</div>
+    <div class="card"><h3>Convites</h3>
     <p class="help mb">Envie o link ao corretor: ele cria a conta (ou entra) e já fica vinculado à sua empresa com o papel do convite.</p>
     ${Cloud.convites.length ? Cloud.convites.map(c => `<div class="item ${conviteVencido(c) ? 'bloqueado' : ''}"><div class="info"><div class="title">${esc(c.codigo)} <span class="badge ${c.papel === 'corretor' ? 'neutral' : 'convertida'}">${statusLabel(c.papel)}</span> ${conviteVencido(c) ? '<span class="badge neutral">expirado</span>' : ''} ${c.descricao ? `<span class="small muted">· ${esc(c.descricao)}</span>` : ''}</div><div class="meta"><span>${c.usos} de ${c.maxUsos || 1} uso(s)</span><span>· ${c.expiraEm ? 'vale até ' + fmtDateTime(c.expiraEm) : 'sem prazo'}</span><span>· criado em ${fmtDateTime(c.criadoEm)}</span></div><div class="code-box mt" style="font-size:0.7rem">${esc(link(c))}</div></div>
-      <div class="side"><div class="btns"><button class="btn-icon" title="Copiar link" onclick="copiarTexto('${esc(link(c))}')">📋</button><a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" title="Enviar por WhatsApp" target="_blank" href="${'https://wa.me/?text=' + encodeURIComponent('Acesse a planta de ' + Cloud.org.nome + ' e faça suas reservas por aqui: ' + link(c) + ' (código ' + c.codigo + ')')}">💬</a><button class="btn-icon del" title="Excluir convite" onclick="apagarConvite('${c.id}')">🗑️</button></div></div></div>`).join('') : '<p class="help">Nenhum convite ativo. Crie um para chamar corretores.</p>'}
+      <div class="side"><div class="btns"><button class="btn-icon" title="Copiar link" onclick="copiarTexto('${esc(link(c))}')"><i class=ico data-i=copy></i></button><a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" title="Enviar por WhatsApp" target="_blank" href="${'https://wa.me/?text=' + encodeURIComponent('Acesse a planta de ' + Cloud.org.nome + ' e faça suas reservas por aqui: ' + link(c) + ' (código ' + c.codigo + ')')}"><i class=ico data-i=whatsapp-logo></i></a><button class="btn-icon del" title="Excluir convite" onclick="apagarConvite('${c.id}')"><i class=ico data-i=trash></i></button></div></div></div>`).join('') : '<p class="help">Nenhum convite ativo. Crie um para chamar corretores.</p>'}
     </div>`;
 }
 function abrirConviteForm() {
-  openModal({ title: '🔗 Novo convite', body: `<div class="fg"><label>Papel de quem entrar com este convite</label><select id="cvPapel"><option value="corretor">Corretor (vê planta, preços e faz reservas)</option><option value="financeiro">Financeiro (recebíveis, despesas, cobrança e vendas)</option><option value="admin">Administrador (acesso total)</option></select></div>
+  openModal({ title: 'Novo convite', body: `<div class="fg"><label>Papel de quem entrar com este convite</label><select id="cvPapel"><option value="corretor">Corretor (vê planta, preços e faz reservas)</option><option value="financeiro">Financeiro (recebíveis, despesas, cobrança e vendas)</option><option value="admin">Administrador (acesso total)</option></select></div>
     <div class="fg"><label>Descrição (opcional)</label><input type="text" id="cvDesc" placeholder="Ex.: corretores da Mendes Imóveis"></div>
     <div class="grid2">
       <div class="fg"><label>Quem pode usar</label><select id="cvUsos"><option value="1">Uma pessoa só (recomendado)</option><option value="10">Até 10 pessoas</option><option value="100">Até 100 pessoas</option></select></div>
@@ -181,7 +181,7 @@ async function apagarConvite(id) { if (!confirm('Excluir este convite? Quem já 
 function abrirMembroForm(id) {
   const m = Cloud.membros.find(x => x.id === id); if (!m) return;
   const eu = m.userId === Cloud.user.id;
-  openModal({ title: '👤 ' + esc(m.nome || m.email), body: `
+  openModal({ title: '' + esc(m.nome || m.email), body: `
     <div class="fg"><label>Nome</label><input type="text" id="mbNome" value="${esc(m.nome)}"></div>
     <div class="frow"><div class="fg"><label>Telefone</label><input type="tel" id="mbTel" value="${esc(m.telefone)}"></div><div class="fg"><label>CRECI</label><input type="text" id="mbCreci" value="${esc(m.creci)}"></div></div>
     <div class="frow"><div class="fg"><label>Imobiliária</label><input type="text" id="mbImob" value="${esc(m.imobiliaria)}"></div><div class="fg"><label>Papel</label><select id="mbPapel" ${eu ? 'disabled' : ''}><option value="corretor" ${m.papel === 'corretor' ? 'selected' : ''}>Corretor</option><option value="financeiro" ${m.papel === 'financeiro' ? 'selected' : ''}>Financeiro</option><option value="admin" ${m.papel === 'admin' ? 'selected' : ''}>Administrador</option><option value="dono" ${m.papel === 'dono' ? 'selected' : ''}>Dono</option></select></div></div>
@@ -196,12 +196,12 @@ async function salvarMembro(id) {
   catch (e) { toast('⚠️', 'Falha', e.message, true); }
 }
 function cadContaHtml() {
-  return `<div class="card"><h3>☁️ Nuvem e conta <span id="syncStatusBox"></span></h3>
+  return `<div class="card"><h3>Nuvem e conta <span id="syncStatusBox"></span></h3>
     <div class="detail-grid"><div><div class="k">Empresa</div><div class="v">${esc(Cloud.org.nome)}</div></div><div><div class="k">Seu papel</div><div class="v">${statusLabel(Cloud.papel)}</div></div><div><div class="k">Usuário</div><div class="v">${esc(Cloud.user.email || '')}</div></div><div><div class="k">Plano</div><div class="v">${esc(Cloud.org.plano || 'gratuito')}</div></div></div>
     <p class="help mt">Os dados ficam no banco da empresa e são atualizados em tempo real em todos os aparelhos. Uma cópia local é mantida neste navegador para abrir mais rápido.</p>
     <div class="btn-row"><button class="btn btn-secondary" onclick="trocarEmpresa()">Trocar de empresa</button><button class="btn btn-outline" onclick="renderAuthNovaSenhaModal()">Alterar minha senha</button><button class="btn btn-outline-danger" onclick="sair()">Sair</button></div></div>`;
 }
 function renderAuthNovaSenhaModal() {
-  openModal({ title: '🔐 Alterar senha', body: `<div class="fg"><label>Nova senha</label><input type="password" id="auSenha" autocomplete="new-password"></div><div class="fg"><label>Repita a senha</label><input type="password" id="auSenha2" autocomplete="new-password"></div>`,
+  openModal({ title: 'Alterar senha', body: `<div class="fg"><label>Nova senha</label><input type="password" id="auSenha" autocomplete="new-password"></div><div class="fg"><label>Repita a senha</label><input type="password" id="auSenha2" autocomplete="new-password"></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="(async()=>{const a=val('auSenha'),b=val('auSenha2');if(a.length<6||a!==b){toast('⚠️','As senhas precisam ser iguais e ter 6+ caracteres','',true);return;}try{await Cloud.updatePassword(a);closeModal();toast('✅','Senha alterada','');}catch(e){toast('⛔','Falha',traduzErro(e),true);}})()">Salvar</button>` });
 }

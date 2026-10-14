@@ -37,7 +37,7 @@ class PlantaView {
 
     const ctrls = document.createElement('div');
     ctrls.className = 'planta-ctrls';
-    ctrls.innerHTML = `<button title="Aproximar" data-act="in">+</button><button title="Afastar" data-act="out">−</button><button title="Enquadrar" data-act="fit">⛶</button>`;
+    ctrls.innerHTML = `<button title="Aproximar" aria-label="Aproximar" data-act="in"><i class=ico data-i=plus></i></button><button title="Afastar" aria-label="Afastar" data-act="out"><i class=ico data-i=minus></i></button><button title="Enquadrar" aria-label="Enquadrar" data-act="fit"><i class=ico data-i=corners-out></i></button>`;
     ctrls.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.act === 'in') this.zoomBy(1.4);

@@ -7,8 +7,8 @@ async function importarPlantaPDF(input) {
   const f = input.files[0]; input.value = ''; if (!f) return;
   const lot = curLot(); if (!lot) return;
   const isDxf = /\.dxf$/i.test(f.name);
-  pdfImp.titulo = isDxf ? '📐 Importar planta do DXF' : '📄 Importar planta do PDF';
-  openModal({ title: pdfImp.titulo, body: `<div class="empty"><div class="ic">⏳</div><p>Lendo o arquivo…</p></div>`, wide: true });
+  pdfImp.titulo = isDxf ? 'Importar planta do DXF' : 'Importar planta do PDF';
+  openModal({ title: pdfImp.titulo, body: `<div class="empty"><div class="ic"><i class=ico data-i=hourglass></i></div><p>Lendo o arquivo…</p></div>`, wide: true });
   try {
     pdfImp.fileName = f.name; pdfImp.kind = isDxf ? 'dxf' : 'pdf'; pdfImp.dxfCamadas = null; pdfImp.dxfAngulo = null; pdfImp.dxfAberto = false;
     if (isDxf) {
@@ -27,7 +27,7 @@ async function importarPlantaPDF(input) {
 }
 function pdfRender(scale, clip, canvas) { return pdfImp.kind === 'dxf' ? Promise.resolve(PlantaDXF.renderizar(pdfImp.ext, scale, clip, canvas)) : PlantaPDF.renderizar(pdfImp.page, scale, clip, canvas); }
 async function pdfCarregarPagina() {
-  $('#modalBody').innerHTML = `<div class="empty"><div class="ic">🔎</div><p>Analisando vetores e textos…</p></div>`;
+  $('#modalBody').innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Analisando vetores e textos…</p></div>`;
   await new Promise(r => setTimeout(r, 30));
   if (pdfImp.kind === 'dxf') {
     if (!pdfImp.dxfCamadas) pdfImp.dxfCamadas = PlantaDXF.camadas(pdfImp.dxf);
@@ -69,7 +69,7 @@ function pdfRenderModal() {
       <div class="fg"><label>Resolução da imagem</label><select id="pdfRes"><option value="3000">Normal (3000 px)</option><option value="4500" ${Cloud.active ? 'selected' : ''}>Alta (4500 px)</option><option value="6000">Máxima (6000 px)</option></select>${Cloud.active ? '' : '<div class="hint">No modo local a imagem é limitada a 2500 px para caber no armazenamento do navegador.</div>'}</div>
       <div class="fg"><label>Lotes</label><label class="check" style="margin-top:8px"><input type="checkbox" id="pdfDetect" ${det.lotes.length ? 'checked' : 'disabled'}> Cadastrar/posicionar automaticamente</label><label class="check"><input type="checkbox" id="pdfAreas" ${det.temTabela || pdfImp.kind === 'dxf' ? 'checked' : ''}> Atualizar áreas com as do arquivo</label></div>
     </div>
-    ${pdfImp.kind === 'dxf' ? `<details ${pdfImp.dxfAberto ? 'open' : ''} ontoggle="pdfImp.dxfAberto=this.open"><summary class="small" style="cursor:pointer;font-weight:700;color:var(--primary)">⚙️ Rotação e camadas do desenho (avançado)</summary>
+    ${pdfImp.kind === 'dxf' ? `<details ${pdfImp.dxfAberto ? 'open' : ''} ontoggle="pdfImp.dxfAberto=this.open"><summary class="small" style="cursor:pointer;font-weight:700;color:var(--primary)">Rotação e camadas do desenho (avançado)</summary>
       <div class="frow" style="margin-top:8px"><div class="fg"><label>Rotação (graus)</label><div style="display:flex;gap:6px"><input type="number" id="dxfAng" step="1" value="${pdfImp.ext.angulo}" onchange="pdfImp.dxfAngulo=Number(this.value);pdfCarregarPagina()"><button class="btn btn-secondary btn-sm" onclick="pdfImp.dxfAngulo=null;pdfCarregarPagina()">Auto</button></div><div class="hint">O desenho é girado para as divisas ficarem retas. Ajuste se preferir outra orientação.</div></div>
       <div class="fg"><label>Camadas visíveis (${pdfImp.dxfCamadas.filter(c => c.on).length} de ${pdfImp.dxfCamadas.length})</label><div style="max-height:160px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:#f8fafc">${pdfImp.dxfCamadas.map((c, i) => `<label class="check tiny" style="padding:2px 0"><input type="checkbox" ${c.on ? 'checked' : ''} onchange="pdfImp.dxfCamadas[${i}].on=this.checked;pdfCarregarPagina()"> ${esc(c.name)} <span class="muted">(${c.total})</span></label>`).join('')}</div></div></div></details>` : ''}
     <div id="pdfProgresso" class="small muted"></div>`;

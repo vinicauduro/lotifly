@@ -17,7 +17,7 @@ function renderCorretorTab() {
 function renderCPlanta() {
   const lot = curLot();
   const v = $('#cv-planta');
-  if (!lot) { v.innerHTML = `<div class="empty"><div class="ic">🏘️</div><p>Nenhum loteamento cadastrado ainda.<br>Peça ao administrador para cadastrar.</p></div>`; state.plantaCorretor = null; return; }
+  if (!lot) { v.innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=buildings></i></div><p>Nenhum loteamento cadastrado ainda.<br>Peça ao administrador para cadastrar.</p></div>`; state.plantaCorretor = null; return; }
   const ls = lotesDo(lot.id);
   const cnt = s => ls.filter(l => l.status === s).length;
   if (!state.plantaCorretor || !v.querySelector('.planta-wrap')) {
@@ -28,7 +28,7 @@ function renderCPlanta() {
         <div class="pill"><span class="dot vendido"></span><div><b id="cStVend">0</b><br>vendidos</div></div>
       </div>
       <div class="filters" style="margin-bottom:8px">
-        <input type="text" id="cBuscaLote" placeholder="🔎 Ir para o lote (ex.: A 12)" oninput="cBuscarLote(this.value)">
+        <input type="text" id="cBuscaLote" placeholder="Ir para o lote (ex.: A 12)" oninput="cBuscarLote(this.value)">
         <select id="cPlantaModo" onchange="cTrocarModo(this.value)" style="flex:0 0 150px"></select>
       </div>
       <div id="cPlantaBox" class="planta-wrap tall"></div>
@@ -39,7 +39,7 @@ function renderCPlanta() {
   $('#cStDisp').textContent = cnt('disponivel'); $('#cStRes').textContent = cnt('reservado'); $('#cStVend').textContent = cnt('vendido');
   const hasImg = !!(lot.planta && lot.planta.img);
   const sel = $('#cPlantaModo');
-  sel.innerHTML = `<option value="imagem" ${!hasImg ? 'disabled' : ''}>🗺️ Planta real</option><option value="esquema">▦ Esquemática</option>`;
+  sel.innerHTML = `<option value="imagem" ${!hasImg ? 'disabled' : ''}>Planta real</option><option value="esquema">▦ Esquemática</option>`;
   const modo = prefs.cModo && (prefs.cModo === 'esquema' || hasImg) ? prefs.cModo : (hasImg ? 'imagem' : 'esquema');
   sel.value = modo; sel.style.display = hasImg ? '' : 'none';
   state.plantaCorretor.setData(lot, ls, modo);
@@ -62,7 +62,7 @@ function cBuscarLote(q) {
 // ---------------------------------------------------------------- lista de lotes
 function renderCLotes() {
   const lot = curLot(); const v = $('#cv-lotes');
-  if (!lot) { v.innerHTML = `<div class="empty"><div class="ic">🏘️</div><p>Nenhum loteamento cadastrado.</p></div>`; return; }
+  if (!lot) { v.innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=buildings></i></div><p>Nenhum loteamento cadastrado.</p></div>`; return; }
   const f = state.filters.clotes = state.filters.clotes || { quadra: 'all', status: 'all', ordem: 'quadra', busca: '' };
   const ls = lotesDo(lot.id);
   const quadras = quadrasDo(lot.id);
@@ -83,9 +83,9 @@ function renderCLotes() {
         <option value="preco-desc" ${f.ordem === 'preco-desc' ? 'selected' : ''}>Maior preço</option>
         <option value="area" ${f.ordem === 'area' ? 'selected' : ''}>Menor área</option>
       </select>
-      <input type="text" placeholder="🔎 Buscar lote" value="${esc(f.busca)}" oninput="cSetFiltro('busca',this.value,true)">
+      <input type="text" placeholder="Buscar lote" value="${esc(f.busca)}" oninput="cSetFiltro('busca',this.value,true)">
     </div>
-    ${list.length ? list.map(l => loteCardHtml(l, 'abrirLoteCorretor')).join('') : `<div class="empty"><div class="ic">🔍</div><p>Nenhum lote com esses filtros.</p></div>`}`;
+    ${list.length ? list.map(l => loteCardHtml(l, 'abrirLoteCorretor')).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhum lote com esses filtros.</p></div>`}`;
 }
 function cSetFiltro(k, v, keepFocus) {
   state.filters.clotes[k] = v;
@@ -101,7 +101,7 @@ function loteCardHtml(l, onclick) {
   return `<div class="item ${l.status}" onclick="${onclick}('${l.id}')">
     <div class="info">
       <div class="title">${esc(loteLabel(l))} ${l.tipo === 'comercial' ? '<span class="badge neutral">Comercial</span>' : ''}</div>
-      <div class="meta"><span>📐 ${fmtNum(l.area, 0)} m²</span>${l.frente ? `<span>· ${fmtNum(l.frente, 1)}m × ${fmtNum(l.fundos || 0, 1)}m</span>` : ''}${m2 ? `<span>· ${fmtMoney(m2)}/m²</span>` : ''}${l.obs ? `<span>· ${esc(l.obs)}</span>` : ''}</div>
+      <div class="meta"><span>${fmtNum(l.area, 0)} m²</span>${l.frente ? `<span>· ${fmtNum(l.frente, 1)}m × ${fmtNum(l.fundos || 0, 1)}m</span>` : ''}${m2 ? `<span>· ${fmtMoney(m2)}/m²</span>` : ''}${l.obs ? `<span>· ${esc(l.obs)}</span>` : ''}</div>
     </div>
     <div class="side"><div class="value${!num(l.preco) ? ' small muted' : ''}">${mostrarPreco ? (num(l.preco) ? fmtMoney(l.preco) : 'Sob consulta') : '—'}</div><span class="badge ${l.status}">${statusLabel(l.status)}</span></div>
   </div>`;
@@ -136,18 +136,18 @@ function abrirLoteCorretor(id) {
     </div>
     ${simuladorHtml(l, cond)}
     ${lot.descricao ? `<p class="small muted mt">${esc(lot.descricao)}</p>` : ''}`;
-  let footer = `<button class="btn btn-wa" onclick="compartilharLote('${l.id}')">💬 Compartilhar</button>`;
-  if (l.status !== 'vendido' && l.status !== 'bloqueado') footer += `<button class="btn btn-outline" onclick="abrirPropostaForm('${l.id}')">📄 Proposta</button>`;
-  if (l.status === 'disponivel') footer += `<button class="btn btn-primary" onclick="abrirReservaForm('${l.id}')">📝 Solicitar reserva</button>`;
+  let footer = `<button class="btn btn-wa" onclick="compartilharLote('${l.id}')">Compartilhar</button>`;
+  if (l.status !== 'vendido' && l.status !== 'bloqueado') footer += `<button class="btn btn-outline" onclick="abrirPropostaForm('${l.id}')">Proposta</button>`;
+  if (l.status === 'disponivel') footer += `<button class="btn btn-primary" onclick="abrirReservaForm('${l.id}')">Solicitar reserva</button>`;
   else if (minha && res && res.status === 'pendente') footer += `<button class="btn btn-outline-danger" onclick="cancelarMinhaReserva('${res.id}')">Cancelar pedido</button>`;
-  openModal({ title: `📍 ${esc(loteLabel(l))}`, body, footer });
+  openModal({ title: `${esc(loteLabel(l))}`, body, footer });
   simular(l.id);
 }
 function simuladorHtml(l, cond) {
   const entradaMin = Math.round(l.preco * (num(cond.entradaMinPct) || 0) / 100);
   const maxP = Number(cond.maxParcelas) || 120;
   return `<div class="sim-box">
-    <div class="lg" style="font-size:0.78rem;font-weight:800;color:var(--primary);margin-bottom:8px">🧮 Simulador de pagamento</div>
+    <div class="lg" style="font-size:0.78rem;font-weight:800;color:var(--primary);margin-bottom:8px">Simulador de pagamento</div>
     <div class="frow">
       <div class="fg"><label>Entrada (R$)${cond.entradaMinPct ? ` · mín. ${fmtNum(cond.entradaMinPct, 0)}%` : ''}</label><input type="number" id="simEntrada" value="${entradaMin}" min="0" step="100" oninput="simular('${l.id}')"></div>
       <div class="fg"><label>Parcelas (até ${maxP}×)</label><input type="number" id="simParcelas" value="${Math.min(60, maxP)}" min="1" max="${maxP}" oninput="simular('${l.id}')"></div>
@@ -188,7 +188,7 @@ function abrirReservaForm(loteId) {
   const nP = Math.round(num(val('simParcelas'))) || Math.min(60, Number(cond.maxParcelas) || 60);
   const body = `
     <div class="alert info" style="cursor:default"><span>Reserva de <b>${esc(loteLabel(l))}</b> por ${fmtMoney(l.preco)}. A reserva vale por <b>${db.config.reservaDias} dias</b> após aprovação do administrador.</span></div>
-    <div class="fieldset"><span class="lg">👤 Seus dados (corretor)</span>
+    <div class="fieldset"><span class="lg">Seus dados (corretor)</span>
       <div class="fg"><label>Nome completo *</label><input type="text" id="rcNome" value="${esc(p.nome)}"></div>
       <div class="frow">
         <div class="fg"><label>CRECI</label><input type="text" id="rcCreci" value="${esc(p.creci)}" placeholder="UF-00000"></div>
@@ -199,7 +199,7 @@ function abrirReservaForm(loteId) {
         <div class="fg"><label>Imobiliária</label><input type="text" id="rcImob" value="${esc(p.imobiliaria)}"></div>
       </div>
     </div>
-    <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Dados do cliente</span>
+    <div class="fieldset"><span class="lg">Dados do cliente</span>
       <div class="fg"><label>Nome completo *</label><input type="text" id="rlNome"></div>
       <div class="frow">
         <div class="fg"><label>CPF / CNPJ</label><input type="text" id="rlCpf" inputmode="numeric" placeholder="000.000.000-00"></div>
@@ -215,7 +215,7 @@ function abrirReservaForm(loteId) {
         <div class="fg"><label>Estado civil</label><select id="rlEstCivil"><option value="">—</option><option>Solteiro(a)</option><option>Casado(a)</option><option>União estável</option><option>Divorciado(a)</option><option>Viúvo(a)</option></select></div>
       </div>
     </div>
-    <div class="fieldset"><span class="lg">💰 Proposta de pagamento</span>
+    <div class="fieldset"><span class="lg">Proposta de pagamento</span>
       <div class="frow3">
         <div class="fg"><label>Valor proposto (R$)</label><input type="number" id="rpValor" value="${l.preco}" step="100" min="0"></div>
         <div class="fg"><label>Entrada (R$)</label><input type="number" id="rpEntrada" value="${entrada}" step="100" min="0"></div>
@@ -223,7 +223,7 @@ function abrirReservaForm(loteId) {
       </div>
       <div class="fg"><label>Observações</label><textarea id="rpObs" placeholder="Condições especiais, data de visita, financiamento, etc."></textarea></div>
     </div>`;
-  openModal({ title: '📝 Solicitar reserva', body, footer: `<button class="btn btn-secondary" onclick="abrirLoteCorretor('${l.id}')">Voltar</button><button class="btn btn-primary" onclick="enviarReserva('${l.id}')">Enviar pedido</button>` });
+  openModal({ title: 'Solicitar reserva', body, footer: `<button class="btn btn-secondary" onclick="abrirLoteCorretor('${l.id}')">Voltar</button><button class="btn btn-primary" onclick="enviarReserva('${l.id}')">Enviar pedido</button>` });
   setTimeout(() => { const el = $(p.nome ? '#rlNome' : '#rcNome'); if (el) el.focus(); }, 60);
 }
 async function enviarReserva(loteId) {
@@ -256,8 +256,8 @@ async function enviarReserva(loteId) {
   renderCurrent();
   const lot = getLoteamento(l.loteamentoId);
   const msg = `Olá! Solicitei a reserva do ${loteLabel(l)} (${lot.nome}) para o cliente ${cliente.nome}. Proposta: ${fmtMoney(r.proposta.valor)}, entrada ${fmtMoney(r.proposta.entrada)} + ${r.proposta.nParcelas}x. Corretor: ${corretor.nome}${corretor.creci ? ' CRECI ' + corretor.creci : ''}.`;
-  openModal({ title: '✅ Pedido enviado', body: `<p class="small">O lote <b>${esc(loteLabel(l))}</b> ficou marcado como <span class="badge reservado">Reservado</span> aguardando aprovação do administrador.</p><p class="small muted mt">Você acompanha o andamento na aba <b>Minhas reservas</b>.</p>`,
-    footer: `${db.config.adminWhatsapp ? `<a class="btn btn-wa" href="${waLink(db.config.adminWhatsapp, msg)}" target="_blank">💬 Avisar administrador</a>` : ''}<button class="btn btn-primary" onclick="closeModal()">OK</button>` });
+  openModal({ title: 'Pedido enviado', body: `<p class="small">O lote <b>${esc(loteLabel(l))}</b> ficou marcado como <span class="badge reservado">Reservado</span> aguardando aprovação do administrador.</p><p class="small muted mt">Você acompanha o andamento na aba <b>Minhas reservas</b>.</p>`,
+    footer: `${db.config.adminWhatsapp ? `<a class="btn btn-wa" href="${waLink(db.config.adminWhatsapp, msg)}" target="_blank">Avisar administrador</a>` : ''}<button class="btn btn-primary" onclick="closeModal()">OK</button>` });
 }
 async function cancelarMinhaReserva(id) {
   const r = getReserva(id); if (!r) return;
@@ -284,7 +284,7 @@ function liberarReserva(r, novoStatus, motivo) {
 function renderCReservas() {
   const v = $('#cv-reservas'); const p = corretorPerfil();
   if (!Cloud.active && !p.telefone && !p.creci) {
-    v.innerHTML = `<div class="empty"><div class="ic">👤</div><p>Preencha seu perfil (telefone ou CRECI) para ver suas reservas.<br><br><button class="btn btn-primary btn-sm" onclick="switchTab('perfil')">Preencher perfil</button></p></div>`; return;
+    v.innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=user></i></div><p>Preencha seu perfil (telefone ou CRECI) para ver suas reservas.<br><br><button class="btn btn-primary btn-sm" onclick="switchTab('perfil')">Preencher perfil</button></p></div>`; return;
   }
   const list = db.reservas.filter(r => corretorMatch(r.corretor)).sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
   const vendas = db.vendas.filter(vd => corretorMatch(vd.corretor) && vd.status !== 'distrato');
@@ -294,7 +294,7 @@ function renderCReservas() {
       <div class="kpi c-green"><div class="lbl">Vendas</div><div class="val">${vendas.length}</div><div class="sub">${fmtMoneyShort(vendas.reduce((s, x) => s + num(x.valorTotal), 0))}</div></div>
       <div class="kpi c-primary"><div class="lbl">Comissões</div><div class="val">${fmtMoneyShort(vendas.reduce((s, x) => s + num(x.comissaoValor), 0))}</div><div class="sub">${fmtMoneyShort(vendas.filter(x => x.comissaoPaga).reduce((s, x) => s + num(x.comissaoValor), 0))} pagas</div></div>
     </div>
-    ${list.length ? list.map(r => reservaCardHtml(r, false)).join('') : `<div class="empty"><div class="ic">📝</div><p>Você ainda não tem reservas.<br>Toque em um lote disponível na planta para solicitar.</p></div>`}`;
+    ${list.length ? list.map(r => reservaCardHtml(r, false)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Você ainda não tem reservas.<br>Toque em um lote disponível na planta para solicitar.</p></div>`}`;
 }
 function reservaCardHtml(r, admin) {
   const l = getLote(r.loteId); const st = reservaStatus(r);
@@ -303,8 +303,8 @@ function reservaCardHtml(r, admin) {
     <div class="info">
       <div class="title">${l ? esc(loteLabel(l)) : 'Lote removido'} · ${esc(r.cliente.nome)}</div>
       <div class="meta">
-        ${admin ? `<span>🧑‍💼 ${esc(r.corretor.nome)}${r.corretor.imobiliaria ? ' (' + esc(r.corretor.imobiliaria) + ')' : ''}</span>` : ''}
-        <span>📅 ${fmtDate(r.dataReserva)}</span>
+        ${admin ? `<span>${esc(r.corretor.nome)}${r.corretor.imobiliaria ? ' (' + esc(r.corretor.imobiliaria) + ')' : ''}</span>` : ''}
+        <span>${fmtDate(r.dataReserva)}</span>
         ${['pendente', 'aprovada'].includes(st) && dias !== null ? `<span>· ${dias < 0 ? 'vencida' : dias === 0 ? 'vence hoje' : 'vence em ' + dias + 'd'}</span>` : ''}
         ${r.proposta ? `<span>· ${fmtMoney(r.proposta.valor)} (${fmtMoney(r.proposta.entrada)} + ${r.proposta.nParcelas}×)</span>` : ''}
       </div>
@@ -318,27 +318,27 @@ function abrirReservaCorretor(id) {
   let footer = `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>`;
   if (st === 'pendente') footer += `<button class="btn btn-outline-danger" onclick="cancelarMinhaReserva('${r.id}')">Cancelar pedido</button>`;
   if (l) footer += `<button class="btn btn-primary" onclick="abrirLoteCorretor('${l.id}')">Ver lote</button>`;
-  openModal({ title: `📝 Reserva · ${l ? esc(loteShort(l)) : ''}`, body, footer });
+  openModal({ title: `Reserva · ${l ? esc(loteShort(l)) : ''}`, body, footer });
 }
 function reservaDetalheHtml(r) {
   const l = getLote(r.loteId); const st = reservaStatus(r); const c = r.cliente; const k = r.corretor;
   return `
     <div class="row-between mb"><span class="badge ${st}" style="font-size:0.75rem">${statusLabel(st)}</span><span class="small muted">Pedido em ${fmtDate(r.dataReserva)} · válida até ${fmtDate(r.validade)}</span></div>
     ${r.motivo ? `<div class="alert info" style="cursor:default"><span>${esc(r.motivo)}</span></div>` : ''}
-    <div class="fieldset"><span class="lg">📍 Lote</span><div class="detail-grid">
+    <div class="fieldset"><span class="lg">Lote</span><div class="detail-grid">
       <div><div class="k">Lote</div><div class="v">${l ? esc(loteLabel(l)) : '—'}</div></div><div><div class="k">Preço de tabela</div><div class="v">${l ? fmtMoney(l.preco) : '—'}</div></div>
       <div><div class="k">Área</div><div class="v">${l ? fmtNum(l.area, 0) + ' m²' : '—'}</div></div><div><div class="k">Status atual do lote</div><div class="v">${l ? statusLabel(l.status) : '—'}</div></div></div></div>
-    <div class="fieldset"><span class="lg">🧑‍🤝‍🧑 Cliente</span><div class="detail-grid">
+    <div class="fieldset"><span class="lg">Cliente</span><div class="detail-grid">
       <div><div class="k">Nome</div><div class="v">${esc(c.nome)}</div></div><div><div class="k">CPF/CNPJ</div><div class="v">${esc(fmtCPF(c.cpf)) || '—'}</div></div>
       <div><div class="k">Telefone</div><div class="v"><a href="${waLink(c.telefone, '')}" target="_blank">${esc(fmtPhone(c.telefone))}</a></div></div><div><div class="k">E-mail</div><div class="v">${esc(c.email) || '—'}</div></div>
       <div class="full"><div class="k">Endereço</div><div class="v">${esc([c.endereco, c.cidade].filter(Boolean).join(' · ')) || '—'}</div></div>
       ${c.profissao || c.estadoCivil ? `<div><div class="k">Profissão</div><div class="v">${esc(c.profissao) || '—'}</div></div><div><div class="k">Estado civil</div><div class="v">${esc(c.estadoCivil) || '—'}</div></div>` : ''}
     </div></div>
-    <div class="fieldset"><span class="lg">🧑‍💼 Corretor</span><div class="detail-grid">
+    <div class="fieldset"><span class="lg">Corretor</span><div class="detail-grid">
       <div><div class="k">Nome</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci) || '—'}</div></div>
       <div><div class="k">Telefone</div><div class="v"><a href="${waLink(k.telefone, '')}" target="_blank">${esc(fmtPhone(k.telefone))}</a></div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria) || '—'}</div></div>
     </div></div>
-    ${r.proposta ? `<div class="fieldset"><span class="lg">💰 Proposta</span><div class="detail-grid">
+    ${r.proposta ? `<div class="fieldset"><span class="lg">Proposta</span><div class="detail-grid">
       <div><div class="k">Valor</div><div class="v">${fmtMoney(r.proposta.valor)}</div></div><div><div class="k">Entrada</div><div class="v">${fmtMoney(r.proposta.entrada)}</div></div>
       <div><div class="k">Parcelas</div><div class="v">${r.proposta.nParcelas}× de ${fmtMoney(r.proposta.nParcelas ? (r.proposta.valor - r.proposta.entrada) / r.proposta.nParcelas : 0)}</div></div>
       ${r.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(r.obs)}</div></div>` : ''}
@@ -349,7 +349,7 @@ function reservaDetalheHtml(r) {
 function renderCPerfil() {
   const p = corretorPerfil(); const v = $('#cv-perfil');
   v.innerHTML = `
-    <div class="card"><h3>👤 Meus dados</h3>
+    <div class="card"><h3>Meus dados</h3>
       <p class="help mb">${Cloud.active ? 'Esses dados aparecem para a administração e são preenchidos automaticamente nos pedidos de reserva.' : 'Esses dados são preenchidos automaticamente nos pedidos de reserva e ficam salvos neste aparelho.'}</p>
       <div class="fg"><label>Nome completo</label><input type="text" id="pfNome" value="${esc(p.nome)}"></div>
       <div class="frow"><div class="fg"><label>CRECI</label><input type="text" id="pfCreci" value="${esc(p.creci)}"></div><div class="fg"><label>Telefone / WhatsApp</label><input type="tel" id="pfTel" value="${esc(p.telefone)}"></div></div>
@@ -358,9 +358,9 @@ function renderCPerfil() {
     </div>
     <div class="card"><h3>ℹ️ Sobre o empreendimento</h3>${(() => { const lot = curLot(); if (!lot) return '<p class="help">Nenhum loteamento.</p>'; const c = lot.cond || {}; return `<p class="help"><b>${esc(lot.nome)}</b>${lot.cidade ? ' · ' + esc(lot.cidade) : ''}${lot.endereco ? '<br>' + esc(lot.endereco) : ''}${lot.descricao ? '<br><br>' + esc(lot.descricao) : ''}</p>
       <div class="detail-grid mt"><div><div class="k">Entrada mínima</div><div class="v">${fmtNum(c.entradaMinPct || 0, 0)}%</div></div><div><div class="k">Parcelas máx.</div><div class="v">${c.maxParcelas || '—'}×</div></div><div><div class="k">Juros</div><div class="v">${c.jurosMes ? fmtNum(c.jurosMes, 2) + '% a.m.' : 'Sem juros'}</div></div><div><div class="k">Desconto à vista</div><div class="v">${fmtNum(c.descontoVistaPct || 0, 0)}%</div></div><div><div class="k">Validade da reserva</div><div class="v">${db.config.reservaDias} dias</div></div><div><div class="k">Comissão</div><div class="v">${fmtNum(db.config.comissaoPct, 1)}%</div></div></div>`; })()}
-      ${db.config.adminWhatsapp ? `<a class="btn btn-wa btn-block mt" href="${waLink(db.config.adminWhatsapp, 'Olá! Sou corretor e tenho uma dúvida sobre o loteamento.')}" target="_blank">💬 Falar com a administração</a>` : ''}
+      ${db.config.adminWhatsapp ? `<a class="btn btn-wa btn-block mt" href="${waLink(db.config.adminWhatsapp, 'Olá! Sou corretor e tenho uma dúvida sobre o loteamento.')}" target="_blank">Falar com a administração</a>` : ''}
     </div>
-    <div class="card">${Cloud.active ? `<p class="help mb">Conectado como <b>${esc(Cloud.user.email || '')}</b> · empresa <b>${esc(Cloud.org.nome)}</b> · <span class="badge neutral">${statusLabel(Cloud.papel)}</span></p><div class="btn-row"><button class="btn btn-outline" onclick="renderAuthNovaSenhaModal()">Alterar senha</button>${Cloud.minhasOrgs.length > 1 ? '<button class="btn btn-secondary" onclick="trocarEmpresa()">Trocar de empresa</button>' : ''}${Cloud.admin ? '<button class="btn btn-primary" onclick="voltarAdmin()">🔐 Voltar à administração</button>' : ''}<button class="btn btn-secondary" onclick="sair()">Sair</button></div>` : `<button class="btn btn-secondary btn-block" onclick="sair()">Sair da área do corretor</button>`}</div>`;
+    <div class="card">${Cloud.active ? `<p class="help mb">Conectado como <b>${esc(Cloud.user.email || '')}</b> · empresa <b>${esc(Cloud.org.nome)}</b> · <span class="badge neutral">${statusLabel(Cloud.papel)}</span></p><div class="btn-row"><button class="btn btn-outline" onclick="renderAuthNovaSenhaModal()">Alterar senha</button>${Cloud.minhasOrgs.length > 1 ? '<button class="btn btn-secondary" onclick="trocarEmpresa()">Trocar de empresa</button>' : ''}${Cloud.admin ? '<button class="btn btn-primary" onclick="voltarAdmin()">Voltar à administração</button>' : ''}<button class="btn btn-secondary" onclick="sair()">Sair</button></div>` : `<button class="btn btn-secondary btn-block" onclick="sair()">Sair da área do corretor</button>`}</div>`;
 }
 async function salvarPerfil() {
   const d = { nome: val('pfNome'), creci: val('pfCreci'), telefone: val('pfTel'), email: val('pfEmail'), imobiliaria: val('pfImob') };
