@@ -106,7 +106,8 @@ function renderContrato() {
   ].filter(Boolean).join('');
   const mais = [
     pode('vendas.editar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirVendaForm('${x.id}')"><i class=ico data-i=pencil-simple></i>Editar contrato</button>` : '',
-    x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirAntecipacao('${x.id}')"><i class=ico data-i=coins></i>Antecipar / quitar</button>` : ''
+    x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirAntecipacao('${x.id}')"><i class=ico data-i=coins></i>Antecipar / quitar</button>` : '',
+    podeCeder(x) ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirCessao('${x.id}')"><i class=ico data-i=users></i>Cessão de direitos</button>` : ''
   ].filter(Boolean).join('');
   const excluir = pode('vendas.distrato') ? `<button class="menu-item perigo" role="menuitem" onclick="fecharMenus();excluirVenda('${x.id}')"><i class=ico data-i=trash></i>Excluir contrato</button>` : '';
   const menus = [
@@ -179,7 +180,8 @@ function ctPartesHtml(x) {
   return bloco('Comprador' + (todosCompradores(x).length > 1 ? 'es' : ''), todosCompradores(x), true)
     + bloco('Vendedor' + (todosVendedores(x).length > 1 ? 'es' : ''), todosVendedores(x), false)
     + `<div class="card"><h2>Intermediação</h2>${k.nome && k.nome !== 'Venda direta' ? `<div class="detail-grid"><div><div class="k">Corretor</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci || '—')}</div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria || '—')}</div></div><div><div class="k">Telefone</div><div class="v">${esc(fmtPhone(k.telefone)) || '—'}</div></div></div>` : '<p class="help">Venda direta, sem corretor.</p>'}
-      ${pode('vendas.editar') ? `<p class="help mt">Para mudar as partes, use <b>Editar</b> no topo.</p>` : ''}</div>`;
+      ${pode('vendas.editar') ? `<p class="help mt">Para mudar as partes, use <b>Editar</b> no topo. Para passar o contrato a outro comprador, use <b>Mais › Cessão de direitos</b>.</p>` : ''}</div>`
+    + cessoesHtml(x);
 }
 function ctParcelasHtml(x) {
   const recs = recebiveisDe(x.id); const r = vendaResumo(x);
@@ -192,6 +194,7 @@ function ctDocumentosHtml(x) {
   const linha = (ic, titulo, desc, botao) => `<div class="item" style="cursor:default"><div class="info"><div class="title">${ic} ${titulo}</div><div class="meta"><span>${desc}</span></div></div><div class="side">${botao}</div></div>`;
   return `<div class="card">
     ${linha('<i class=ico data-i=file-text></i>', 'Contrato de compra e venda', `Pelo modelo da empresa, com a qualificação das partes${x.numeroContrato ? ` e o número ${esc(x.numeroContrato)}` : ''}. Dá para conferir e corrigir antes de imprimir.`, `<button class="btn btn-primary btn-sm" onclick="gerarContratoVenda('${x.id}')">Gerar</button>`)}
+    ${(x.cessoes || []).length ? linha('<i class=ico data-i=users></i>', 'Termo de cessão de direitos', `A última cessão, de ${fmtDate(cessoesDe(x).slice(-1)[0].data)}: cedente, cessionário e a empresa como anuente.`, `<button class="btn btn-outline btn-sm" onclick="gerarTermoCessao('${x.id}')">Gerar</button>`) : ''}
     ${linha('<i class=ico data-i=printer></i>', 'Extrato do contrato', 'Todas as parcelas, o que foi pago e o que falta.', `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">Imprimir</button>`)}
     ${c.telefone ? linha('<i class=ico data-i=whatsapp-logo></i>', 'Resumo por WhatsApp', `Para ${esc(c.nome || '')}, com o saldo e a próxima parcela.`, `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">Enviar</a>`) : ''}
     ${linha('<i class=ico data-i=bank></i>', 'Boletos', 'O boleto de cada parcela abre pela aba Parcelas, no botão <i class=ico data-i=bank></i>.', `<button class="btn btn-secondary btn-sm" onclick="state.contratoAba='parcelas';renderContrato()">Ver parcelas</button>`)}
@@ -211,8 +214,9 @@ function eventosDoContrato(x) {
   db.cobrancas.filter(cb => cb.vendaId === x.id).forEach(cb => add(cb.data || cb.criadoEm, '<i class=ico data-i=bell></i>', `Cobrança por ${cb.canal || 'contato'}${cb.dias ? ` com ${cb.dias} dia(s) de atraso` : ''}${cb.obs ? ': ' + cb.obs : ''}`));
   if (x.comissaoPaga && x.comissaoData) add(x.comissaoData, '<i class=ico data-i=handshake></i>', `Comissão paga a ${x.corretor.nome}: ${fmtMoney(x.comissaoValor)}`);
   if (x.distratoEm) add(x.distratoEm, '<i class=ico data-i=arrow-u-up-left></i>', 'Distrato');
+  (x.cessoes || []).forEach(c => add(c.data, '<i class=ico data-i=users></i>', `Cessão de direitos: de ${nomesDasPartes(c.cedentes)} para ${nomesDasPartes(c.cessionarios)}${c.taxa ? ` · taxa ${fmtMoney(c.taxa)}` : ''}`));
   const marcas = [imovelLabel(x), x.numeroContrato].filter(Boolean);
-  db.log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^Venda registrada/.test(l.msg || ''))
+  db.log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^(Venda registrada|Cessão de direitos:)/.test(l.msg || ''))
     .forEach(l => add(l.ts, '<i class=ico data-i=clock-counter-clockwise></i>', `${l.msg}${l.who ? ' — ' + l.who : ''}`));
   return ev.sort((a, b) => b.data.localeCompare(a.data));
 }

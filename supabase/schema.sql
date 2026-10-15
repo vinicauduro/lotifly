@@ -599,6 +599,8 @@ alter table public.vendas alter column lote_id drop not null;
 -- e a despesa de um imóvel avulso da carteira aponta para o contrato.
 alter table public.custos alter column loteamento_id drop not null;
 alter table public.custos add column if not exists venda_id text;
+-- Cessão de direitos: o histórico de quem cedeu para quem fica no próprio contrato.
+alter table public.vendas add column if not exists cessoes jsonb not null default '[]'::jsonb;
 
 -- ---------------------------------------------------------------------
 -- 4c. Cobranças registradas (régua de inadimplência)
@@ -663,6 +665,9 @@ create table if not exists public.modelos (
   criado_em timestamptz not null default now(),
   primary key (org_id, id)
 );
+-- Modelo de cessão de direitos (15/10): o tipo novo entra na lista aceita.
+alter table public.modelos drop constraint if exists modelos_tipo_check;
+alter table public.modelos add constraint modelos_tipo_check check (tipo in ('proposta','contrato','cessao'));
 alter table public.modelos enable row level security;
 drop policy if exists modelos_select on public.modelos;
 drop policy if exists modelos_write on public.modelos;
