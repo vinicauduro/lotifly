@@ -669,18 +669,25 @@ ajusta **cada pessoa** em cima do padrão da função dela.
 - Para o financeiro, editar lotes, planta e preços aparecem travados: o banco de dados não
   libera isso para essa função, então marcar não teria efeito.
 
-**Importante — até onde vai a proteção**: os ajustes por pessoa valem no aplicativo (o que
-aparece no menu e o que os botões deixam fazer). O banco de dados continua protegendo por
-**função**: o que a função não pode, o banco recusa mesmo que alguém tente por fora do app;
-mas o que a função pode e você desligou só para uma pessoa fica bloqueado no app, não no banco.
-Se quiser essa trava também no banco, é uma mudança no `supabase/schema.sql` (próximo passo
-possível).
+**Também no banco de dados** (decisão de 15/10, pensando no Lotifly como produto): o banco
+confere os ajustes de cada pessoa nas ações que mexem com dinheiro e contratos — quem tiver a
+permissão desligada é recusado mesmo que tente gravar por fora do aplicativo:
+- registrar e estornar pagamentos; antecipar e quitar;
+- registrar, editar, excluir contrato e fazer distrato; marcar comissão;
+- lançar e editar despesas;
+- mudar permissões e equipe (ninguém muda as próprias); alterar configurações; restaurar backup.
+O que é só "ver uma tela" continua por função (o financeiro já enxerga esses dados).
+
+**⚠ Para valer, rode o `supabase/schema.sql` de novo no Supabase** (SQL Editor › colar › Run).
+Enquanto não rodar, tudo funciona como antes, com a trava por pessoa só no aplicativo.
 
 - [ ] Em Equipe, ajustar as permissões de uma pessoa (ex.: tirar "Registrar cobranças"), pedir
   para ela entrar e ver que a opção sumiu.
 - [ ] Voltar ao padrão e conferir que a opção voltou.
+- [ ] Rodar o `supabase/schema.sql` de novo no Supabase.
 
-`testes/permissoes.test.js` simula uma equipe (dono, administradora, financeiro, corretor) só
+`testes/permissoes-banco.test.mjs` roda o schema inteiro num Postgres de teste e confere, como
+cada pessoa, o que o banco aceita e recusa. `testes/permissoes.test.js` simula uma equipe (dono, administradora, financeiro, corretor) só
 no navegador e confere tudo isso.
 
 ---

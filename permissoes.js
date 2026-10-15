@@ -139,7 +139,7 @@ function cadPermissoesHtml() {
   const salvo = !!permsSalvas()[sub];
   const ajustadas = Cloud.active ? Cloud.membros.filter(m => m.papel !== 'dono' && temAjustes(m.userId)) : [];
   return `<div class="card"><h2>Padrão de cada função</h2>
-    <p class="help">O <b>papel</b> define o que o banco de dados libera para a pessoa e o ponto de partida do que ela vê e pode fazer. Para ajustar <b>uma pessoa</b>, vá em <b>Equipe</b> e toque em <b>Permissões</b> ao lado dela. O dono sempre pode tudo.</p>
+    <p class="help">O <b>papel</b> é o ponto de partida do que a pessoa vê e pode fazer. Para ajustar <b>uma pessoa</b>, vá em <b>Equipe</b> e toque em <b>Permissões</b> ao lado dela. O dono sempre pode tudo. Nas ações com dinheiro, contratos, despesas, equipe e configuração, o banco de dados confere essas mesmas regras: quem não tem a permissão é recusado mesmo fora do aplicativo.</p>
     ${ajustadas.length ? `<div class="alert info" style="cursor:default"><span><b>${ajustadas.length} pessoa(s) com permissões próprias:</b> ${ajustadas.map(m => `<button class="link" onclick="abrirPermissoesPessoa('${m.id}')">${esc(m.nome || m.email)}</button>`).join(', ')}. Nelas, o que foi ajustado vale mais que o padrão abaixo.</span></div>` : ''}
     ${!Cloud.active ? '<div class="alert info" style="cursor:default"><span>No modo só deste dispositivo existe um único administrador, que pode tudo. As permissões valem na versão em nuvem, com login por pessoa.</span></div>' : ''}
     <div class="subtabs">${papeis.map(([k, l]) => `<div class="chip ${sub === k ? 'active' : ''}" onclick="state.sub.perm='${k}';renderCurrent()">${l}</div>`).join('')}</div>
