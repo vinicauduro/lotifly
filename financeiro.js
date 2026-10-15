@@ -335,20 +335,32 @@ function drawFluxoChart(cv, recs, custos) {
   const padL = 56, padR = 8, padB = 22, padT = 14; const cw = w - padL - padR, ch = h - padB - padT; const gw = cw / months.length; const bw = gw * 0.34;
   ctx.clearRect(0, 0, w, h);
   eixoValores(ctx, w, padL, padR, padT, ch, max);
-  const narrow = gw < 46, showVals = gw >= 64;
+  const passo = passoRotulos(ctx, gw, months.map(monthLabel)), showVals = gw >= 64;
   months.forEach((m, i) => {
     const x = padL + i * gw + gw / 2;
     const h1 = rIn[i] / max * ch, h2 = cOut[i] / max * ch;
     ctx.fillStyle = m === monthKey(todayStr()) ? '#1d4ed8' : '#60a5fa'; ctx.fillRect(x - bw - 1, padT + ch - h1, bw, h1);
     ctx.fillStyle = m === monthKey(todayStr()) ? '#ea580c' : '#fdba74'; ctx.fillRect(x + 1, padT + ch - h2, bw, h2);
     ctx.fillStyle = '#6b6a65'; ctx.font = (m === monthKey(todayStr()) ? '600 ' : '') + '11px Geist, system-ui'; ctx.textAlign = 'center';
-    if (!narrow || i % 2 === 0) ctx.fillText(monthLabel(m), x, h - 6);
+    if (i % passo === 0) rotuloMes(ctx, monthLabel(m), x, h - 6, w);
     if (showVals) {
       ctx.fillStyle = '#3a3d40'; ctx.font = '10px Geist, system-ui';
       if (h1 >= 14) ctx.fillText(fmtMoneyShort(rIn[i]).replace('R$ ', ''), x - bw / 2 - 1, padT + ch - h1 - 3);
       if (h2 >= 14) ctx.fillText(fmtMoneyShort(cOut[i]).replace('R$ ', ''), x + bw / 2 + 1, padT + ch - h2 - 3);
     }
   });
+}
+/* De quantos em quantos meses escrever o rótulo para que nenhum encoste no vizinho:
+   1 no computador, 2 no celular, 3 em telas de 320 px. */
+function passoRotulos(ctx, gw, rotulos) {
+  ctx.font = '600 11px Geist, system-ui';
+  const maior = Math.max(...rotulos.map(t => ctx.measureText(t).width)) + 6;
+  return Math.max(1, Math.ceil(maior / gw));
+}
+/* O último mês fica colado na borda direita: o rótulo é empurrado para dentro em vez de cortado. */
+function rotuloMes(ctx, txt, x, y, w) {
+  const meio = ctx.measureText(txt).width / 2;
+  ctx.fillText(txt, Math.min(x, w - meio - 1), y);
 }
 /* Linhas de grade com o valor de cada uma à esquerda: o gráfico precisa dizer quanto é. */
 function eixoValores(ctx, w, padL, padR, padT, ch, max) {
@@ -371,7 +383,7 @@ function drawRecebimentosChart(cv, tip, serie) {
   const max = Math.max(...serie.map(x => x.devido), 1);
   ctx.clearRect(0, 0, w, h);
   eixoValores(ctx, w, padL, padR, padT, ch, max);
-  const narrow = gw < 46;
+  const passo = passoRotulos(ctx, gw, serie.map(x => monthLabel(x.mes)));
   serie.forEach((x, i) => {
     const cx = padL + i * gw + gw / 2; let base = padT + ch;
     /* Recebido embaixo, atraso no meio, a vencer em cima; 2 px de fundo entre os pedaços e
@@ -392,7 +404,7 @@ function drawRecebimentosChart(cv, tip, serie) {
       base -= hh;
     });
     ctx.fillStyle = x.mes === mesAtual() ? '#15181b' : '#6b6a65'; ctx.font = (x.mes === mesAtual() ? '600 ' : '') + '11px Geist, system-ui'; ctx.textAlign = 'center';
-    if (!narrow || (serie.length - 1 - i) % 2 === 0) ctx.fillText(monthLabel(x.mes), cx, h - 6);
+    if ((serie.length - 1 - i) % passo === 0) rotuloMes(ctx, monthLabel(x.mes), cx, h - 6, w);
   });
   /* Só o mês com a maior inadimplência leva o número em cima; o resto fica na dica e na tabela. */
   const pior = serie.reduce((a, x, i) => (x.pct > (serie[a] || {}).pct ? i : a), 0);

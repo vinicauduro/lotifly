@@ -654,6 +654,45 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z. Teste com dados no pior caso (16/10)
+
+Pedido seu: testar lotes, clientes, contratos e contas a receber com o tipo de dado que quebra a
+tela — nome de cliente enorme, e-mail enorme, contrato de R$ 10.000.000,00, loteamento com 500
+lotes, listas vazias e campos em branco — e corrigir o que quebrou.
+
+**O que quebrava e foi corrigido**
+- **Valores cortados com "…"** nos cartões (Início e cabeçalho do contrato): "R$ 10.000.…".
+  Agora o número aparece sempre inteiro; a fonte só diminui quando ele não cabe, e os cartões
+  lado a lado ficam com o mesmo tamanho. Em telas de 320 px os quatro cartões do contrato ficam
+  um embaixo do outro.
+- **E-mail enorme alargava a página** do contrato no celular (rolagem para o lado). Agora ele
+  quebra dentro do campo. Em 320 px o resumo do contrato vira uma coluna só, para "R$
+  10.000.000,00" não partir no meio.
+- **Lista de contratos**: venda à vista mostrava "0× R$ 0,00" (agora "à vista"); venda sem
+  corretor mostrava "· ·" (agora o corretor é omitido).
+- **Cabeçalho do contrato**: nome, data e parcelas apareciam grudados ("Silva· 14/08/2025·").
+- **Lote sem área ou sem preço**: a tabela mostrava "0" e "R$ 0,00", a lista do corretor "0 m²".
+  Agora aparece "—" (ou nada, na lista do corretor).
+- **Planta esquemática com 500 lotes**: as 20 quadras ficavam numa coluna só e cada lote virava
+  um risco. Agora as quadras se arrumam em colunas conforme o formato da tela.
+- **Topo do corretor no celular**: com mais de um empreendimento, título, "Área do corretor" e o
+  seletor ficavam espremidos com reticências. No celular o seletor ocupa o topo sozinho.
+- **Gráficos do Início em 320 px**: os meses se sobrepunham e o último era cortado na borda.
+
+**O que já aguentava**: a lista de clientes, a lista de contas a receber, as telas vazias, as
+parcelas do contrato no celular (120 parcelas), a ficha do cliente e a tabela de 500 lotes
+(abre em cerca de 0,1 s).
+
+**Como ver no seu computador**: abra o app em `localhost` com `?dados=pior` no endereço. Aparece um
+seletor embaixo (Exemplo / Pior caso / Vazio / Um de cada). Ele **não existe no app publicado** e
+substitui os dados locais do navegador — use só para testar.
+
+- [ ] No celular: abrir um contrato grande e ver os valores inteiros nos cartões.
+
+`test39` confere tudo isso em 320, 390 e 1440 px.
+
+---
+
 ## 7y. Celular com cara de app (15/10)
 
 Pedido seu: corrigir o que faz o Lotifly parecer site no celular e dar às janelas e ao menu o
