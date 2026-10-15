@@ -18,6 +18,8 @@ const AXE = fs.readFileSync(process.env.AXE, 'utf8');
     for (const [n, js] of telas) {
       await page.evaluate(js).catch(e => console.log('falhou', n, e.message)); await page.waitForTimeout(350);
       if (n === 'landing') { await page.evaluate(() => document.getElementById('devDados') && document.getElementById('devDados').remove()); }
+      /* aviso no meio da animação de saída tem cor intermediária: limpa antes de medir */
+      await page.evaluate(() => document.querySelectorAll(".toast").forEach(t => t.remove()));
       const r = await page.evaluate(async () => { const o = await axe.run(document, { exclude: [['#devDados']], resultTypes: ['violations'], runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] } }); return o.violations.map(v => ({ id: v.id, impacto: v.impact, n: v.nodes.length, ex: v.nodes.slice(0, 2).map(x => x.target.join(' ') + ' :: ' + (x.failureSummary || '').split('\n').slice(1, 2).join('')) })); });
       for (const v of r) { const k = v.id; res[k] = res[k] || { impacto: v.impacto, telas: [], ex: v.ex }; res[k].telas.push(`${n}@${w}(${v.n})`); }
     }

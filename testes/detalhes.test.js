@@ -72,6 +72,22 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       if (!r.txt.includes(r.esperado)) throw new Error(r.txt + ' ≠ ' + r.esperado);
     });
 
+    await passo('inadimplência do mês: Início, Cobrança e Relatório mostram a mesma % e o mesmo atraso', async () => {
+      /* uma parcela do mês passa a estar vencida e sem pagamento, para a % não ser zero */
+      await page.evaluate(() => { const m = todayStr().slice(0, 7), ontem = addDays(todayStr(), -1); const r = recebiveisDo('').find(r => monthKey(r.vencimento) === m && !r.valorPago); if (r && ontem.slice(0, 7) === m) upsert('recebiveis', Object.assign({}, r, { vencimento: ontem })); state.escopo = ''; });
+      const r = await page.evaluate(() => {
+        const im = inadimplenciaDoMes(''); const pct = fmtNum(im.pct, 1) + '%';
+        switchTab('painel'); const inicio = document.querySelector('#av-painel .kpi.c-red').textContent;
+        switchTab('cobranca'); const cob = document.querySelector('#av-cobranca .kpi.c-amber .val').textContent.trim(), cobAtraso = document.querySelector('#av-cobranca .kpi.c-red .val').textContent.trim();
+        const rel = relInadimplencia('').kpis;
+        return { pct, inicio, cob, cobAtraso, inicioAtraso: document.querySelector('#av-painel .kpi.c-red .val').textContent.trim(), rel };
+      });
+      if (!r.inicio.includes(r.pct + ' das parcelas do mês')) throw new Error('Início: ' + r.inicio + ' ≠ ' + r.pct);
+      if (r.cob !== r.pct) throw new Error('Cobrança: ' + r.cob + ' ≠ ' + r.pct);
+      if (r.cobAtraso !== r.inicioAtraso) throw new Error('Em atraso: Cobrança ' + r.cobAtraso + ' ≠ Início ' + r.inicioAtraso);
+      if (!r.rel.includes(r.pct) || /da carteira/.test(r.rel)) throw new Error('Relatório: ' + r.rel.replace(/<[^>]+>/g, ' '));
+    });
+
     // ---------------------------------------------------------------- pagamento recebido
     await passo('pagamento: a linha paga fica tingida de verde e o aviso diz de quem foi', async () => {
       await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); }); await page.waitForTimeout(200);
