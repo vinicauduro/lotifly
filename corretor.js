@@ -199,52 +199,56 @@ function abrirReservaForm(loteId) {
   const p = corretorPerfil();
   const entrada = num(val('simEntrada')) || Math.round(l.preco * (num(cond.entradaMinPct) || 10) / 100);
   const nP = Math.round(num(val('simParcelas'))) || Math.min(60, Number(cond.maxParcelas) || 60);
+  /* Só o essencial (decisão do dono, 15/10): o corretor está com o cliente do lado. Nome e
+     telefone do cliente e a proposta; CPF, e-mail e cidade são opcionais e ficam recolhidos; a
+     qualificação completa (profissão, estado civil, endereço) é pedida pelo escritório no contrato.
+     Os dados do próprio corretor vêm do perfil e só abrem se faltar algo. */
+  const temPerfil = !!(p.nome && p.telefone);
+  const rasc = rascunhoReserva(loteId);
+  const v = (k, padrao = '') => esc(rasc && rasc[k] !== undefined ? rasc[k] : padrao);
   const body = `
-    <div class="alert info" style="cursor:default"><span>Reserva de <b>${esc(loteLabel(l))}</b> por ${fmtMoney(l.preco)}. A reserva vale por <b>${db.config.reservaDias} dias</b> após aprovação do administrador.</span></div>
-    <div class="fieldset"><span class="lg">Seus dados (corretor)</span>
-      <div class="fg"><label>Nome completo *</label><input type="text" id="rcNome" value="${esc(p.nome)}"></div>
-      <div class="frow">
-        <div class="fg"><label>CRECI</label><input type="text" id="rcCreci" value="${esc(p.creci)}" placeholder="UF-00000"></div>
-        <div class="fg"><label>Telefone / WhatsApp *</label><input type="tel" id="rcTel" value="${esc(p.telefone)}" placeholder="(00) 00000-0000"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label>E-mail</label><input type="email" id="rcEmail" value="${esc(p.email)}"></div>
-        <div class="fg"><label>Imobiliária</label><input type="text" id="rcImob" value="${esc(p.imobiliaria)}"></div>
-      </div>
+    ${rasc ? '<div class="alert warn" style="cursor:default"><span>Recuperamos o pedido que não chegou a ser enviado. Confira e toque em <b>Enviar pedido</b>.</span></div>' : ''}
+    <p class="small muted mb">${esc(loteLabel(l))} · tabela ${fmtMoney(l.preco)}. Depois de aprovada, a reserva vale ${db.config.reservaDias} dias.</p>
+    <div class="fieldset"><span class="lg">Cliente</span>
+      <div class="fg"><label>Nome *</label><input type="text" id="rlNome" autocomplete="off" value="${v('rlNome')}"></div>
+      <div class="fg"><label>Telefone / WhatsApp *</label><input type="tel" id="rlTel" placeholder="(00) 00000-0000" value="${v('rlTel')}"></div>
+      <details class="qualif"><summary>CPF, e-mail e cidade (opcional)</summary>
+        <div class="fg" style="margin-top:12px"><label>CPF / CNPJ</label><input type="text" id="rlCpf" inputmode="numeric" placeholder="000.000.000-00" value="${v('rlCpf')}"></div>
+        <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="rlEmail" value="${v('rlEmail')}"></div><div class="fg"><label>Cidade</label><input type="text" id="rlCidade" value="${v('rlCidade')}"></div></div>
+      </details>
     </div>
-    <div class="fieldset"><span class="lg">Dados do cliente</span>
-      <div class="fg"><label>Nome completo *</label><input type="text" id="rlNome"></div>
-      <div class="frow">
-        <div class="fg"><label>CPF / CNPJ</label><input type="text" id="rlCpf" inputmode="numeric" placeholder="000.000.000-00"></div>
-        <div class="fg"><label>Telefone / WhatsApp *</label><input type="tel" id="rlTel" placeholder="(00) 00000-0000"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label>E-mail</label><input type="email" id="rlEmail"></div>
-        <div class="fg"><label>Cidade</label><input type="text" id="rlCidade"></div>
-      </div>
-      <div class="fg"><label>Endereço</label><input type="text" id="rlEnd"></div>
-      <div class="frow">
-        <div class="fg"><label>Profissão</label><input type="text" id="rlProf"></div>
-        <div class="fg"><label>Estado civil</label><select id="rlEstCivil"><option value="">—</option><option>Solteiro(a)</option><option>Casado(a)</option><option>União estável</option><option>Divorciado(a)</option><option>Viúvo(a)</option></select></div>
-      </div>
-    </div>
-    <div class="fieldset"><span class="lg">Proposta de pagamento</span>
+    <div class="fieldset"><span class="lg">Proposta</span>
       <div class="frow3">
-        <div class="fg"><label>Valor proposto (R$)</label><input type="number" id="rpValor" value="${l.preco}" step="100" min="0"></div>
-        <div class="fg"><label>Entrada (R$)</label><input type="number" id="rpEntrada" value="${entrada}" step="100" min="0"></div>
-        <div class="fg"><label>Nº parcelas</label><input type="number" id="rpParcelas" value="${nP}" min="0" max="${Number(cond.maxParcelas) || 999}"></div>
+        <div class="fg"><label>Valor (R$)</label><input type="number" id="rpValor" inputmode="decimal" value="${v('rpValor', l.preco)}" step="100" min="0"></div>
+        <div class="fg"><label>Entrada (R$)</label><input type="number" id="rpEntrada" inputmode="decimal" value="${v('rpEntrada', entrada)}" step="100" min="0"></div>
+        <div class="fg"><label>Parcelas</label><input type="number" id="rpParcelas" inputmode="numeric" value="${v('rpParcelas', nP)}" min="0" max="${Number(cond.maxParcelas) || 999}"></div>
       </div>
-      <div class="fg"><label>Observações</label><textarea id="rpObs" placeholder="Condições especiais, data de visita, financiamento, etc."></textarea></div>
-    </div>`;
+      <div class="fg"><label>Observações</label><textarea id="rpObs" placeholder="Ex.: visita no sábado, vai financiar a entrada…">${v('rpObs')}</textarea></div>
+    </div>
+    <details class="qualif" id="rcDados"${temPerfil ? '' : ' open'}><summary>${temPerfil ? `Corretor: ${esc(p.nome)}${p.creci ? ' · ' + esc(p.creci) : ''} · alterar` : 'Seus dados (corretor) *'}</summary>
+      <div class="fg" style="margin-top:12px"><label>Nome completo *</label><input type="text" id="rcNome" value="${v('rcNome', p.nome)}"></div>
+      <div class="frow"><div class="fg"><label>CRECI</label><input type="text" id="rcCreci" value="${v('rcCreci', p.creci)}" placeholder="UF-00000"></div><div class="fg"><label>Telefone / WhatsApp *</label><input type="tel" id="rcTel" value="${v('rcTel', p.telefone)}" placeholder="(00) 00000-0000"></div></div>
+      <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="rcEmail" value="${v('rcEmail', p.email)}"></div><div class="fg"><label>Imobiliária</label><input type="text" id="rcImob" value="${v('rcImob', p.imobiliaria)}"></div></div>
+    </details>`;
   openModal({ title: 'Solicitar reserva', body, footer: `<button class="btn btn-secondary" onclick="abrirLoteCorretor('${l.id}')">Voltar</button><button class="btn btn-primary" onclick="enviarReserva('${l.id}')">Enviar pedido</button>` });
-  setTimeout(() => { const el = $(p.nome ? '#rlNome' : '#rcNome'); if (el) el.focus(); }, 60);
+  focarSeLivre(temPerfil ? 'rlNome' : 'rcNome');
 }
+/* Pedido que não chegou (sem sinal): fica guardado neste aparelho, por lote, até ser enviado. */
+const CAMPOS_RESERVA = ['rlNome', 'rlTel', 'rlCpf', 'rlEmail', 'rlCidade', 'rpValor', 'rpEntrada', 'rpParcelas', 'rpObs', 'rcNome', 'rcCreci', 'rcTel', 'rcEmail', 'rcImob'];
+function rascunhoReserva(loteId) {
+  try { const r = JSON.parse(localStorage.getItem('gl_reserva_rascunho') || 'null'); return r && r.loteId === loteId ? r.campos : null; } catch (e) { return null; }
+}
+function guardarRascunhoReserva(loteId) {
+  const campos = {}; CAMPOS_RESERVA.forEach(k => { const el = document.getElementById(k); if (el) campos[k] = el.value; });
+  try { localStorage.setItem('gl_reserva_rascunho', JSON.stringify({ loteId, campos })); } catch (e) {}
+}
+function apagarRascunhoReserva() { try { localStorage.removeItem('gl_reserva_rascunho'); } catch (e) {} }
 async function enviarReserva(loteId) {
   const l = getLote(loteId);
   if (!l || l.status !== 'disponivel') { toast('⚠️', 'Este lote acabou de ficar indisponível', '', true); closeModal(); renderCurrent(); return; }
   const corretor = { nome: val('rcNome'), creci: val('rcCreci'), telefone: val('rcTel'), email: val('rcEmail'), imobiliaria: val('rcImob') };
-  const cliente = { nome: val('rlNome'), cpf: val('rlCpf'), telefone: val('rlTel'), email: val('rlEmail'), cidade: val('rlCidade'), endereco: val('rlEnd'), profissao: val('rlProf'), estadoCivil: val('rlEstCivil') };
-  if (!corretor.nome || !corretor.telefone) { toast('⚠️', 'Informe seu nome e telefone', '', true); return; }
+  const cliente = { nome: val('rlNome'), cpf: val('rlCpf'), telefone: val('rlTel'), email: val('rlEmail'), cidade: val('rlCidade') };
+  if (!corretor.nome || !corretor.telefone) { const d = document.getElementById('rcDados'); if (d) d.open = true; toast('⚠️', 'Informe seu nome e telefone', 'Em “Seus dados (corretor)”, no fim do pedido.', true); return; }
   if (!cliente.nome || !cliente.telefone) { toast('⚠️', 'Informe nome e telefone do cliente', '', true); return; }
   if (!Cloud.active && state.role === 'corretor') { prefs.corretor = corretor; savePrefs(); }
   registrarCorretor(corretor);
@@ -256,7 +260,16 @@ async function enviarReserva(loteId) {
     corretor.userId = Cloud.user.id; r.corretorUserId = Cloud.user.id;
     const btn = $('#modalFoot .btn-primary'); botaoOcupado(btn, 'Enviando…');
     try { await Cloud.solicitarReserva(r); }
-    catch (e) { botaoOcupado(btn); toast('⚠️', 'Não foi possível reservar', e.message, true); if (/disponível/.test(e.message)) { closeModal(); Cloud.loadAll().then(renderCurrent); } return; }
+    catch (e) {
+      botaoOcupado(btn);
+      if (/disponível/.test(e.message)) { apagarRascunhoReserva(); toast('⚠️', 'Não foi possível reservar', e.message, true); closeModal(); Cloud.loadAll().then(renderCurrent); return; }
+      /* Sem sinal (ou o servidor não respondeu): nada se perde. O pedido fica guardado neste
+         aparelho e volta preenchido quando o corretor abrir a reserva deste lote de novo. */
+      guardarRascunhoReserva(loteId);
+      const semSinal = !navigator.onLine || /fetch|network|rede|timeout|Failed/i.test(e.message || '');
+      toast('⚠️', semSinal ? 'Sem sinal: o pedido não foi enviado' : 'O pedido não foi enviado', semSinal ? 'Ele ficou guardado neste celular. Toque em Enviar pedido quando o sinal voltar.' : `Ele ficou guardado neste celular. Tente de novo em instantes. (${e.message || 'erro desconhecido'})`, true);
+      return;
+    }
     // reflete localmente; o tempo real confirma em seguida
     db.reservas.push(r); const li = db.lotes.findIndex(x => x.id === l.id); if (li >= 0) db.lotes[li] = Object.assign({}, l, { status: 'reservado', reservaId: r.id }); saveLocal();
     if (!Cloud.membro.telefone || !Cloud.membro.nome) Cloud.atualizarMeuPerfil({ nome: corretor.nome, telefone: corretor.telefone, creci: corretor.creci, imobiliaria: corretor.imobiliaria }).then(() => Cloud.loadEquipe()).catch(() => {});
@@ -265,11 +278,12 @@ async function enviarReserva(loteId) {
     upsert('lotes', Object.assign({}, l, { status: 'reservado', reservaId: r.id }));
     logAct(`Reserva solicitada: ${loteLabel(l)} — cliente ${cliente.nome} (corretor ${corretor.nome})`, corretor.nome);
   }
+  apagarRascunhoReserva();
   closeModal();
   renderCurrent();
   const lot = getLoteamento(l.loteamentoId);
   const msg = `Olá! Solicitei a reserva do ${loteLabel(l)} (${lot.nome}) para o cliente ${cliente.nome}. Proposta: ${fmtMoney(r.proposta.valor)}, entrada ${fmtMoney(r.proposta.entrada)} + ${r.proposta.nParcelas}x de ${fmtMoney(parcelaDaProposta(r))}. Corretor: ${corretor.nome}${corretor.creci ? ' CRECI ' + corretor.creci : ''}.`;
-  openModal({ title: 'Pedido enviado', body: `<p class="small">O lote <b>${esc(loteLabel(l))}</b> ficou marcado como <span class="badge reservado">Reservado</span> aguardando aprovação do administrador.</p><p class="small muted mt">Você acompanha o andamento na aba <b>Minhas reservas</b>.</p>`,
+  openModal({ title: 'Pedido enviado', body: `<p class="small">O lote <b>${esc(loteLabel(l))}</b> ficou marcado como <span class="badge reservado">Reservado</span> aguardando aprovação do administrador.</p><p class="small muted mt">Você acompanha o andamento na aba <b>Reservas</b>.</p>`,
     footer: `${db.config.adminWhatsapp ? `<a class="btn btn-wa" href="${waLink(db.config.adminWhatsapp, msg)}" target="_blank">Avisar administrador</a>` : ''}<button class="btn btn-primary" onclick="closeModal()">OK</button>` });
 }
 async function cancelarMinhaReserva(id) {
@@ -333,29 +347,47 @@ function abrirReservaCorretor(id) {
   if (l) footer += `<button class="btn btn-primary" onclick="abrirLoteCorretor('${l.id}')">Ver lote</button>`;
   openModal({ title: `Reserva · ${l ? esc(loteShort(l)) : ''}`, body, footer });
 }
+/* Detalhe da reserva. A decisão vem primeiro: a proposta, comparada com a tabela (preço, entrada
+   mínima, prazo máximo), com a mesma parcela que o corretor mostrou ao cliente. Os dados do
+   lote, do cliente e do corretor ficam embaixo, para conferir. */
 function reservaDetalheHtml(r) {
   const l = getLote(r.loteId); const st = reservaStatus(r); const c = r.cliente; const k = r.corretor;
+  const lot = getLoteamento(r.loteamentoId); const cond = (lot && lot.cond) || {};
   return `
-    <div class="row-between mb"><span class="badge ${st}" style="font-size:0.75rem">${statusLabel(st)}</span><span class="small muted">Pedido em ${fmtDate(r.dataReserva)} · válida até ${fmtDate(r.validade)}</span></div>
+    <div class="row-between mb"><span class="badge ${st}">${statusLabel(st)}</span><span class="small muted">Pedido em ${fmtDate(r.dataReserva)} · válida até ${fmtDate(r.validade)}</span></div>
     ${r.motivo ? `<div class="alert info" style="cursor:default"><span>${esc(r.motivo)}</span></div>` : ''}
-    <div class="fieldset"><span class="lg">Lote</span><div class="detail-grid">
-      <div><div class="k">Lote</div><div class="v">${l ? esc(loteLabel(l)) : '—'}</div></div><div><div class="k">Preço de tabela</div><div class="v">${l ? fmtMoney(l.preco) : '—'}</div></div>
-      <div><div class="k">Área</div><div class="v">${l ? fmtNum(l.area, 0) + ' m²' : '—'}</div></div><div><div class="k">Status atual do lote</div><div class="v">${l ? statusLabel(l.status) : '—'}</div></div></div></div>
-    <div class="fieldset"><span class="lg">Cliente</span><div class="detail-grid">
-      <div><div class="k">Nome</div><div class="v">${esc(c.nome)}</div></div><div><div class="k">CPF/CNPJ</div><div class="v">${esc(fmtCPF(c.cpf)) || '—'}</div></div>
-      <div><div class="k">Telefone</div><div class="v"><a href="${waLink(c.telefone, '')}" target="_blank">${esc(fmtPhone(c.telefone))}</a></div></div><div><div class="k">E-mail</div><div class="v">${esc(c.email) || '—'}</div></div>
-      <div class="full"><div class="k">Endereço</div><div class="v">${esc([c.endereco, c.cidade].filter(Boolean).join(' · ')) || '—'}</div></div>
-      ${c.profissao || c.estadoCivil ? `<div><div class="k">Profissão</div><div class="v">${esc(c.profissao) || '—'}</div></div><div><div class="k">Estado civil</div><div class="v">${esc(c.estadoCivil) || '—'}</div></div>` : ''}
-    </div></div>
-    <div class="fieldset"><span class="lg">Corretor</span><div class="detail-grid">
-      <div><div class="k">Nome</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci) || '—'}</div></div>
-      <div><div class="k">Telefone</div><div class="v"><a href="${waLink(k.telefone, '')}" target="_blank">${esc(fmtPhone(k.telefone))}</a></div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria) || '—'}</div></div>
-    </div></div>
-    ${r.proposta ? `<div class="fieldset"><span class="lg">Proposta</span><div class="detail-grid">
-      <div><div class="k">Valor</div><div class="v">${fmtMoney(r.proposta.valor)}</div></div><div><div class="k">Entrada</div><div class="v">${fmtMoney(r.proposta.entrada)}</div></div>
-      <div><div class="k">Parcelas</div><div class="v">${r.proposta.nParcelas}× de ${fmtMoney(parcelaDaProposta(r))}<div class="tiny muted">${jurosDaProposta(r) ? `tabela Price, ${fmtNum(jurosDaProposta(r), 2)}% a.m.` : 'sem juros'}</div></div></div>
-      ${r.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(r.obs)}</div></div>` : ''}
-    </div></div>` : ''}`;
+    <p class="rs-quem"><b>${l ? esc(loteLabel(l)) : '—'}</b> para <b>${esc(c.nome)}</b> · corretor ${esc(k.nome)}${k.creci ? ' · ' + esc(k.creci) : ''}</p>
+    ${r.proposta ? propostaHtml(r, l, cond) : '<p class="help mb">Pedido sem proposta de valores.</p>'}
+    <details class="qualif"><summary>Dados do lote, do cliente e do corretor</summary>
+      <div class="detail-grid" style="margin-top:12px">
+        <div><div class="k">Lote</div><div class="v">${l ? esc(loteLabel(l)) : '—'}</div></div><div><div class="k">Área</div><div class="v">${l && num(l.area) ? fmtNum(l.area, 0) + ' m²' : '—'}</div></div>
+        <div><div class="k">Situação atual do lote</div><div class="v">${l ? statusLabel(l.status) : '—'}</div></div><div></div>
+        <div><div class="k">Cliente</div><div class="v">${esc(c.nome)}</div></div><div><div class="k">CPF/CNPJ</div><div class="v">${esc(fmtCPF(c.cpf)) || '—'}</div></div>
+        <div><div class="k">Telefone</div><div class="v">${c.telefone ? `<a href="${waLink(c.telefone, '')}" target="_blank">${esc(fmtPhone(c.telefone))}</a>` : '—'}</div></div><div><div class="k">E-mail</div><div class="v">${esc(c.email) || '—'}</div></div>
+        <div class="full"><div class="k">Endereço</div><div class="v">${esc([c.endereco, c.cidade].filter(Boolean).join(' · ')) || '—'}</div></div>
+        ${c.profissao || c.estadoCivil ? `<div><div class="k">Profissão</div><div class="v">${esc(c.profissao) || '—'}</div></div><div><div class="k">Estado civil</div><div class="v">${esc(c.estadoCivil) || '—'}</div></div>` : ''}
+        <div><div class="k">Corretor</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci) || '—'}</div></div>
+        <div><div class="k">Telefone do corretor</div><div class="v">${k.telefone ? `<a href="${waLink(k.telefone, '')}" target="_blank">${esc(fmtPhone(k.telefone))}</a>` : '—'}</div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria) || '—'}</div></div>
+      </div></details>`;
+}
+/* A proposta ao lado da tabela: quanto o valor difere do preço, quanto a entrada representa e se
+   respeita o mínimo, e se o prazo cabe no máximo do empreendimento. */
+function propostaHtml(r, l, cond) {
+  const p = r.proposta, preco = l ? num(l.preco) : 0, valor = num(p.valor), entrada = num(p.entrada), n = Math.round(num(p.nParcelas));
+  const dif = preco ? (valor - preco) / preco * 100 : 0;
+  const pctEnt = valor ? entrada / valor * 100 : 0;
+  const entMin = num(cond.entradaMinPct), maxP = Number(cond.maxParcelas) || 0;
+  const avisos = [];
+  if (entMin && pctEnt + 0.05 < entMin) avisos.push(`entrada abaixo do mínimo de ${fmtNum(entMin, 0)}%`);
+  if (maxP && n > maxP) avisos.push(`prazo acima do máximo de ${maxP} parcelas`);
+  return `<div class="rs-proposta">
+      <div class="rs-linha"><span class="k">Valor proposto</span><span class="v">${fmtMoney(valor)}</span>
+        <span class="rs-cmp ${Math.abs(dif) < 0.05 ? '' : dif < 0 ? 'abaixo' : 'acima'}">${!preco ? 'sem preço de tabela' : Math.abs(dif) < 0.05 ? 'igual à tabela' : `${dif < 0 ? '−' : '+'}${fmtNum(Math.abs(dif), 1)}% da tabela (${fmtMoney(preco)})`}</span></div>
+      <div class="rs-linha"><span class="k">Entrada</span><span class="v">${fmtMoney(entrada)}</span><span class="rs-cmp">${fmtNum(pctEnt, 1)}% do valor${entMin ? ` · mínimo ${fmtNum(entMin, 0)}%` : ''}</span></div>
+      ${n ? `<div class="rs-linha"><span class="k">Parcelas</span><span class="v">${n}× ${fmtMoney(parcelaDaProposta(r))}</span><span class="rs-cmp">${jurosDaProposta(r) ? `tabela Price, ${fmtNum(jurosDaProposta(r), 2)}% a.m.` : 'sem juros'}${maxP ? ` · máximo ${maxP}×` : ''}</span></div>` : `<div class="rs-linha"><span class="k">Parcelas</span><span class="v">à vista</span><span class="rs-cmp"></span></div>`}
+      ${r.obs ? `<div class="rs-obs">${esc(r.obs)}</div>` : ''}
+      ${avisos.length ? `<div class="rs-aviso"><i class=ico data-i=warning></i><span>Fora das condições: ${avisos.join('; ')}.</span></div>` : ''}
+    </div>`;
 }
 
 // ---------------------------------------------------------------- perfil do corretor

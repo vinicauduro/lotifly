@@ -654,6 +654,38 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z4. Reserva: pedido enxuto e aprovação refeita (15/10)
+
+**Pedido do corretor (celular)**: só o essencial, como você decidiu.
+- Do cliente, só **nome e telefone**; CPF, e-mail e cidade ficam recolhidos como opcionais.
+  Profissão, estado civil e endereço saíram: o escritório pede no contrato.
+- Depois a **proposta** (valor, entrada, parcelas, observações).
+- Os **dados do próprio corretor** vêm do perfil numa linha ("Corretor: Ana Paula · SC-54321 ·
+  alterar"); só abrem na primeira vez ou se faltar algo.
+- **Sem sinal**: o pedido não se perde. Fica guardado no celular e volta preenchido quando ele
+  abrir a reserva do mesmo lote, com o aviso "Recuperamos o pedido que não chegou a ser enviado".
+
+**Aprovação (escritório)**
+- A **proposta vem primeiro**, comparada com a tabela: "−3,2% da tabela (R$ 184.500,00)",
+  "10,0% do valor · mínimo 10%", "60× R$ 2.555,77 · tabela Price, 0,80% a.m. · máximo 120×".
+  Se a entrada estiver abaixo do mínimo ou o prazo acima do máximo, aparece um aviso amarelo.
+- Rodapé com **só Recusar e Aprovar**. Converter em venda, Renovar prazo, Editar dados e o
+  WhatsApp do corretor ficam numa linha de "Outras ações".
+- **Depois de aprovar**, a janela continua aberta com "Reserva aprovada, válida até…", o botão
+  **Avisar o corretor** (WhatsApp com a mensagem pronta) e **Desfazer**.
+- **Recusar** e **Liberar o lote** pedem o motivo dentro da janela; **Renovar prazo** mostra a
+  nova validade antes de confirmar. Não aparece mais a caixinha do navegador.
+- Reserva aprovada: a ação principal vira Converter em venda.
+
+- [ ] No celular: pedir uma reserva com o perfil preenchido e ver que só pede nome, telefone e
+  proposta.
+- [ ] No computador: aprovar, tocar em "Avisar o corretor" e conferir a mensagem no WhatsApp.
+
+`testes/reserva.test.js` faz o caminho inteiro (pedido no celular → aprovar, desfazer, recusar
+com motivo, renovar prazo) e falha se aparecer qualquer caixa do navegador.
+
+---
+
 ## 7z3. Revisão final antes de publicar (15/10)
 
 **Corrigido**
@@ -689,9 +721,7 @@ O relatório completo está em `.impeccable/critique/`.
   todas elas. O valor grande continua sendo o atraso total, de todos os meses. No começo do mês
   a % é baixa e sobe conforme as parcelas vencem sem pagamento.
 - [ ] Cobrança (menu Financeiro › Cobrança) ainda mostra "1,4% da carteira": alinhar com o Início.
-- [ ] Reserva do corretor só com o essencial: nome e telefone do cliente + proposta (decidido em
-  15/10); a qualificação completa fica para o contrato.
-- [ ] Próximo: refazer a aprovação de reserva (proposta no topo, Aprovar/Recusar em destaque).
+- [x] Reserva do corretor só com o essencial e aprovação refeita: ver 7z4.
 
 Testes no projeto: `testes/fluxo.test.js` (entrar, abrir loteamento, vender, registrar
 recebimento — no iPhone e no computador), `testes/acessibilidade.test.js` (axe), além de
