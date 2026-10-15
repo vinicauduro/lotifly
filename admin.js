@@ -90,7 +90,7 @@ function renderEmpreendimentos() {
    de venda dele é a informação principal e fica à vista. */
 function listaEmpreendimentosHtml() {
   const podeCriar = pode('config.editar') || pode('lotes.editar');
-  return `<div class="card"><h3>Imóveis ${podeCriar ? '<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span>' : ''}</h3>
+  return `<div class="card"><h2>Imóveis ${podeCriar ? '<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span>' : ''}</h2>
     <p class="help mb">Os empreendimentos, com planta e lotes, e cada imóvel avulso que você vende — apartamento, casa, lote, sala… Abra um para ver preços e situação. Contratos, recebíveis e relatórios ficam no menu, com todos juntos.</p>
     ${db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)).map(l => {
       if (ehCarteira(l)) {
@@ -132,6 +132,9 @@ function inicioMes() {
     aPagar: custosMes.reduce((s, c) => s + num(c.valor), 0), nPagar: custosMes.length,
     pagarVencido: custosMes.filter(c => c.vencimento && c.vencimento < hoje).length,
     atrasado: atrasados.reduce((s, r) => s + recRestante(r), 0), nAtrasados: atrasados.length,
+    /* Inadimplência do mês (pedido do dono, 15/10): das parcelas que vencem neste mês, quanto do
+       valor já venceu e não foi pago, sobre o valor de todas elas. */
+    atrasoMes: recsMes.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0),
     clientesAtraso: new Set(atrasados.map(r => r.vendaId)).size,
     carteira: carteira.reduce((s, r) => s + recRestante(r), 0), nCarteira: carteira.length,
     contratosCarteira: new Set(carteira.map(r => r.vendaId)).size
@@ -179,15 +182,15 @@ function renderPainel() {
     ${alerts}
     <div class="kpi-grid inicio">
       <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
-      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>inadimplência de ${tot.vencido ? fmtNum(tot.atraso / tot.vencido * 100, 1) : '0,0'}% em 12 meses ›</div></div>
+      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>${k.previsto ? `${fmtNum(k.atrasoMes / k.previsto * 100, 1)}% das parcelas do mês em atraso (${fmtMoneyShort(k.atrasoMes)} de ${fmtMoneyShort(k.previsto)})` : 'nenhuma parcela vence este mês'} ›</div></div>
       <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
       <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
       <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
     </div>
     <div class="grid2">
-      <div class="card"><h3>Fluxo previsto (12 meses)</h3><canvas class="chart" id="chartFluxo" height="220"></canvas>
+      <div class="card"><h2>Fluxo previsto (12 meses)</h2><canvas class="chart" id="chartFluxo" height="220"></canvas>
         <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos previstos</div><div><span class="dot" style="background:#f97316"></span>Despesas previstas</div><div class="muted">tom mais escuro: mês atual</div></div></div>
-      <div class="card"><h3>Recebido × inadimplência (12 meses)</h3>
+      <div class="card"><h2>Recebido × inadimplência (12 meses)</h2>
         <p class="help" style="margin-top:-4px">Parcelas que venceram em cada mês. Inadimplência nos 12 meses: <b>${tot.vencido ? fmtNum(tot.atraso / tot.vencido * 100, 1) : '0,0'}%</b> (${fmtMoneyShort(tot.atraso)} em atraso).</p>
         <div style="position:relative"><canvas class="chart" id="chartReceb" height="220"></canvas><div class="chart-tip" id="chartRecebTip"></div></div>
         <div class="legend-list" style="flex-direction:row;gap:14px;flex-wrap:wrap"><div><span class="dot" style="background:${COR_RECEBIDO}"></span>Recebido</div><div><span class="dot" style="background:${COR_ATRASO}"></span>Em atraso</div><div><span class="dot" style="background:${COR_A_VENCER}"></span>A vencer</div></div>
@@ -220,8 +223,8 @@ function renderPlantaEditor(alvo) {
           <div class="legend"><span><span class="dot disponivel"></span>Disponível</span><span><span class="dot reservado"></span>Reservado</span><span><span class="dot vendido"></span>Vendido</span><span><span class="dot bloqueado"></span>Indisponível</span></div>
         </div>
         <div>
-          <div class="card" style="padding:10px 12px"><h3 style="margin-bottom:6px">Lotes <span class="small muted" id="aPosInfo"></span></h3>
-            <div class="filters" style="margin-bottom:8px"><input type="text" id="aPickBusca" placeholder="Filtrar" oninput="renderLotePicker()"><button class="btn btn-primary btn-sm" onclick="abrirLoteForm()" title="Cadastrar um lote novo e posicionar na planta"><i class=ico data-i=plus></i>Lote</button></div>
+          <div class="card" style="padding:10px 12px"><h2 style="margin-bottom:6px">Lotes <span class="small muted" id="aPosInfo"></span></h2>
+            <div class="filters" style="margin-bottom:8px"><input type="text" id="aPickBusca" placeholder="Filtrar…" oninput="renderLotePicker()"><button class="btn btn-primary btn-sm" onclick="abrirLoteForm()" title="Cadastrar um lote novo e posicionar na planta"><i class=ico data-i=plus></i>Lote</button></div>
             <label class="check small" style="margin-bottom:8px"><input type="checkbox" id="aPickSemPos" onchange="renderLotePicker()"> Só lotes sem posição</label>
             <div class="lote-picker" id="lotePicker"></div>
             <p class="help mt" id="aEditorHelp"></p>
@@ -352,12 +355,12 @@ function renderALotes(alvo) {
       ${[['all', 'Todos', ls.length], ['disponivel', 'Disponíveis', cnt('disponivel')], ['reservado', 'Reservados', cnt('reservado')], ['vendido', 'Vendidos', cnt('vendido')], ['bloqueado', 'Indisponíveis', cnt('bloqueado')]].map(([k, l, n]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="aSetFiltro('alotes','status','${k}',renderALotes)">${l}<span class="n">${n}</span></div>`).join('')}
     </div>
     <div class="filters">
-      <select onchange="aSetFiltro('alotes','quadra',this.value,renderALotes)"><option value="all">Todas as quadras</option>${quadras.map(q => `<option value="${esc(q)}" ${f.quadra === q ? 'selected' : ''}>Quadra ${esc(q)}</option>`).join('')}</select>
-      <input type="text" placeholder="Buscar" value="${esc(f.busca)}" oninput="aSetFiltro('alotes','busca',this.value,renderALotes,this)">
+      <select aria-label="Quadra" onchange="aSetFiltro('alotes','quadra',this.value,renderALotes)"><option value="all">Todas as quadras</option>${quadras.map(q => `<option value="${esc(q)}" ${f.quadra === q ? 'selected' : ''}>Quadra ${esc(q)}</option>`).join('')}</select>
+      <input type="text" placeholder="Buscar…" value="${esc(f.busca)}" oninput="aSetFiltro('alotes','busca',this.value,renderALotes,this)">
     </div>
     <p class="small muted mb">${list.length} lote(s) · ${fmtNum(areaFiltro, 0)} m² · ${fmtMoney(vgvFiltro)}</p>
     ${list.length ? `<div class="card" style="padding:0"><div class="table-wrap"><table class="tbl">
-      <thead><tr><th>Quadra</th><th>Lote</th><th class="num">Área m²</th><th class="num">Preço</th><th class="num">R$/m²</th><th>Status</th><th>Cliente</th><th></th></tr></thead>
+      <thead><tr><th>Quadra</th><th>Lote</th><th class="num">Área m²</th><th class="num">Preço</th><th class="num">R$/m²</th><th>Status</th><th>Cliente</th><th><span class="sr-only">Ações</span></th></tr></thead>
       <tbody>${list.map(l => { const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id); const cli = vd ? vd.cliente.nome : r ? r.cliente.nome : ''; return `<tr class="clickable" data-st="l:${l.id}" onclick="abrirLoteAdmin('${l.id}')"><td>${esc(l.quadra)}</td><td><b>${esc(l.numero)}</b>${l.tipo === 'comercial' ? ' <span class="tiny muted">com.</span>' : ''}</td><td class="num">${num(l.area) ? fmtNum(l.area, 0) : '<span class="muted">—</span>'}</td><td class="num">${num(l.preco) ? `<b>${fmtMoney(l.preco)}</b>` : '<span class="muted">—</span>'}</td><td class="num">${num(l.area) && num(l.preco) ? fmtNum(l.preco / l.area, 0) : '<span class="muted">—</span>'}</td><td><span class="badge ${l.status}">${statusLabel(l.status)}</span></td><td>${esc(cli)}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="abrirLoteForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
     </table></div></div>` : `<div class="empty"><div class="ic"><i class=ico data-i=package></i></div><p>Nenhum lote.<br>Use <b>Gerar em massa</b> para criar as quadras rapidamente.</p></div>`}`;
 }
@@ -663,7 +666,7 @@ function renderAVendas() {
       <div class="kpi c-primary"><div class="lbl">Ticket médio</div><div class="val">${fmtMoneyShort(ativas.length ? tot / ativas.length : 0)}</div></div>
     </div>
     <div class="chips">${[['all', 'Todas'], ['ativa', 'Ativas'], ['quitada', 'Quitadas'], ['distrato', 'Distratos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.avendas.status='${k}';renderAVendas()">${l}<span class="n">${k === 'all' ? all.length : all.filter(x => x.status === k).length}</span></div>`).join('')}</div>
-    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="Cliente, imóvel ou nº do contrato" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()"><i class=ico data-i=plus></i>Nova venda</button></div>
+    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="Cliente, imóvel ou nº do contrato…" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()"><i class=ico data-i=plus></i>Nova venda</button></div>
     ${list.length ? list.map(x => vendaCardHtml(x)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=coins></i></div><p>Nenhuma venda registrada.<br>Converta uma reserva ou registre uma venda direta.</p></div>`}`;
 }
 function vendaCardHtml(x) {
@@ -1012,14 +1015,14 @@ function cadLoteamentoHtml() {
   const lot = curLot(); if (!lot) return `<div class="card"><p class="help">Nenhum loteamento. <button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Cadastrar</button></p></div>`;
   if (ehCarteira(lot)) return terceiroResumoHtml(lot) + (custosDo(lot.id).length ? orcamentoCardHtml(lot) : '');
   const c = lot.cond || {};
-  return `<div class="card"><h3>${esc(lot.nome)} <span class="badge neutral">Empreendimento</span> <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">Editar</button></span></h3>
+  return `<div class="card"><h2>${esc(lot.nome)} <span class="badge neutral">Empreendimento</span> <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">Editar</button></span></h2>
       <div class="detail-grid"><div><div class="k">Cidade</div><div class="v">${esc(lot.cidade) || '—'}</div></div><div><div class="k">Endereço</div><div class="v">${esc(lot.endereco) || '—'}</div></div><div class="full"><div class="k">Descrição (aparece para os corretores)</div><div class="v">${esc(lot.descricao) || '—'}</div></div>
       <div><div class="k">Entrada mínima</div><div class="v">${fmtNum(c.entradaMinPct || 0, 0)}%</div></div><div><div class="k">Parcelas máx.</div><div class="v">${c.maxParcelas || '—'}</div></div><div><div class="k">Juros</div><div class="v">${c.jurosMes ? fmtNum(c.jurosMes, 2) + '% a.m.' : 'sem juros'}</div></div><div><div class="k">Desconto à vista</div><div class="v">${fmtNum(c.descontoVistaPct || 0, 0)}%</div></div></div></div>
     ${orcamentoCardHtml(lot)}`;
 }
 function orcamentoCardHtml(lot) {
   const orc = lot.orcamento || {}; const cs = custosDo(lot.id);
-  return `<div class="card"><h3>Orçamento de custos por categoria <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirOrcamentoForm()">Editar</button></span></h3>
+  return `<div class="card"><h2>Orçamento de custos por categoria <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirOrcamentoForm()">Editar</button></span></h2>
       ${db.categorias.filter(cat => num(orc[cat.id]) > 0).map(cat => { const real = cs.filter(x => x.categoriaId === cat.id).reduce((s, x) => s + num(x.valor), 0); const pct = Math.round(real / orc[cat.id] * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${cat.cor}"></span> ${esc(cat.nome)}</span><span class="muted">${fmtMoney(real)} de ${fmtMoney(orc[cat.id])} (${pct}%)</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Nenhum orçamento definido. Defina o valor planejado por categoria para acompanhar orçado × realizado.</p>'}
       ${Object.values(orc).some(x => num(x) > 0) ? `<p class="small mt"><b>Total orçado: ${fmtMoney(Object.values(orc).reduce((s, x) => s + num(x), 0))}</b> · realizado ${fmtMoney(cs.reduce((s, x) => s + num(x.valor), 0))}</p>` : ''}</div>`;
 }
@@ -1028,8 +1031,8 @@ function terceiroResumoHtml(lot) {
   const vd = vendaAtivaDoImovel(lot); const c = lot.cond || {};
   const temCond = ['entradaMinPct', 'maxParcelas', 'jurosMes', 'descontoVistaPct'].some(k => num(c[k]));
   const end = enderecoLinha(lot) || lot.endereco || '';
-  return `<div class="card"><h3><span>${empIcone(lot)} ${esc(lot.nome)} <span class="badge neutral">${esc(empLabel(lot))}</span> <span class="badge ${vd ? 'vendido' : 'disponivel'}">${vd ? 'Vendido' : 'Disponível'}</span></span>
-      ${pode('config.editar') || pode('lotes.editar') ? `<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">Editar</button></span>` : ''}</h3>
+  return `<div class="card"><h2><span>${empIcone(lot)} ${esc(lot.nome)} <span class="badge neutral">${esc(empLabel(lot))}</span> <span class="badge ${vd ? 'vendido' : 'disponivel'}">${vd ? 'Vendido' : 'Disponível'}</span></span>
+      ${pode('config.editar') || pode('lotes.editar') ? `<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirLoteamentoForm('${lot.id}')">Editar</button></span>` : ''}</h2>
     <div class="row-between mb" style="flex-wrap:wrap;gap:10px">
       <div><div class="price-big">${num(lot.preco) ? fmtMoney(lot.preco) : '—'}</div><div class="price-sub">${num(lot.preco) ? 'valor de venda' : 'valor de venda ainda não informado'}</div></div>
       ${vd ? `<button class="btn btn-secondary" style="flex:none" onclick="abrirVendaAdmin('${vd.id}')">Contrato de ${esc(vd.cliente.nome)} · ${fmtMoney(vd.valorTotal)}</button>`
@@ -1141,7 +1144,7 @@ function excluirLoteamento(id) {
   closeModal(); renderCurrent(); toast('🗑️', 'Imóvel excluído', `${empLabel(l)} · ${l.nome}`);
 }
 function cadLoteamentosHtml() {
-  return `<div class="card"><h3>Loteamentos <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span></h3>
+  return `<div class="card"><h2>Loteamentos <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span></h2>
     ${db.loteamentos.map(l => { const ls = lotesDo(l.id); return `<div class="item ${l.id === state.lotId ? '' : 'bloqueado'}" onclick="setCurLot('${l.id}');state.sub.cad='loteamento';renderCurrent()"><div class="info"><div class="title">${esc(l.nome)} ${l.id === state.lotId ? '<span class="badge aprovada">atual</span>' : ''}</div><div class="meta"><span class="badge neutral">${esc(empLabel(l))}</span><span>${esc(l.cidade || '')}</span>${ehCarteira(l) ? `<span>· ${db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato').length} venda(s)</span>` : `<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span>`}</div></div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();abrirLoteamentoForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></div></div>`; }).join('') || '<p class="help">Nenhum empreendimento.</p>'}</div>`;
 }
 function abrirOrcamentoForm() {
@@ -1161,13 +1164,13 @@ function renderCorretoresAdmin() {
   const v = $('#av-corretores');
   if (!Cloud.active) { v.innerHTML = cadCorretoresHtml(); return; }
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()) || (c.userId && x.userId === c.userId); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v2 => v2.status !== 'distrato' && m(v2.corretor)) }; };
-  v.innerHTML = `<div class="card"><h3>Corretores ${pode('equipe.gerenciar') ? `<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')"><i class=ico data-i=plus></i>Convidar corretor</button></span>` : ''}</h3>
+  v.innerHTML = `<div class="card"><h2>Corretores ${pode('equipe.gerenciar') ? `<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')"><i class=ico data-i=plus></i>Convidar corretor</button></span>` : ''}</h2>
     <p class="help mb">Os corretores entram por convite e usam o portal deles para ver a planta, simular e pedir reserva.</p>
     ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const st = stats(c); return `<div class="item"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${st.res} reserva(s) · ${st.vend.length} venda(s) · ${fmtMoneyShort(st.vend.reduce((t, x) => t + num(x.valorTotal), 0))}</span></div></div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda. Convide o primeiro.</p>'}</div>`;
 }
 function cadCorretoresHtml() {
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v => v.status !== 'distrato' && m(v.corretor)) }; };
-  return `<div class="card"><h3>Corretores <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()"><i class=ico data-i=plus></i>Novo</button></span></h3>
+  return `<div class="card"><h2>Corretores <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()"><i class=ico data-i=plus></i>Novo</button></span></h2>
     <p class="help mb">Corretores são cadastrados automaticamente quando fazem o primeiro pedido de reserva. Você também pode cadastrá-los aqui.</p>
     ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${s.res} reserva(s) · ${s.vend.length} venda(s) · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda.</p>'}</div>`;
 }
@@ -1181,17 +1184,17 @@ function cadCorretoresHtml() {
 function cadEmpresaHtml() {
   const emp = vendedorPadrao();
   const reps = (db.config.representantes || []).filter(r => r && r.nome);
-  return `<div class="card"><h3>A sua empresa</h3>
+  return `<div class="card"><h2>A sua empresa</h2>
     <p class="help mb">É com estes dados que a empresa é qualificada no contrato, no boleto e nos documentos.</p>
     ${pessoaFormHtml('emp', Object.assign({}, emp, { tipo: 'pj' }), { semTipo: true, semRepresentante: true })}
     <button class="btn btn-primary" onclick="salvarEmpresa()">Salvar dados da empresa</button></div>
 
-    <div class="card"><h3>Quem assina pela empresa</h3>
+    <div class="card"><h2>Quem assina pela empresa</h2>
     <p class="help mb">Contrato social costuma exigir mais de uma assinatura. Cadastre aqui cada pessoa que assina, com a qualificação completa — é ela que sai no contrato.</p>
     ${pessoasListaHtml('sig', reps.length ? reps : [null], { rotulo: 'Signatário', rotuloBotao: 'Adicionar quem assina', soGenero: true, comCargo: true })}
     <button class="btn btn-primary mt" onclick="salvarSignatarios()">Salvar quem assina</button></div>
 
-    <div class="card"><h3>Outras empresas do grupo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirVendedorForm()"><i class=ico data-i=plus></i>Nova</button></span></h3>
+    <div class="card"><h2>Outras empresas do grupo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirVendedorForm()"><i class=ico data-i=plus></i>Nova</button></span></h2>
     <p class="help mb">Incorporadora costuma ter um CNPJ por empreendimento. Cadastre os outros aqui e, a cada venda, o sistema pergunta qual deles assina o contrato. A empresa acima é sempre a padrão.</p>
     ${db.vendedores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(v => {
       const falta = faltaQualificacao(v);
@@ -1257,7 +1260,7 @@ function salvarCorretor(id) {
   closeModal(); renderCurrent(); toast('✅', 'Corretor salvo', '');
 }
 function cadCategoriasHtml() {
-  return `<div class="card"><h3>Categorias de custo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()"><i class=ico data-i=plus></i>Nova</button></span></h3>
+  return `<div class="card"><h2>Categorias de custo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()"><i class=ico data-i=plus></i>Nova</button></span></h2>
     ${db.categorias.map(c => `<div class="item" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${db.custos.filter(x => x.categoriaId === c.id).length} lançamento(s)</span></div></div></div>`).join('')}</div>`;
 }
 function abrirCategoriaForm(id) {
@@ -1277,14 +1280,14 @@ function excluirCategoria(id) {
 }
 function cadConfigHtml() {
   const c = db.config;
-  return `<div class="card"><h3>Configurações gerais</h3>
+  return `<div class="card"><h2>Configurações gerais</h2>
     <div class="frow"><div class="fg"><label>Nome da empresa / incorporadora</label><input type="text" id="cgEmpresa" value="${esc(c.empresa)}"></div><div class="fg"><label>WhatsApp da administração</label><input type="tel" id="cgWa" value="${esc(c.adminWhatsapp)}" placeholder="(00) 00000-0000"><div class="hint">Corretores podem avisar você pelo WhatsApp ao pedir reserva.</div></div></div>
     <div class="frow3"><div class="fg"><label>Validade da reserva (dias)</label><input type="number" id="cgDias" value="${c.reservaDias}"></div><div class="fg"><label>Comissão padrão (%)</label><input type="number" id="cgCom" step="0.1" value="${c.comissaoPct}"></div><div class="fg"><label>Multa por atraso (%)</label><input type="number" id="cgMulta" step="0.1" value="${c.multaPct}"></div></div>
     <div class="frow"><div class="fg"><label>Juros de mora (% ao mês)</label><input type="number" id="cgJuros" step="0.01" value="${c.jurosMesPct}"></div><div class="fg"><label>Corretor vê preço de lotes vendidos?</label><select id="cgMostra"><option value="1" ${c.mostrarPrecoVendido ? 'selected' : ''}>Sim</option><option value="0" ${!c.mostrarPrecoVendido ? 'selected' : ''}>Não</option></select></div></div>
     <button class="btn btn-primary" onclick="salvarConfig()">Salvar configurações</button></div>
-    <div class="card"><h3>Dados da empresa</h3>
+    <div class="card"><h2>Dados da empresa</h2>
     <p class="help">CNPJ, endereço, quem assina e os outros CNPJs do grupo ficam em <b><a href="#" onclick="state.sub.cad='empresa';renderCurrent();return false">Configurações › Dados da empresa</a></b>.</p></div>
-    ${Cloud.active ? '' : `<div class="card"><h3>Acesso</h3>
+    ${Cloud.active ? '' : `<div class="card"><h2>Acesso</h2>
     <div class="frow"><div class="fg"><label>Novo PIN do administrador</label><input type="password" inputmode="numeric" id="cgPin" placeholder="mín. 4 dígitos" autocomplete="new-password"><div class="hint">${c.pinPadrao ? '<b style="color:#b45309">Você ainda usa o PIN padrão 1234. Troque agora.</b>' : 'PIN personalizado ativo.'}</div></div>
       <div class="fg"><label>Código de acesso dos corretores</label><input type="text" id="cgCod" value="${esc(c.codigoCorretor)}" placeholder="vazio = acesso livre"><div class="hint">Se definido, o corretor precisa digitar este código na primeira vez que abrir o app.</div></div></div>
     <button class="btn btn-primary" onclick="salvarAcesso()">Salvar acesso</button>
@@ -1301,7 +1304,7 @@ function salvarAcesso() {
 }
 function cadNuvemHtml() {
   const link = location.origin + location.pathname + '?modo=corretor';
-  return `<div class="card"><h3>Sincronização em nuvem <span id="syncStatusBox"></span></h3>
+  return `<div class="card"><h2>Sincronização em nuvem <span id="syncStatusBox"></span></h2>
     <p class="help mb">Este aparelho está no <b>modo local</b>: os dados ficam salvos só neste navegador. Para trabalhar em equipe (corretores em qualquer aparelho, pedidos de reserva em tempo real, login por usuário), o app usa o <b>Supabase</b>.</p>
     <ol class="steps mb">
       <li>Crie o projeto em <a href="https://supabase.com" target="_blank">supabase.com</a> e rode o arquivo <code>supabase/schema.sql</code> no SQL Editor.</li>
@@ -1309,7 +1312,7 @@ function cadNuvemHtml() {
       <li>Preencha os dois valores em <code>config.js</code> e publique. O app passa a abrir com tela de login; crie sua conta e a empresa.</li>
     </ol>
     <p class="help">O guia completo está em <code>supabase/README.md</code>.</p></div>
-    <div class="card"><h3>Link para os corretores (modo local)</h3>
+    <div class="card"><h2>Link para os corretores (modo local)</h2>
     <p class="help mb">Abre direto na área do corretor. Sem a nuvem, cada aparelho tem os próprios dados; use apenas para demonstração.${db.config.codigoCorretor ? ' O código de acesso configurado será solicitado.' : ''}</p>
     <div class="code-box" id="linkCorretor">${esc(link)}</div>
     <div class="btn-row"><button class="btn btn-secondary" onclick="copiarTexto(document.getElementById('linkCorretor').textContent)">Copiar link</button></div></div>`;
@@ -1317,11 +1320,11 @@ function cadNuvemHtml() {
 function copiarTexto(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('📋', 'Copiado', '')).catch(() => prompt('Copie o link:', t)); }
 function cadBackupHtml() {
   const size = Math.round((localStorage.getItem(DB_KEY) || '').length / 1024);
-  return `<div class="card"><h3>Backup e dados</h3>
+  return `<div class="card"><h2>Backup e dados</h2>
     <p class="help mb">Exporte um arquivo com todos os dados (lotes, planta, reservas, vendas, custos). Guarde uma cópia com regularidade. Tamanho atual: ${size} KB.</p>
     <div class="btn-row"><button class="btn btn-primary" onclick="exportarBackup()">Exportar backup (JSON)</button><label class="btn btn-secondary" style="cursor:pointer">Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importarBackup(this)"></label></div>
     <div class="btn-row"><button class="btn btn-outline" onclick="exportarLotesCSV()">Lotes (CSV)</button><button class="btn btn-outline" onclick="exportarRecebiveisCSV()">Recebíveis (CSV)</button><button class="btn btn-outline" onclick="exportarCustosCSV()">Custos (CSV)</button></div></div>
-    <div class="card"><h3>Dados de exemplo</h3><p class="help mb">Carregue um loteamento fictício completo para conhecer o app. Substitui os dados atuais.</p><button class="btn btn-accent" onclick="carregarDemo()">Carregar dados de exemplo</button></div>
-    <div class="card"><h3>Zona de perigo</h3><p class="help mb">Apaga todos os loteamentos, lotes, reservas, vendas e custos. As configurações são mantidas.</p><button class="btn btn-outline-danger" onclick="apagarTudo()">Apagar todos os dados</button></div>`;
+    <div class="card"><h2>Dados de exemplo</h2><p class="help mb">Carregue um loteamento fictício completo para conhecer o app. Substitui os dados atuais.</p><button class="btn btn-accent" onclick="carregarDemo()">Carregar dados de exemplo</button></div>
+    <div class="card"><h2>Zona de perigo</h2><p class="help mb">Apaga todos os loteamentos, lotes, reservas, vendas e custos. As configurações são mantidas.</p><button class="btn btn-outline-danger" onclick="apagarTudo()">Apagar todos os dados</button></div>`;
 }
 

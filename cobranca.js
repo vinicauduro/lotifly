@@ -82,7 +82,7 @@ function renderCobranca() {
       return `<div class="chip ${f.faixa === k ? 'active' : ''}" onclick="state.filters.cob.faixa='${k}';renderCobranca()">${l}<span class="n">${n}</span></div>`;
     }).join('')}</div>
     <div class="filters">
-      <input type="text" placeholder="Cliente ou imóvel" value="${esc(f.busca)}" oninput="aSetFiltro('cob','busca',this.value,renderCobranca,this)">
+      <input type="text" placeholder="Cliente ou imóvel…" value="${esc(f.busca)}" oninput="aSetFiltro('cob','busca',this.value,renderCobranca,this)">
       <button class="btn btn-secondary btn-sm" onclick="state.sub.cad='cobranca';switchTab('cadastros')">Régua</button>
       <button class="btn btn-secondary btn-sm" onclick="exportarInadimplenciaCSV()">CSV</button>
     </div>
@@ -202,7 +202,7 @@ function exportarInadimplenciaCSV() {
 function cadCobrancaHtml() {
   const r = reguaConfig();
   const salva = Array.isArray(db.config.regua) && db.config.regua.length;
-  return `<div class="card"><h3>Régua de cobrança</h3>
+  return `<div class="card"><h2>Régua de cobrança</h2>
     <p class="help">Cada etapa tem um texto pronto, escolhido pelos dias de atraso. Na hora de cobrar, o sistema sugere a etapa certa e você ainda pode editar a mensagem.</p>
     <div class="fg"><label>Chave PIX para as mensagens</label><input type="text" id="cgPix" value="${esc(db.config.pix || '')}" placeholder="CNPJ, telefone ou chave aleatória"></div>
     <p class="help">Campos que você pode usar no texto: <b>{{cliente}}</b>, <b>{{primeiroNome}}</b>, <b>{{lote}}</b>, <b>{{loteamento}}</b>, <b>{{parcelas}}</b>, <b>{{dias}}</b>, <b>{{vencimento}}</b>, <b>{{valor}}</b>, <b>{{valorPrincipal}}</b>, <b>{{empresa}}</b>, <b>{{pix}}</b>.</p>

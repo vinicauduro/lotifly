@@ -143,7 +143,7 @@ function ctResumoHtml(x) {
     ${correcaoResumoVenda(x)}`;
 }
 function ctPartesHtml(x) {
-  const bloco = (titulo, pessoas, comFicha) => `<div class="card"><h3>${titulo}</h3>${pessoas.map(p => {
+  const bloco = (titulo, pessoas, comFicha) => `<div class="card"><h2>${titulo}</h2>${pessoas.map(p => {
     const falta = faltaQualificacao(p);
     const ficha = comFicha && typeof clientePorChave === 'function' ? clientePorChave(chaveCliente(p)) : null;
     return `<div class="ct-parte"><div class="row-between"><b>${esc(p.nome || '')}</b>${ficha ? `<button class="btn btn-secondary btn-sm" style="flex:none" onclick="abrirClienteForm('${esc(ficha.id)}')">Ficha do cliente</button>` : ''}</div>
@@ -153,7 +153,7 @@ function ctPartesHtml(x) {
   const k = x.corretor || {};
   return bloco('Comprador' + (todosCompradores(x).length > 1 ? 'es' : ''), todosCompradores(x), true)
     + bloco('Vendedor' + (todosVendedores(x).length > 1 ? 'es' : ''), todosVendedores(x), false)
-    + `<div class="card"><h3>Intermediação</h3>${k.nome && k.nome !== 'Venda direta' ? `<div class="detail-grid"><div><div class="k">Corretor</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci || '—')}</div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria || '—')}</div></div><div><div class="k">Telefone</div><div class="v">${esc(fmtPhone(k.telefone)) || '—'}</div></div></div>` : '<p class="help">Venda direta, sem corretor.</p>'}
+    + `<div class="card"><h2>Intermediação</h2>${k.nome && k.nome !== 'Venda direta' ? `<div class="detail-grid"><div><div class="k">Corretor</div><div class="v">${esc(k.nome)}</div></div><div><div class="k">CRECI</div><div class="v">${esc(k.creci || '—')}</div></div><div><div class="k">Imobiliária</div><div class="v">${esc(k.imobiliaria || '—')}</div></div><div><div class="k">Telefone</div><div class="v">${esc(fmtPhone(k.telefone)) || '—'}</div></div></div>` : '<p class="help">Venda direta, sem corretor.</p>'}
       ${pode('vendas.editar') ? `<p class="help mt">Para mudar as partes, use <b>Editar</b> no topo.</p>` : ''}</div>`;
 }
 function ctParcelasHtml(x) {

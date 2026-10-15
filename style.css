@@ -75,6 +75,17 @@ button, a, .tab, .chip, .item, .kpi, .alert, [onclick] { touch-action: manipulat
 a { color: var(--primary); text-underline-offset: 2px; }
 h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong); }
 :focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-sm); }
+/* Linha de tabela não desenha sombra: o foco do teclado vira um contorno por dentro */
+tr:focus-visible { box-shadow: none; outline: 2px solid var(--primary); outline-offset: -2px; }
+/* A janela recebe o foco ao abrir (para o leitor de tela e o Tab começarem nela): sem anel em
+   volta dela inteira, que continua com a própria sombra e cantos */
+#modalBox:focus-visible { box-shadow: var(--sombra-gaveta); border-radius: 16px 16px 0 0; }
+@media (min-width: 640px) { #modalBox:focus-visible { box-shadow: var(--sombra-janela); border-radius: 14px; } }
+/* O topo fixo não cobre o campo ou a linha que recebeu o foco pelo Tab */
+html { scroll-padding-top: calc(var(--topbar-h) + var(--safe-top) + 12px); }
+/* Pular para o conteúdo: invisível até receber o foco do Tab */
+.pular { position: fixed; top: calc(8px + var(--safe-top)); left: 8px; z-index: 10000; background: var(--card); color: var(--primary); padding: 10px 14px; border-radius: var(--r-md); border: 1px solid var(--border-strong); font-weight: 600; font-size: 0.88rem; transform: translateY(-160%); }
+.pular:focus-visible { transform: none; }
 .num, .val, .value, .price-big, .tbl td, .kpi .sub, .ix-resumo-grid .v { font-variant-numeric: tabular-nums; }
 
 /* ---------- ícones ---------- */
@@ -173,8 +184,8 @@ h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong
   background: var(--card); border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
   border: 1px solid var(--border);
 }
-.card h3 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
-.card h3 .h-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.card h2, .card h3 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.card h2 .h-actions, .card h3 .h-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .card p.help { font-size: 0.84rem; color: var(--muted); line-height: 1.55; max-width: 72ch; }
 .kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 @media (min-width: 720px) { .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi-grid.cols3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -251,7 +262,7 @@ h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong
 .btn-icon.ok { color: var(--success); background: var(--success-bg); border-color: #d5e4d3; }
 @media (hover: hover) and (pointer: fine) { .btn-icon.ok:hover { border-color: #a9c8a5; } }
 
-.badge { display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.6; background: #f1f0ec; color: #5f5e5a; }
+.badge { display: inline-block; font-size: 0.6875rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.6; background: #f1f0ec; color: #5f5e5a; }
 .badge.disponivel { background: var(--success-bg); color: #346538; }
 .badge.reservado { background: var(--warn-bg); color: #956400; }
 .badge.vendido { background: var(--danger-bg); color: #9f2f2d; }
@@ -299,7 +310,7 @@ select, input, textarea {
 }
 select { background-color: var(--card); color: var(--text-strong); }
 textarea { line-height: 1.5; }
-input::placeholder, textarea::placeholder { color: #8d8c87; }
+input::placeholder, textarea::placeholder { color: #76756f; }   /* 4,6:1 sobre branco */
 input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; accent-color: var(--primary); }
 input[type="color"] { padding: 2px; height: 40px; }
 @media (hover: hover) and (pointer: fine) { select:hover, input:hover, textarea:hover { border-color: #c2c1bb; } }

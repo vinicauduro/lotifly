@@ -133,13 +133,13 @@ function confirmarIndice(ind, valores, acao) {
     title: 'Isto muda parcelas que já existem',
     wide: true,
     body: `<p class="help mb">${esc(acao)}. Confira a diferença antes de salvar. ${imp.mudam.length ? 'As parcelas abaixo passam a valer outro valor; se alguma já foi enviada ao cliente, o boleto precisa ser refeito.' : ''}</p>
-      ${imp.mudam.length ? `<div class="card"><h3>Parcelas em aberto que mudam <span class="badge ${difTotal >= 0 ? 'convertida' : 'atrasado'}">${difTotal >= 0 ? '+' : ''}${esc(fmtMoney(difTotal))}</span></h3>
+      ${imp.mudam.length ? `<div class="card"><h2>Parcelas em aberto que mudam <span class="badge ${difTotal >= 0 ? 'convertida' : 'atrasado'}">${difTotal >= 0 ? '+' : ''}${esc(fmtMoney(difTotal))}</span></h2>
         ${Object.keys(porContrato).map(vid => { const v = getVenda(vid); const itens = porContrato[vid];
           return `<div class="fieldset"><span class="lg">${cabecalho(v)}</span>
             <table class="tbl"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="num">Cobrado</th><th class="num">Ajustado</th><th class="num">Diferença</th></tr></thead><tbody>
             ${itens.map(x => `<tr><td>${esc(x.r.descricao || ('Parcela ' + x.r.numero))}</td><td>${fmtDate(x.r.vencimento)}</td><td class="num">${esc(fmtMoney(x.de))}</td><td class="num"><b>${esc(fmtMoney(x.para))}</b></td><td class="num" style="color:${x.para >= x.de ? 'var(--success)' : 'var(--danger)'};font-weight:700">${x.para >= x.de ? '+' : ''}${esc(fmtMoney(x.para - x.de))}</td></tr>`).join('')}
             </tbody></table></div>`; }).join('')}</div>` : ''}
-      ${imp.congeladas.length ? `<div class="card"><h3>Parcelas já pagas que não mudam</h3>
+      ${imp.congeladas.length ? `<div class="card"><h2>Parcelas já pagas que não mudam</h2>
         <p class="help">Estas ${imp.congeladas.length} parcela(s) teriam mudado, mas já estão quitadas e ficam como estão — o cliente pagou o que o sistema mandou pagar. A soma que deixou de ser cobrada é de <b>${esc(fmtMoney(imp.congeladas.reduce((s, x) => s + (x.para - x.de), 0)))}</b>. O saldo em aberto segue corrigido normalmente.</p></div>` : ''}`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="aplicarIndicePendente()">Confirmar e salvar</button>`
   });
@@ -158,14 +158,14 @@ function cadIndicesHtml() {
   const list = db.indices.slice().sort((a, b) => a.nome.localeCompare(b.nome));
   const usados = {};
   db.vendas.forEach(v => { if (v.indiceId) usados[v.indiceId] = (usados[v.indiceId] || 0) + 1; });
-  const resumo = list.length ? `<div class="card ix-resumo"><h3>Índices de reajuste</h3>
+  const resumo = list.length ? `<div class="card ix-resumo"><h2>Índices de reajuste</h2>
     <div class="ix-resumo-grid">${list.map(ind => {
       const ac = acumuladoIndice(ind, 12);
       return `<div onclick="abrirIndiceAno('${ind.id}')"><div class="v">${ac == null ? '—' : fmtNum(ac, 4)}</div><div class="k">${esc(ind.codigo)}</div></div>`;
     }).join('')}</div>
     <p class="help mt">Acumulado dos últimos 12 meses lançados. Os índices não são atualizados sozinhos: lance o mês novo assim que ele for divulgado.</p>
     ${list.some(ind => ind.tipo === 'percentual' && !indiceValores(ind)[mesAnterior(mesAtual())]) ? `<div class="alert warn" style="cursor:default"><span>Falta lançar ${monthLabel(mesAnterior(mesAtual()))} em ${esc(list.filter(ind => ind.tipo === 'percentual' && !indiceValores(ind)[mesAnterior(mesAtual())]).map(i => i.codigo).join(', '))}. Sem esse lançamento as parcelas do mês que vem ficam sem correção.</span></div>` : ''}</div>` : '';
-  return `${resumo}<div class="card"><h3>Índices de correção</h3>
+  return `${resumo}<div class="card"><h2>Índices de correção</h2>
     <p class="help">Cadastre aqui a variação de cada mês. A correção é mensal: o índice de um mês corrige as parcelas que vencem no mês seguinte, já que ele só é divulgado depois. Vale para todas as parcelas do mês, não importa o dia do vencimento. Cada contrato escolhe qual índice usa, na tela da venda.</p>
     <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirIndiceForm()"><i class=ico data-i=plus></i>Novo índice</button>
     ${db.indices.length < INDICES_PADRAO.length ? `<button class="btn btn-secondary" onclick="criarIndicesPadrao()">Criar IGP-M, INPC, IPCA e CUB</button>` : ''}</div></div>
