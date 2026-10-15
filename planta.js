@@ -207,13 +207,16 @@ class PlantaView {
       const pts = this.absPts(l); if (!pts) return;
       const poly = document.createElementNS(SVG_NS, 'polygon');
       poly.setAttribute('points', pts.map(p => p.join(',')).join(' '));
-      let cls = 'lote-shape ' + (l.status || 'disponivel');
+      const antes = typeof mudouAgora === 'function' ? mudouAgora('l:' + l.id) : undefined;
+      let cls = 'lote-shape ' + (antes || l.status || 'disponivel');
       if (this.selectedId === l.id) cls += ' selected';
       if (this.highlightIds && !this.highlightIds.has(l.id)) cls += ' dim';
       poly.setAttribute('class', cls);
       poly.setAttribute('fill-opacity', opacity);
       poly.dataset.id = l.id;
       this.gLotes.appendChild(poly);
+      /* Pinta com a cor antiga e troca no quadro seguinte: a transição de fill faz a passagem */
+      if (antes) requestAnimationFrame(() => requestAnimationFrame(() => { poly.classList.remove(antes); poly.classList.add(l.status || 'disponivel', 'mudou'); setTimeout(() => poly.classList.remove('mudou'), 1100); }));
       const c = PlantaView.centroid(pts);
       const t = document.createElementNS(SVG_NS, 'text');
       t.setAttribute('class', 'lote-label'); t.setAttribute('x', c.cx); t.setAttribute('y', c.cy - (this.mode === 'esquema' ? fs * 0.35 : 0)); t.setAttribute('font-size', fs);

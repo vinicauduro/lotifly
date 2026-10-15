@@ -8,7 +8,7 @@ async function importarPlantaPDF(input) {
   const lot = curLot(); if (!lot) return;
   const isDxf = /\.dxf$/i.test(f.name);
   pdfImp.titulo = isDxf ? 'Importar planta do DXF' : 'Importar planta do PDF';
-  openModal({ title: pdfImp.titulo, body: `<div class="empty"><div class="ic"><i class=ico data-i=hourglass></i></div><p>Lendo o arquivo…</p></div>`, wide: true });
+  openModal({ title: pdfImp.titulo, body: carregandoHtml('Lendo o arquivo…'), wide: true });
   try {
     pdfImp.fileName = f.name; pdfImp.kind = isDxf ? 'dxf' : 'pdf'; pdfImp.dxfCamadas = null; pdfImp.dxfAngulo = null; pdfImp.dxfAberto = false;
     if (isDxf) {
@@ -27,7 +27,7 @@ async function importarPlantaPDF(input) {
 }
 function pdfRender(scale, clip, canvas) { return pdfImp.kind === 'dxf' ? Promise.resolve(PlantaDXF.renderizar(pdfImp.ext, scale, clip, canvas)) : PlantaPDF.renderizar(pdfImp.page, scale, clip, canvas); }
 async function pdfCarregarPagina() {
-  $('#modalBody').innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Analisando vetores e textos…</p></div>`;
+  $('#modalBody').innerHTML = carregandoHtml('Analisando vetores e textos…');
   await new Promise(r => setTimeout(r, 30));
   if (pdfImp.kind === 'dxf') {
     if (!pdfImp.dxfCamadas) pdfImp.dxfCamadas = PlantaDXF.camadas(pdfImp.dxf);
@@ -101,7 +101,7 @@ async function pdfExecutarImportacao() {
   const lot = curLot(); const btn = $('#pdfBtnImportar'); const prog = $('#pdfProgresso');
   const detectar = checked('pdfDetect'), atualizarAreas = checked('pdfAreas');
   let alvo = Number(val('pdfRes')) || 3000; if (!Cloud.active) alvo = Math.min(alvo, 2500);
-  btn.disabled = true; btn.textContent = 'Importando…';
+  botaoOcupado(btn, 'Importando…');
   try {
     const clip = pdfImp.clip; const scale = alvo / clip.w;
     prog.textContent = 'Renderizando a imagem…'; await new Promise(r => setTimeout(r, 30));
@@ -134,5 +134,5 @@ async function pdfExecutarImportacao() {
     closeModal(); renderPlantaEditor();
     toast('✅', 'Planta importada', detectar ? `${criados} lote(s) novos posicionados${posicionados ? ' · ' + posicionados + ' já cadastrados posicionados' : ''}${areas ? ' · ' + areas + ' áreas atualizadas' : ''}` : 'Agora desenhe os lotes sobre a planta.');
     if (criados) setTimeout(() => toast('💲', 'Defina os preços', 'Use "Reajustar preços" na aba Lotes para aplicar um valor por m².'), 1200);
-  } catch (e) { console.error(e); btn.disabled = false; btn.textContent = 'Importar'; prog.textContent = ''; toast('⚠️', 'Falha na importação', e.message || String(e), true); }
+  } catch (e) { console.error(e); botaoOcupado(btn); prog.textContent = ''; toast('⚠️', 'Falha na importação', e.message || String(e), true); }
 }

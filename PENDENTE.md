@@ -654,6 +654,49 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z2. Detalhes e movimento (15/10)
+
+Pedido seu: revisar sombras, bordas, carregamento, telas vazias e o retorno ao salvar; e pôr
+movimento só onde ajuda a entender, respeitando "reduzir movimento" do sistema.
+
+**Movimento (só nestes três lugares)**
+- **Janelas no computador**: entram subindo 6 px e saem encolhendo um pouco, em 0,2 s; o
+  fundo escurece e clareia junto. Antes abriam com um salto e fechavam de estalo. No celular a
+  gaveta com mola continua como estava.
+- **Troca de situação do lote**: na planta o lote passa da cor antiga para a nova e ganha um
+  contorno que se desfaz; na lista, a linha fica tingida da cor nova por um instante. Vale
+  também quando a mudança vem de outra pessoa pela nuvem. Mudança em massa (importação) não
+  pisca nada.
+- **Pagamento recebido**: a linha da parcela fica verde por um instante, os totais que mudaram
+  (Recebido, A receber) ganham o mesmo tom, e o aviso agora é verde e diz de quem e qual
+  parcela foi ("João da Silva · Parcela 9/60 · R$ 1.901,33").
+
+Com **reduzir movimento** ligado: nada desliza nem encolhe; janelas e avisos só aparecem e
+somem; as cores que mudam continuam (ajudam a entender e não são movimento).
+
+**Detalhes**
+- Sombras só no que flutua (janela, aviso, dica do gráfico, botão +), em duas camadas suaves;
+  a janela do computador tinha a sombra virada para cima, de gaveta.
+- Carregando ("Carregando…", "Lendo o arquivo…") tinha a ampulheta parada, igual a uma tela
+  vazia. Agora gira, e só aparece se demorar mais de 0,25 s. Botões que esperam a nuvem
+  ("Entrar", "Enviar pedido", "Importar") mostram o indicador e não aceitam um segundo clique.
+- Telas vazias que diziam a coisa errada: o corretor via "Nenhum lote com esses filtros" num
+  loteamento sem lotes; A receber vazio agora explica de onde vêm as parcelas; busca sem
+  resultado tem o botão "Limpar busca". Gráfico sem dados mostrava a escala "0, 0, 1, 1, 1":
+  agora diz "Nada previsto para os próximos 12 meses".
+- Categoria de custo salva sem nome era ignorada em silêncio; agora avisa. Salvar mostra
+  "Categoria salva".
+
+- [ ] No computador: abrir e fechar uma janela; registrar um pagamento e ver a linha e os totais.
+- [ ] No celular, com "Reduzir movimento" ligado (Ajustes › Acessibilidade › Movimento): abrir
+  uma janela e ver que ela só aparece.
+
+**Testes agora ficam no projeto**: `testes/detalhes.test.js` (como rodar está no começo do
+arquivo). Os testes anteriores (test8 a test39) ficavam numa pasta temporária que foi apagada
+quando o ambiente reiniciou e não puderam ser recuperados.
+
+---
+
 ## 7z. Teste com dados no pior caso (16/10)
 
 Pedido seu: testar lotes, clientes, contratos e contas a receber com o tipo de dado que quebra a

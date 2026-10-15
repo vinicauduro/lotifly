@@ -51,6 +51,13 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --ring: 0 0 0 3px rgba(14, 76, 115, 0.22);
+  /* sombras: só no que flutua sobre a página. Duas camadas, tingidas do texto (não preto puro):
+     uma curta que desenha a borda e uma longa e clara que dá a distância. */
+  --sombra-flutua: 0 1px 2px rgba(21, 24, 27, 0.05), 0 8px 24px rgba(21, 24, 27, 0.08);
+  --sombra-janela: 0 1px 3px rgba(21, 24, 27, 0.08), 0 18px 48px rgba(21, 24, 27, 0.18);
+  --sombra-gaveta: 0 -1px 2px rgba(21, 24, 27, 0.05), 0 -10px 32px rgba(21, 24, 27, 0.14);
+  /* movimento: saída rápida no começo (responde na hora) e pouso suave */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
@@ -262,6 +269,16 @@ h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong
 .empty .ic { width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 14px; display: grid; place-items: center; background: #f1f0ec; color: var(--muted); font-size: 1.5rem; }
 .empty p { font-size: 0.88rem; line-height: 1.55; max-width: 46ch; margin: 0 auto; }
 .empty p + p { margin-top: 8px; }
+.empty .btn { margin-top: 4px; }
+/* Carregando: o indicador gira rápido (700 ms por volta: espera parece mais curta) e só
+   aparece depois de 250 ms, para que uma resposta rápida não faça a tela piscar. */
+.empty.carregando { animation: aparecer 200ms ease-out 250ms both; }
+.empty.carregando .ic { background: none; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--primary); animation: girar 700ms linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+/* Botão esperando a resposta: o indicador entra antes do texto e o botão não aceita outro toque */
+.btn.ocupado { pointer-events: none; }
+.btn.ocupado::before { content: ''; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: girar 700ms linear infinite; flex: none; }
 
 /* ---------- filters ---------- */
 .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
@@ -306,6 +323,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.ocupado:disabled { opacity: 0.85; cursor: progress; }
 .btn-primary { background: var(--primary); color: white; }
 @media (hover: hover) and (pointer: fine) { .btn-primary:hover { background: var(--primary-dark); } }
 .btn-secondary { background: var(--card); color: var(--text-strong); border-color: var(--border-strong); }
@@ -331,7 +349,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 .modal-overlay.open { display: flex; }
 .modal {
   background: var(--card); border-radius: 16px 16px 0 0; width: 100%; max-width: 560px; max-height: 92vh; max-height: 92dvh;
-  display: flex; flex-direction: column; box-shadow: 0 -8px 40px rgba(21, 24, 27, 0.16); animation: up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; flex-direction: column; box-shadow: var(--sombra-gaveta);
 }
 .modal.wide { max-width: 860px; }
 /* Tela cheia: para escrever contrato num campo de texto que caiba o contrato */
@@ -342,7 +360,10 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 .doc-editor-grid .doc-editor { flex: 1; min-height: 300px; resize: none; }
 .doc-editor-grid .doc-paleta { overflow-y: auto; border-left: 1px solid var(--border); padding-left: 12px; }
 @media (max-width: 900px) { .doc-editor-grid { grid-template-columns: 1fr; } .doc-editor-grid .doc-paleta { border-left: none; padding-left: 0; max-height: 200px; } }
-@keyframes up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes janela-entra { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@keyframes janela-sai { to { opacity: 0; transform: scale(0.98); } }
+@keyframes fundo-entra { from { background-color: rgba(21, 24, 27, 0); } }
+@keyframes fundo-sai { to { background-color: rgba(21, 24, 27, 0); } }
 .modal-head { padding: 16px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .modal-head h2 { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .modal-close { background: none; border: 1px solid var(--border); width: 36px; height: 36px; border-radius: var(--r-md); font-size: 1rem; cursor: pointer; color: var(--muted); flex-shrink: 0; display: grid; place-items: center; }
@@ -353,7 +374,13 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 @media (max-width: 639px) { .modal-foot .btn { height: 44px; } .modal-foot .btn-secondary { flex: 0 1 auto; } }
 @media (min-width: 640px) {
   .modal-overlay { align-items: center; padding: 24px; }
-  .modal { border-radius: 14px; max-height: 90vh; max-height: 90dvh; }
+  /* No computador a janela fica no meio da tela: sombra para baixo, em duas camadas (uma curta
+     que marca a borda, uma longa e clara que separa do fundo). Entra de 6 px abaixo e 98% do
+     tamanho, nunca do zero; sai mais rápido do que entra. */
+  .modal { border-radius: 14px; max-height: 90vh; max-height: 90dvh; box-shadow: var(--sombra-janela); animation: janela-entra 200ms var(--ease-out); }
+  .modal-overlay.open { animation: fundo-entra 160ms ease-out; }
+  .modal-overlay.saindo { animation: fundo-sai 140ms ease-out forwards; pointer-events: none; }
+  .modal-overlay.saindo .modal { animation: janela-sai 140ms ease-out forwards; }
   .modal-foot { padding-bottom: 16px; justify-content: flex-end; }
   .modal-foot .btn { flex: 0 1 auto; min-width: 120px; }
 }
@@ -400,7 +427,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
 .planta-svg { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 .planta-svg.tool-rect, .planta-svg.tool-poly { cursor: crosshair; }
 .planta-svg.grabbing { cursor: grabbing; }
-.lote-shape { stroke: #ffffff; stroke-width: 1.5; stroke-linejoin: round; cursor: pointer; transition: fill-opacity 0.15s; }
+.lote-shape { stroke: #ffffff; stroke-width: 1.5; stroke-linejoin: round; cursor: pointer; transition: fill-opacity 0.15s, fill 400ms ease; }
+/* Lote que acabou de trocar de situação: a cor passa da antiga para a nova e um contorno
+   escuro marca o lote e se desfaz, para achar qual foi na planta inteira. */
+.lote-shape.mudou { animation: lote-mudou 1s ease-out; }
+@keyframes lote-mudou { from { stroke: #15181b; stroke-width: 4; } }
 .lote-shape.disponivel { fill: var(--st-disponivel); }
 .lote-shape.reservado { fill: var(--st-reservado); }
 .lote-shape.vendido { fill: var(--st-vendido); }
@@ -432,17 +463,27 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
 .tools .chip.active { background: var(--primary); border-color: var(--primary); }
 
 /* ---------- misc ---------- */
-.fab { position: fixed; bottom: calc(20px + var(--safe-bottom)); right: 20px; width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 6px 20px rgba(21, 24, 27, 0.18); z-index: 200; display: none; align-items: center; justify-content: center; transition: background-color 0.15s ease, transform 0.1s ease; }
+.fab { position: fixed; bottom: calc(20px + var(--safe-bottom)); right: 20px; width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 1px 2px rgba(9, 53, 83, 0.2), 0 6px 18px rgba(9, 53, 83, 0.26); z-index: 200; display: none; align-items: center; justify-content: center; transition: background-color 0.15s ease, transform 0.1s ease; }
 @media (hover: hover) and (pointer: fine) { .fab:hover { background: var(--primary-dark); } }
 .fab:active { transform: scale(0.96); }
 .fab.show { display: flex; }
 .toast-container { position: fixed; top: calc(64px + var(--safe-top)); right: 16px; left: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
-.toast { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; box-shadow: 0 8px 28px rgba(21, 24, 27, 0.1); font-size: 0.86rem; max-width: 340px; animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; color: var(--text); }
+.toast { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; box-shadow: var(--sombra-flutua); font-size: 0.86rem; max-width: 340px; animation: slideIn 220ms var(--ease-out); pointer-events: none; color: var(--text); }
+/* O aviso sai pelo mesmo caminho por onde entrou (para cima), mais rápido. */
+.toast.saindo { animation: toast-sai 160ms ease-out forwards; }
+@keyframes toast-sai { to { opacity: 0; transform: translateY(-6px); } }
+.toast.ok .t .ico { color: var(--success); }
 .toast .t { font-weight: 600; color: var(--text-strong); display: flex; align-items: center; gap: 8px; }
 .toast .t .ico { color: var(--primary); font-size: 1.1rem; }
 .toast .b { margin-top: 3px; padding-left: 26px; color: var(--muted); }
 .toast.err .t .ico { color: var(--danger); }
 @keyframes slideIn { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Linha que acabou de mudar de situação (lote reservado, vendido ou liberado; parcela paga):
+   fica tingida da cor nova e volta ao normal em pouco mais de um segundo. O selo se acomoda. */
+.st-mudou { animation: linha-mudou 1.4s ease-out; }
+@keyframes linha-mudou { from { background-color: var(--destaque, var(--primary-soft)); } }
+.st-mudou .badge { animation: selo-mudou 320ms var(--ease-out); }
+@keyframes selo-mudou { from { transform: scale(0.88); opacity: 0.4; } }
 .muted { color: var(--muted); }
 .small { font-size: 0.82rem; }
 .tiny { font-size: 0.75rem; }
@@ -578,7 +619,7 @@ details.qualif[open] > summary, details.ver-tabela[open] > summary { margin-bott
 }
 .sync-pendentes:not(:empty) { padding: 16px 16px 0; max-width: 1240px; }
 @media (min-width: 901px) { #screen-admin .sync-pendentes:not(:empty) { padding: 20px 28px 0; } }
-.chart-tip { display: none; position: absolute; top: 4px; left: 0; z-index: 5; pointer-events: none; background: #fff; border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(21, 24, 27, 0.1); padding: 10px 12px; font-size: 0.8rem; color: var(--text-strong); min-width: 190px; }
+.chart-tip { display: none; position: absolute; top: 4px; left: 0; z-index: 5; pointer-events: none; background: #fff; border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--sombra-flutua); padding: 10px 12px; font-size: 0.8rem; color: var(--text-strong); min-width: 190px; }
 .chart-tip b { display: block; margin-bottom: 4px; }
 .chart-tip div { display: flex; align-items: center; gap: 6px; }
 .chart-tip div span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
@@ -642,7 +683,14 @@ details.qualif[open] > summary, details.ver-tabela[open] > summary { margin-bott
 /* ---------- movimento reduzido ---------- */
 @media (prefers-reduced-motion: reduce) {
   #screen-admin .aside { transition: none; }
-  .modal, .toast { animation: none; }
+  .modal { animation: none; }
+  .toast { animation: aparecer 150ms ease-out; }
+  .toast.saindo { animation: sumir 120ms ease-out forwards; }
+  /* o tom da linha e a troca de cor na planta ficam (são cor, não movimento); o selo e o contorno não */
+  .st-mudou .badge, .lote-shape.mudou { animation: none; }
+  /* sem giro: o indicador pulsa devagar */
+  .spinner, .btn.ocupado::before { animation: pulsar 1.2s ease-in-out infinite alternate; border-right-color: currentColor; }
+  .spinner { border-top-color: var(--border-strong); background: var(--primary-light); }
   .btn, .fab, .landing-btn { transition: none; }
   .btn:active:not(:disabled), .fab:active, .landing-btn:active { transform: none; }
 }
@@ -685,7 +733,15 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 @media (max-width: 639px) and (prefers-reduced-motion: reduce) {
   .modal { animation: aparecer 0.2s ease-out; will-change: auto; }
 }
+/* Movimento reduzido no computador: a janela só aparece e some (opacidade), sem deslizar nem encolher */
+@media (min-width: 640px) and (prefers-reduced-motion: reduce) {
+  .modal-overlay.open, .modal-overlay.saindo { animation: none; }
+  .modal { animation: aparecer 120ms ease-out; }
+  .modal-overlay.saindo .modal { animation: sumir 120ms ease-out forwards; }
+}
 @keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sumir { to { opacity: 0; } }
+@keyframes pulsar { from { opacity: 0.35; } to { opacity: 1; } }
 
 /* Teclado aberto: a janela passa a ocupar só a parte visível da tela, então o campo e o botão
    de confirmar ficam acima do teclado. --vv-top e --vv-h vêm do visualViewport (gestos.js). */

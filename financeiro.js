@@ -58,13 +58,17 @@ function renderRecebiveis() {
       <button class="btn btn-secondary btn-sm" onclick="exportarRecebiveisCSV()">CSV</button>
     </div>
     <p class="small muted mb">${list.length} parcela(s) · ${fmtMoney(somaLista)}${f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
-    ${list.length ? list.map(r => recRowHtml(r)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Nenhuma parcela nesta lista.</p></div>`}`;
+    ${list.length ? list.map(r => recRowHtml(r)).join('')
+      : !all.length ? `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Ainda não há parcelas a receber.</p><p>Elas aparecem aqui quando você registra um contrato com parcelas.</p></div>`
+      : f.busca ? `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhuma parcela de “${esc(f.busca)}” nesta lista.</p><p><button class="btn btn-secondary btn-sm" onclick="filtroRec().busca='';renderRecebiveis()">Limpar busca</button></p></div>`
+      : f.status === 'atrasado' ? `<div class="empty"><div class="ic"><i class=ico data-i=check-circle></i></div><p>Nenhuma parcela em atraso.</p></div>`
+      : `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Nenhuma parcela nesta lista.</p></div>`}`;
 }
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
 function recRowHtml(r) {
   const v = getVenda(r.vendaId); const st = recStatus(r);
   const rest = recRestante(r);
-  return `<div class="item ${st}" onclick="abrirVendaAdmin('${r.vendaId}')">
+  return `<div class="item ${st}" data-st="p:${r.id}" onclick="abrirVendaAdmin('${r.vendaId}')">
     <div class="info"><div class="title">${v ? esc(v.cliente.nome) : '—'} <span class="tiny muted">· ${v ? esc(imovelShort(v)) : ''}</span></div>
       <div class="meta"><span>${esc(r.descricao)}</span><span>· vence ${fmtDate(r.vencimento)}</span>${recCorrecao(r) > 0.005 && st !== 'pago' ? `<span title="Correção pelo índice do contrato">· base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</span>` : ''}${st === 'atrasado' ? `<span style="color:var(--danger)">· ${daysBetween(r.vencimento, todayStr())} dias · atualizado ${fmtMoney(recAtualizado(r))}</span>` : ''}${st === 'pago' && r.dataPagamento ? `<span>· pago em ${fmtDate(r.dataPagamento)}${r.forma ? ' (' + esc(r.forma) + ')' : ''}</span>` : ''}${st === 'parcial' ? `<span>· pago ${fmtMoney(r.valorPago)}, resta ${fmtMoney(rest)}</span>` : ''}</div></div>
     <div class="side"><div class="value">${fmtMoney(st === 'pago' ? r.valorPago : rest)}</div><span class="badge ${st}">${statusLabel(st)}</span>
@@ -96,7 +100,7 @@ function salvarPagamento(id, voltarVendaId, comRecibo) {
   atualizarStatusVenda(r.vendaId);
   const v = getVenda(r.vendaId);
   logAct(`Pagamento recebido: ${v ? v.cliente.nome : ''} — ${r.descricao} — ${fmtMoney(valor)}`);
-  toast('✅', 'Pagamento registrado', fmtMoney(valor));
+  toast('✅', 'Pagamento registrado', `${v ? v.cliente.nome + ' · ' : ''}${r.descricao} · ${fmtMoney(valor)}${quitou ? '' : ' (parcial)'}`);
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
   /* O recibo é deste pagamento, não do total já pago na parcela. */
@@ -334,6 +338,7 @@ function drawFluxoChart(cv, recs, custos) {
   const max = Math.max(...rIn, ...cOut, 1);
   const padL = 56, padR = 8, padB = 22, padT = 14; const cw = w - padL - padR, ch = h - padB - padT; const gw = cw / months.length; const bw = gw * 0.34;
   ctx.clearRect(0, 0, w, h);
+  if (!rIn.some(Boolean) && !cOut.some(Boolean)) { graficoVazio(ctx, w, h, 'Nada previsto para os próximos 12 meses.'); return; }
   eixoValores(ctx, w, padL, padR, padT, ch, max);
   const passo = passoRotulos(ctx, gw, months.map(monthLabel)), showVals = gw >= 64;
   months.forEach((m, i) => {
@@ -356,6 +361,12 @@ function passoRotulos(ctx, gw, rotulos) {
   ctx.font = '600 11px Geist, system-ui';
   const maior = Math.max(...rotulos.map(t => ctx.measureText(t).width)) + 6;
   return Math.max(1, Math.ceil(maior / gw));
+}
+/* Sem nenhum valor, a escala virava "0, 0, 1, 1, 1": em vez de eixo vazio, uma frase. */
+function graficoVazio(ctx, w, h, frase) {
+  ctx.strokeStyle = '#e8e7e3'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(16, h - 22.5); ctx.lineTo(w - 16, h - 22.5); ctx.stroke();
+  ctx.fillStyle = '#6b6a65'; ctx.font = '13px Geist, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(frase, w / 2, h / 2 - 10); ctx.textBaseline = 'alphabetic';
 }
 /* O último mês fica colado na borda direita: o rótulo é empurrado para dentro em vez de cortado. */
 function rotuloMes(ctx, txt, x, y, w) {
@@ -382,6 +393,7 @@ function drawRecebimentosChart(cv, tip, serie) {
   const bw = Math.min(24, gw * 0.56);   // barra fina: no máximo 24 px, o resto do espaço é respiro
   const max = Math.max(...serie.map(x => x.devido), 1);
   ctx.clearRect(0, 0, w, h);
+  if (!serie.some(x => x.devido > 0.005)) { graficoVazio(ctx, w, h, 'Nenhuma parcela venceu nos últimos 12 meses.'); return; }
   eixoValores(ctx, w, padL, padR, padT, ch, max);
   const passo = passoRotulos(ctx, gw, serie.map(x => monthLabel(x.mes)));
   serie.forEach((x, i) => {

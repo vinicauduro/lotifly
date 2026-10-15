@@ -358,7 +358,7 @@ function renderALotes(alvo) {
     <p class="small muted mb">${list.length} lote(s) · ${fmtNum(areaFiltro, 0)} m² · ${fmtMoney(vgvFiltro)}</p>
     ${list.length ? `<div class="card" style="padding:0"><div class="table-wrap"><table class="tbl">
       <thead><tr><th>Quadra</th><th>Lote</th><th class="num">Área m²</th><th class="num">Preço</th><th class="num">R$/m²</th><th>Status</th><th>Cliente</th><th></th></tr></thead>
-      <tbody>${list.map(l => { const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id); const cli = vd ? vd.cliente.nome : r ? r.cliente.nome : ''; return `<tr class="clickable" onclick="abrirLoteAdmin('${l.id}')"><td>${esc(l.quadra)}</td><td><b>${esc(l.numero)}</b>${l.tipo === 'comercial' ? ' <span class="tiny muted">com.</span>' : ''}</td><td class="num">${num(l.area) ? fmtNum(l.area, 0) : '<span class="muted">—</span>'}</td><td class="num">${num(l.preco) ? `<b>${fmtMoney(l.preco)}</b>` : '<span class="muted">—</span>'}</td><td class="num">${num(l.area) && num(l.preco) ? fmtNum(l.preco / l.area, 0) : '<span class="muted">—</span>'}</td><td><span class="badge ${l.status}">${statusLabel(l.status)}</span></td><td>${esc(cli)}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="abrirLoteForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
+      <tbody>${list.map(l => { const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id); const cli = vd ? vd.cliente.nome : r ? r.cliente.nome : ''; return `<tr class="clickable" data-st="l:${l.id}" onclick="abrirLoteAdmin('${l.id}')"><td>${esc(l.quadra)}</td><td><b>${esc(l.numero)}</b>${l.tipo === 'comercial' ? ' <span class="tiny muted">com.</span>' : ''}</td><td class="num">${num(l.area) ? fmtNum(l.area, 0) : '<span class="muted">—</span>'}</td><td class="num">${num(l.preco) ? `<b>${fmtMoney(l.preco)}</b>` : '<span class="muted">—</span>'}</td><td class="num">${num(l.area) && num(l.preco) ? fmtNum(l.preco / l.area, 0) : '<span class="muted">—</span>'}</td><td><span class="badge ${l.status}">${statusLabel(l.status)}</span></td><td>${esc(cli)}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="abrirLoteForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
     </table></div></div>` : `<div class="empty"><div class="ic"><i class=ico data-i=package></i></div><p>Nenhum lote.<br>Use <b>Gerar em massa</b> para criar as quadras rapidamente.</p></div>`}`;
 }
 function aSetFiltro(group, k, v, fn, inputEl) {
@@ -1266,9 +1266,10 @@ function abrirCategoriaForm(id) {
     footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCategoria('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCategoria('${c ? c.id : ''}')">Salvar</button>` });
 }
 function salvarCategoria(id) {
-  if (!val('ctNome')) return;
-  const prev = id ? getCategoria(id) : null;
-  upsert('categorias', Object.assign({}, prev || { id: genId() }, { nome: val('ctNome'), cor: val('ctCor') })); closeModal(); renderCurrent();
+  if (!val('ctNome')) { toast('⚠️', 'Informe o nome da categoria', '', true); const c = document.getElementById('ctNome'); if (c) c.focus(); return; }
+  const prev = id ? getCategoria(id) : null, nome = val('ctNome');
+  upsert('categorias', Object.assign({}, prev || { id: genId() }, { nome, cor: val('ctCor') })); closeModal(); renderCurrent();
+  toast('✅', prev ? 'Categoria salva' : 'Categoria criada', nome);
 }
 function excluirCategoria(id) {
   if (db.custos.some(x => x.categoriaId === id)) { toast('⚠️', 'Categoria em uso por lançamentos', '', true); return; }

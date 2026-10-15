@@ -10,7 +10,7 @@ function renderAuth(tela, aviso) {
   const alerta = aviso ? `<div class="alert" style="cursor:default;margin-bottom:12px"><span>${esc(aviso)}</span></div>` : '';
   const conv = prefs.convitePendente || '';
   if (tela === 'carregando') {
-    box.innerHTML = `<div class="auth-card"><div class="empty"><div class="ic"><i class=ico data-i=hourglass></i></div><p>Carregando…</p></div></div>`;
+    box.innerHTML = `<div class="auth-card">${carregandoHtml('Carregando…')}</div>`;
   } else if (tela === 'login') {
     box.innerHTML = `<div class="auth-card">${alerta}
       <h2>Entrar</h2>
@@ -74,7 +74,7 @@ function renderAuth(tela, aviso) {
     </div>`;
   }
 }
-function authBusy(on) { $$('#authBox button').forEach(b => b.disabled = on); }
+function authBusy(on) { $$('#authBox button').forEach(b => { b.disabled = on; b.classList.toggle('ocupado', on && b.classList.contains('btn-primary')); }); }
 async function authLogin() {
   const email = val('auEmail').toLowerCase(), senha = val('auSenha');
   if (!email || !senha) { toast('⚠️', 'Informe e-mail e senha', '', true); return; }
