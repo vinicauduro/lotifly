@@ -685,6 +685,11 @@ details.menu.para-direita .menu-lista { right: auto; left: 0; transform-origin: 
 .ct-titulo .muted { font-weight: 500; font-size: 1rem; letter-spacing: 0; }
 .ct-kpis { margin: 16px 0 12px; }
 /* ===== reserva: a proposta é a decisão ===== */
+/* Permissões por pessoa: cada opção diz se segue o padrão da função ou foi ajustada */
+.perm-linha { display: flex; align-items: center; gap: 8px; }
+.perm-linha > span:first-of-type { flex: 1; }
+.perm-tag { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.perm-tag.ajustada { color: var(--warn); font-weight: 600; }
 .rs-quem { font-size: 0.92rem; color: var(--text); margin-bottom: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .rs-proposta { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 4px 16px; margin-bottom: 14px; background: var(--card); }
 .rs-linha { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: baseline; }

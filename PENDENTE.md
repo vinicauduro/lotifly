@@ -630,8 +630,7 @@ O que mudou de lugar:
 - No topo aparece o nome da **empresa**, não mais o de um empreendimento.
 - No celular o menu vira gaveta (botão ☰) e fecha sozinho ao escolher.
 - O menu já respeita as permissões: item sem permissão some, e o título do grupo some junto
-  quando todos os itens dele somem. **Por enquanto as permissões ainda são por papel**; a Fase 6
-  troca por permissões marcadas pessoa a pessoa, como você pediu.
+  quando todos os itens dele somem. As permissões passaram a ser ajustáveis pessoa a pessoa na Fase 6 (7z8).
 - Cores ficam como estão; a identidade visual vem depois.
 
 Para conferir:
@@ -651,6 +650,38 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z8. Fase 6: permissões pessoa a pessoa (15/10)
+
+Antes as permissões eram só por função (administrador, financeiro, corretor). Agora você
+ajusta **cada pessoa** em cima do padrão da função dela.
+
+- Em **Configurações › Equipe**, toque na pessoa e depois em **Permissões**. Cada opção mostra
+  se segue o **padrão** da função ou foi **ajustada**. Salvar grava só o que ficou diferente.
+- Quem tem ajuste aparece na lista com a marca **permissões próprias**; em **Configurações ›
+  Permissões** (agora "Padrão de cada função") aparece a lista dessas pessoas.
+- Mudar o padrão de uma função continua valendo para tudo o que não foi ajustado na pessoa.
+- **Voltar ao padrão** apaga os ajustes da pessoa.
+- O **dono** sempre pode tudo; **ninguém ajusta as próprias permissões** (para não se trancar
+  fora); **corretor** usa a área dele — para dar acesso ao escritório, mude o papel dele.
+- Para o financeiro, editar lotes, planta e preços aparecem travados: o banco de dados não
+  libera isso para essa função, então marcar não teria efeito.
+
+**Importante — até onde vai a proteção**: os ajustes por pessoa valem no aplicativo (o que
+aparece no menu e o que os botões deixam fazer). O banco de dados continua protegendo por
+**função**: o que a função não pode, o banco recusa mesmo que alguém tente por fora do app;
+mas o que a função pode e você desligou só para uma pessoa fica bloqueado no app, não no banco.
+Se quiser essa trava também no banco, é uma mudança no `supabase/schema.sql` (próximo passo
+possível).
+
+- [ ] Em Equipe, ajustar as permissões de uma pessoa (ex.: tirar "Registrar cobranças"), pedir
+  para ela entrar e ver que a opção sumiu.
+- [ ] Voltar ao padrão e conferir que a opção voltou.
+
+`testes/permissoes.test.js` simula uma equipe (dono, administradora, financeiro, corretor) só
+no navegador e confere tudo isso.
 
 ---
 
