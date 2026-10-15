@@ -1,4 +1,4 @@
-const CACHE = 'lotifly-v58';
+const CACHE = 'lotifly-v59';
 const FILES = ['./', './index.html', './style.css', './icones.css', './fonts/Geist-Variable.woff2', './config.js', './vendor/supabase.js', './core.js', './gestos.js', './permissoes.js', './planta.js', './planta-pdf.js', './planta-dxf.js', './admin-pdf.js', './corretor.js', './admin.js', './indices.js', './antecipacao.js', './cobranca.js', './financeiro.js', './banco.js', './cnab.js', './relatorios.js', './docs.js', './clientes.js', './contrato.js', './auth.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -18,6 +18,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  /* Só os arquivos do próprio app ficam guardados no aparelho. Dados e plantas da nuvem não:
+     a planta é fechada para quem não é da empresa e não pode sobrar num cache depois de sair. */
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   // Rede primeiro (para pegar atualizações), cache como reserva offline.
   e.respondWith(
     fetch(e.request).then(res => {

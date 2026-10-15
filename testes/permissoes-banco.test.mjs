@@ -19,6 +19,15 @@ await db.exec(`
   create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   do $$ begin create role authenticated; exception when duplicate_object then null; end $$;
   do $$ begin create role anon; exception when duplicate_object then null; end $$;
+  -- o pedaço do Storage do Supabase que as políticas das plantas usam
+  create schema if not exists storage;
+  create table storage.buckets (id text primary key, name text, public boolean not null default false);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+  alter table storage.objects enable row level security;
+  create or replace function storage.foldername(name text) returns text[] language sql immutable as $$
+    select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  grant usage on schema storage to authenticated, anon; grant all on storage.objects to authenticated, anon;
+  insert into storage.buckets values ('plantas', 'plantas', true);   -- como era antes: público
 `);
 const SCHEMA = fs.readFileSync(path.join(raiz, 'supabase/schema.sql'), 'utf8');
 await db.exec(SCHEMA);
@@ -127,6 +136,30 @@ await passo('restaurar backup: pede "fazer backup" e, com ela, a limpeza não é
   await como('dono', `select public.limpar_dados_org('${ORG}')`);
   const n = (await db.query(`select (select count(*) from public.vendas) + (select count(*) from public.recebiveis) + (select count(*) from public.custos) as n`)).rows[0].n;
   if (Number(n) !== 0) throw new Error('sobraram ' + n + ' linhas');
+});
+await passo('plantas fechadas: só quem é da empresa (entrou pelo convite) abre o arquivo', async () => {
+  const ORG2 = '22222222-2222-2222-2222-222222222222', FORA = 'aaaaaaaa-0000-0000-0000-000000000009';
+  await db.exec(`
+    insert into auth.users values ('${FORA}','fora@x');
+    insert into public.organizacoes (id, nome) values ('${ORG2}', 'Outra Construtora');
+    insert into storage.objects (bucket_id, name) values ('plantas','${ORG}/lot1.jpg'),('plantas','${ORG2}/lotX.jpg'),('plantas','sem-uuid/teste.jpg');`);
+  const pub = (await db.query(`select public from storage.buckets where id = 'plantas'`)).rows[0].public;
+  if (pub !== false) throw new Error('o bucket continua público');
+  U.fora = FORA;
+  const ve = async quem => (await como(quem, `select name from storage.objects where bucket_id = 'plantas' order by name`)).rows.map(r => r.name).join(',');
+  for (const quem of ['dono', 'admin', 'fin', 'cor']) { const r = await ve(quem); if (r !== `${ORG}/lot1.jpg`) throw new Error(`${quem} vê: ${r || 'nada'}`); }
+  if (await ve('fora')) throw new Error('quem não é da empresa vê a planta');
+  await db.exec(`reset role; select set_config('request.jwt.claim.sub', '', false); set role anon;`);
+  const anon = (await db.query(`select count(*)::int as n from storage.objects`)).rows[0].n;
+  await db.exec('reset role;');
+  if (anon) throw new Error('visitante sem login vê ' + anon + ' arquivo(s)');
+  await db.exec(`set session_replication_role = replica; update public.membros set ativo = false where user_id = '${U.cor}'; set session_replication_role = origin;`);   // como o dono do banco, sem os gatilhos
+  const inativo = await ve('cor');
+  await db.exec(`set session_replication_role = replica; update public.membros set ativo = true where user_id = '${U.cor}'; set session_replication_role = origin;`);
+  if (inativo) throw new Error('membro desativado continua vendo');
+  await como('admin', `insert into storage.objects (bucket_id, name) values ('plantas', '${ORG}/lot2.jpg')`);
+  await recusa('cor', `insert into storage.objects (bucket_id, name) values ('plantas', '${ORG}/lot3.jpg')`, 'row-level security');
+  await recusa('admin', `insert into storage.objects (bucket_id, name) values ('plantas', '${ORG2}/invasao.jpg')`, 'row-level security');
 });
 await passo('corretor continua barrado pela função (nem chega às travas por pessoa)', async () => {
   await db.exec(`insert into public.vendas (org_id, id, loteamento_id, lote_id, valor_total) values ('${ORG}','v9','lot1','l9',1)`);
