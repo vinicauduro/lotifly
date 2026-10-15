@@ -218,7 +218,7 @@ function renderPlantaEditor(alvo) {
         <div>
           <div class="tools" id="aTools"></div>
           <div id="aPlantaBox" class="planta-wrap tall"></div>
-          <div class="legend"><span><span class="dot disponivel"></span>Disponível</span><span><span class="dot reservado"></span>Reservado</span><span><span class="dot vendido"></span>Vendido</span><span><span class="dot bloqueado"></span>Indisponível</span></div>
+          
         </div>
         <div>
           <div class="card" style="padding:10px 12px"><h2 style="margin-bottom:6px">Lotes <span class="small muted" id="aPosInfo"></span></h2>
@@ -281,7 +281,7 @@ function renderLotePicker() {
   const list = ls.filter(l => (!q || loteLabel(l).toLowerCase().includes(q)) && (!soSem || !(l.pts && l.pts.length >= 3)));
   const pos = ls.filter(l => l.pts && l.pts.length >= 3).length;
   $('#aPosInfo').textContent = state.plantaAdmin.mode === 'imagem' ? `${pos}/${ls.length} posicionados` : `${ls.length}`;
-  box.innerHTML = list.map(l => `<div class="row ${state.editorLoteId === l.id ? 'sel' : ''}" onclick="pickLote('${l.id}')"><span class="dot ${l.status}"></span>${esc(loteLabel(l))}<span class="pos ${l.pts && l.pts.length >= 3 ? 'ok' : ''}">${l.pts && l.pts.length >= 3 ? '✓ na planta' : (state.plantaAdmin.mode === 'imagem' ? 'sem posição' : '')}</span></div>`).join('') || '<div class="row muted">Nenhum lote. Cadastre em "Lotes".</div>';
+  box.innerHTML = list.map(l => `<div class="row ${state.editorLoteId === l.id ? 'sel' : ''}" onclick="pickLote('${l.id}')"><i class="amostra ${l.status || 'disponivel'}" title="${statusLabel(l.status || 'disponivel')}"></i><span class="sr-only">${statusLabel(l.status || 'disponivel')}: </span>${esc(loteLabel(l))}<span class="pos ${l.pts && l.pts.length >= 3 ? 'ok' : ''}">${l.pts && l.pts.length >= 3 ? '✓ na planta' : (state.plantaAdmin.mode === 'imagem' ? 'sem posição' : '')}</span></div>`).join('') || '<div class="row muted">Nenhum lote. Cadastre em "Lotes".</div>';
   const selRow = box.querySelector('.row.sel'); if (selRow && selRow.scrollIntoView) selRow.scrollIntoView({ block: 'nearest' });
 }
 function pickLote(id) {

@@ -654,6 +654,26 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z7. Planta: situação por desenho, legenda à vista e teclado (15/10)
+
+- **Situação também por desenho**, não só pela cor: vendido com listras, reservado com pontos,
+  indisponível com xadrez; disponível fica liso. Quem não distingue verde de vermelho (ou
+  imprime em preto e branco) vê a diferença. As cores continuam as mesmas.
+- **Legenda dentro da planta**, no canto de baixo — no celular ela ficava abaixo da tela.
+- **Botões de zoom não cobrem mais lotes**: ao enquadrar, a planta deixa livre a coluna dos
+  botões e a faixa da legenda (antes o lote A5 ficava escondido no celular).
+- **Teclado**: a planta é uma parada só no Tab; as setas andam de lote em lote (com um contorno
+  escuro no lote atual), Enter abre, + e − aproximam, 0 enquadra. O leitor de tela fala o lote
+  ("Quadra A · Lote 5 — Reservado — 325 m² — R$ …"; preço de vendido só se a configuração deixar).
+- A lista de lotes ao lado da planta do administrador usa as mesmas amostras com desenho.
+
+- [ ] No celular: abrir a planta e conferir se a legenda e os desenhos ficaram claros.
+
+`testes/planta.test.js` confere tudo isso no celular e no computador, para corretor e
+administração.
+
+---
+
 ## 7z6. Cabeçalho do contrato mais limpo (15/10)
 
 Antes eram 6 botões soltos (Editar, Antecipar / quitar, Contrato, Extrato, Enviar resumo,

@@ -32,7 +32,7 @@ function renderCPlanta() {
         <select id="cPlantaModo" onchange="cTrocarModo(this.value)" style="flex:0 0 150px"></select>
       </div>
       <div id="cPlantaBox" class="planta-wrap tall"></div>
-      <div class="legend"><span><span class="dot disponivel"></span>Disponível</span><span><span class="dot reservado"></span>Reservado</span><span><span class="dot vendido"></span>Vendido</span><span><span class="dot bloqueado"></span>Indisponível</span><span class="muted">· Toque no lote para ver detalhes. Use dois dedos ou a roda do mouse para zoom.</span></div>
+      <p class="tiny muted mt">Toque no lote para ver os detalhes. Dois dedos ou a roda do mouse aproximam; no teclado, setas e Enter.</p>
       <div id="cPlantaInfo" class="small muted mt"></div>`;
     state.plantaCorretor = new PlantaView($('#cPlantaBox'), { onLotClick: id => abrirLoteCorretor(id) });
   }
