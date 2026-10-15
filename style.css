@@ -647,6 +647,29 @@ details.qualif[open] > summary, details.ver-tabela[open] > summary { margin-bott
 .ct-cab .meta > span { min-width: 0; overflow-wrap: anywhere; }
 .ct-titulo .muted { font-weight: 500; font-size: 1rem; letter-spacing: 0; }
 .ct-kpis { margin: 16px 0 12px; }
+/* ===== reserva: a proposta é a decisão ===== */
+.rs-quem { font-size: 0.92rem; color: var(--text); margin-bottom: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.rs-proposta { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 4px 16px; margin-bottom: 14px; background: var(--card); }
+.rs-linha { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: baseline; }
+.rs-linha:last-of-type { border-bottom: 0; }
+.rs-linha .k { color: var(--muted); font-size: 0.82rem; }
+.rs-linha .v { font-weight: 650; font-size: 1.05rem; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.rs-cmp { grid-column: 2; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rs-cmp.abaixo { color: var(--warn); font-weight: 600; }
+.rs-cmp.acima { color: var(--success); font-weight: 600; }
+.rs-obs { font-size: 0.86rem; color: var(--text); padding: 10px 0; border-top: 1px solid var(--border); }
+.rs-aviso { display: flex; gap: 8px; align-items: flex-start; margin: 4px -16px 0; padding: 10px 16px; background: var(--warn-bg); color: var(--warn); font-size: 0.84rem; font-weight: 600; border-radius: 0 0 var(--radius) var(--radius); }
+.rs-aviso .ico { flex: none; margin-top: 2px; }
+.rs-ok { display: flex; gap: 10px; align-items: flex-start; background: var(--success-bg); color: var(--success); border: 1px solid #cfe3cc; border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 14px; font-size: 0.9rem; }
+.rs-ok > .ico { flex: none; font-size: 1.15rem; margin-top: 1px; }
+.rs-ok-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.rs-ok-acoes .btn { flex: none; }
+.rs-outras { font-size: 0.86rem; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.rs-outras .sep { color: var(--border-strong); }
+/* Ação secundária com cara de link: não compete com o par principal do rodapé */
+button.link, a.link { background: none; border: 0; padding: 4px 2px; font: inherit; font-weight: 600; color: var(--primary); cursor: pointer; text-decoration: underline; text-decoration-color: rgba(14, 76, 115, 0.3); text-underline-offset: 3px; min-height: 32px; }
+button.link.perigo { color: var(--danger); text-decoration-color: rgba(180, 35, 24, 0.3); }
+@media (hover: hover) and (pointer: fine) { button.link:hover, a.link:hover { text-decoration-color: currentColor; } }
 /* Em telas de 320px o cartão do contrato não tem largura para dois valores milionários lado a lado. */
 @media (max-width: 359px) { .ct-kpis { grid-template-columns: minmax(0, 1fr); } .kpi-grid { gap: 8px; } .kpi { padding: 12px; } }
 .ct-parte { padding: 12px 0; border-bottom: 1px solid var(--border); }

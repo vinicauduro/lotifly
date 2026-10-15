@@ -545,38 +545,83 @@ function renderAReservas(alvo) {
     <div class="chips">${[['ativas', 'Ativas'], ['pendente', 'Aguardando'], ['aprovada', 'Aprovadas'], ['expirada', 'Vencidas'], ['historico', 'Histórico']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.ares.status='${k}';renderAReservas()">${l}<span class="n">${all.filter(grupos[k]).length}</span></div>`).join('')}</div>
     ${list.length ? list.map(r => reservaCardHtml(r, true)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Nenhuma reserva nesta lista.</p></div>`}`;
 }
-function abrirReservaAdmin(id) {
-  const r = getReserva(id); if (!r) return; const l = getLote(r.loteId); const st = reservaStatus(r);
-  const body = reservaDetalheHtml(r);
+/* Janela da reserva no escritório. Pendente: o par Recusar / Aprovar é a decisão; o resto fica
+   numa linha de "outras ações". Aprovada: a ação principal vira Converter em venda. Recusar,
+   liberar e renovar pedem o que precisam dentro da própria janela, sem a caixa do navegador. */
+function abrirReservaAdmin(id, aviso) {
+  const r = getReserva(id); if (!r) return; const l = getLote(r.loteId);
+  const abertas = ['pendente', 'aprovada'].includes(r.status);
+  const outras = [];
   let footer = '';
-  if (r.status === 'pendente' && pode('reservas.aprovar')) footer += `<button class="btn btn-success" onclick="aprovarReserva('${r.id}')">Aprovar</button><button class="btn btn-outline-danger" onclick="encerrarReserva('${r.id}','recusada')">Recusar</button>`;
-  if (['pendente', 'aprovada'].includes(r.status)) footer += `<button class="btn btn-primary" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">Converter em venda</button><button class="btn btn-secondary" onclick="renovarReserva('${r.id}')">Renovar prazo</button>${r.status === 'aprovada' ? `<button class="btn btn-outline-danger" onclick="encerrarReserva('${r.id}','cancelada')">Liberar lote</button>` : ''}`;
-  footer += `<button class="btn btn-secondary" onclick="editarReservaAdmin('${r.id}')">Editar dados</button>`;
-  if (r.corretor.telefone) footer += `<a class="btn btn-wa" target="_blank" href="${waLink(r.corretor.telefone, `Olá ${r.corretor.nome.split(' ')[0]}, sobre a reserva do ${l ? loteLabel(l) : 'lote'} para ${r.cliente.nome}: `)}">Corretor</a>`;
+  if (r.status === 'pendente' && pode('reservas.aprovar')) {
+    footer = `<button class="btn btn-outline-danger" onclick="pedirMotivoReserva('${r.id}','recusada')">Recusar</button><button class="btn btn-success" onclick="aprovarReserva('${r.id}')">Aprovar</button>`;
+    outras.push(`<button class="link" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">Converter direto em venda</button>`);
+  } else if (abertas) {
+    footer = `<button class="btn btn-primary" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">Converter em venda</button>`;
+  } else footer = `<button class="btn btn-secondary" onclick="fecharJanela()">Fechar</button>`;
+  if (abertas) outras.push(`<button class="link" onclick="pedirRenovacaoReserva('${r.id}')">Renovar prazo</button>`);
+  if (r.status === 'aprovada') outras.push(`<button class="link perigo" onclick="pedirMotivoReserva('${r.id}','cancelada')">Liberar o lote</button>`);
+  outras.push(`<button class="link" onclick="editarReservaAdmin('${r.id}')">Editar dados</button>`);
+  if (r.corretor.telefone) outras.push(`<a class="link" target="_blank" href="${waLink(r.corretor.telefone, `Olá ${r.corretor.nome.split(' ')[0]}, sobre a reserva do ${l ? loteLabel(l) : 'lote'} para ${r.cliente.nome}: `)}">WhatsApp do corretor</a>`);
+  const body = (aviso || '') + reservaDetalheHtml(r) + `<div class="rs-outras"><span class="muted">Outras ações:</span> ${outras.join('<span class="sep">·</span>')}</div>`;
   openModal({ title: `Reserva · ${l ? esc(loteShort(l)) : ''}`, body, footer });
 }
 function aprovarReserva(id) {
   const r = getReserva(id); if (!r) return;
-  const hoje = todayStr();
-  upsert('reservas', Object.assign({}, r, { status: 'aprovada', aprovadaEm: hoje, validade: addDays(hoje, Number(db.config.reservaDias) || 7) }));
+  const hoje = todayStr(), validade = addDays(hoje, Number(db.config.reservaDias) || 7);
+  /* guarda como estava, para o "Desfazer" logo depois */
+  state.aprovacaoDesfeita = { id, antes: { status: r.status, aprovadaEm: r.aprovadaEm || null, validade: r.validade } };
+  upsert('reservas', Object.assign({}, r, { status: 'aprovada', aprovadaEm: hoje, validade }));
   const l = getLote(r.loteId); if (l) upsert('lotes', Object.assign({}, l, { status: 'reservado', reservaId: r.id }));
   logAct(`Reserva aprovada: ${l ? loteLabel(l) : ''} — ${r.cliente.nome}`);
-  closeModal(); renderCurrent(); toast('✅', 'Reserva aprovada', `Válida até ${fmtDate(addDays(hoje, Number(db.config.reservaDias) || 7))}`);
+  renderCurrent();
+  /* O fim da aprovação é avisar quem está com o cliente: a janela continua aberta com o aviso
+     pronto para o WhatsApp do corretor e a chance de desfazer. */
+  const msg = `Olá ${r.corretor.nome.split(' ')[0]}! A reserva do ${l ? loteLabel(l) : 'lote'} para ${r.cliente.nome} foi aprovada. Válida até ${fmtDate(validade)}.`;
+  const aviso = `<div class="rs-ok"><i class=ico data-i=check-circle></i><div><b>Reserva aprovada</b>, válida até ${fmtDate(validade)}.
+    <div class="rs-ok-acoes">${r.corretor.telefone ? `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(r.corretor.telefone, msg)}">Avisar o corretor</a>` : ''}<button class="btn btn-secondary btn-sm" onclick="desfazerAprovacao('${r.id}')">Desfazer</button></div></div></div>`;
+  abrirReservaAdmin(id, aviso);
+  toast('✅', 'Reserva aprovada', `${l ? loteLabel(l) + ' · ' : ''}válida até ${fmtDate(validade)}`);
+}
+function desfazerAprovacao(id) {
+  const d = state.aprovacaoDesfeita; const r = getReserva(id);
+  if (!r || !d || d.id !== id) return;
+  upsert('reservas', Object.assign({}, r, d.antes)); state.aprovacaoDesfeita = null;
+  const l = getLote(r.loteId); logAct(`Aprovação desfeita: ${l ? loteLabel(l) : ''} — ${r.cliente.nome}`);
+  renderCurrent(); abrirReservaAdmin(id); toast('↩️', 'Aprovação desfeita', 'A reserva voltou a aguardar aprovação.');
+}
+function pedirMotivoReserva(id, status) {
+  const r = getReserva(id); if (!r) return; const l = getLote(r.loteId);
+  const recusa = status === 'recusada';
+  openModal({ title: recusa ? 'Recusar reserva' : 'Liberar o lote',
+    body: `<p class="small mb">${recusa ? 'O pedido' : 'A reserva'} de <b>${esc(r.cliente.nome)}</b> no <b>${l ? esc(loteLabel(l)) : 'lote'}</b> ${recusa ? 'será recusado' : 'será encerrada'} e o lote volta a ficar disponível.</p>
+      <div class="fg"><label>Motivo (opcional)</label><textarea id="rsMotivo" placeholder="${recusa ? 'Ex.: entrada abaixo do mínimo…' : 'Ex.: cliente desistiu…'}"></textarea><div class="tiny muted mt">O corretor vê o motivo na reserva.</div></div>`,
+    footer: `<button class="btn btn-secondary" onclick="abrirReservaAdmin('${id}')">Voltar</button><button class="btn btn-danger" onclick="confirmarEncerramento('${id}','${status}')">${recusa ? 'Recusar reserva' : 'Liberar o lote'}</button>` });
+  focarSeLivre('rsMotivo');
+}
+function confirmarEncerramento(id, status) {
+  const r = getReserva(id); if (!r) return;
+  liberarReserva(r, status, val('rsMotivo'));
+  closeModal(); renderCurrent(); toast('↩️', status === 'recusada' ? 'Reserva recusada' : 'Lote liberado', 'O lote voltou a ficar disponível.');
+}
+function pedirRenovacaoReserva(id) {
+  const r = getReserva(id); if (!r) return;
+  openModal({ title: 'Renovar prazo da reserva',
+    body: `<p class="small mb">Hoje ela vale até <b>${fmtDate(r.validade)}</b>.</p>
+      <div class="fg"><label>Renovar por quantos dias, a partir de hoje</label><input type="number" id="rsDias" inputmode="numeric" min="1" value="${Number(db.config.reservaDias) || 7}" oninput="$('#rsNova').textContent = fmtDate(addDays(todayStr(), Math.max(1, Math.round(num(this.value)))))"></div>
+      <p class="small muted">Nova validade: <b id="rsNova">${fmtDate(addDays(todayStr(), Number(db.config.reservaDias) || 7))}</b></p>`,
+    footer: `<button class="btn btn-secondary" onclick="abrirReservaAdmin('${id}')">Voltar</button><button class="btn btn-primary" onclick="renovarReserva('${id}')">Renovar</button>` });
+  focarSeLivre('rsDias');
 }
 function renovarReserva(id) {
   const r = getReserva(id); if (!r) return;
-  const dias = prompt('Renovar por quantos dias a partir de hoje?', db.config.reservaDias); if (dias === null) return;
-  upsert('reservas', Object.assign({}, r, { validade: addDays(todayStr(), Math.max(1, Math.round(num(dias)))) }));
+  const dias = Math.max(1, Math.round(num(val('rsDias')) || Number(db.config.reservaDias) || 7));
+  upsert('reservas', Object.assign({}, r, { validade: addDays(todayStr(), dias) }));
   const l = getLote(r.loteId); logAct(`Reserva renovada: ${l ? loteLabel(l) : ''} — ${r.cliente.nome}`);
-  closeModal(); renderCurrent(); toast('🔁', 'Prazo renovado', '');
+  renderCurrent(); abrirReservaAdmin(id); toast('✅', 'Prazo renovado', `Válida até ${fmtDate(addDays(todayStr(), dias))}`);
 }
-function encerrarReserva(id, status) {
-  const r = getReserva(id); if (!r) return;
-  const motivo = prompt(status === 'recusada' ? 'Motivo da recusa (opcional):' : 'Motivo da liberação (opcional):', '');
-  if (motivo === null) return;
-  liberarReserva(r, status, motivo);
-  closeModal(); renderCurrent(); toast('↩️', status === 'recusada' ? 'Reserva recusada' : 'Lote liberado', '');
-}
+/* Mantido para chamadas antigas: agora pergunta o motivo dentro da janela */
+function encerrarReserva(id, status) { pedirMotivoReserva(id, status); }
 function editarReservaAdmin(id) {
   const r = getReserva(id); if (!r) return; const c = r.cliente, k = r.corretor, p = r.proposta || {};
   const body = `
@@ -601,7 +646,7 @@ function salvarReservaAdmin(id) {
   const upd = Object.assign({}, r, {
     cliente: Object.assign({}, r.cliente, { nome: val('erNome'), cpf: val('erCpf'), telefone: val('erTel'), email: val('erEmail'), cidade: val('erCidade'), endereco: val('erEnd') }),
     corretor: { nome: val('ekNome'), creci: val('ekCreci'), telefone: val('ekTel'), email: val('ekEmail'), imobiliaria: val('ekImob') },
-    proposta: { valor: num(val('epValor')), entrada: num(val('epEntrada')), nParcelas: Math.round(num(val('epParc'))) },
+    proposta: Object.assign({}, r.proposta, { valor: num(val('epValor')), entrada: num(val('epEntrada')), nParcelas: Math.round(num(val('epParc'))) }),
     validade: val('epValidade') || r.validade, dataReserva: val('epData') || r.dataReserva, obs: val('epObs')
   });
   upsert('reservas', upd); registrarCorretor(upd.corretor);
