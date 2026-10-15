@@ -654,6 +654,46 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z3. Revisão final antes de publicar (15/10)
+
+**Corrigido**
+- **Parcela da reserva**: na aprovação, o escritório via uma parcela sem juros (ex.: 60× R$
+  2.023,50), enquanto o corretor tinha mostrado ao cliente a parcela da tabela Price (60× R$
+  2.555,77). Agora a reserva guarda os juros e as duas telas mostram o mesmo número, com "tabela
+  Price, 0,80% a.m.". A mensagem de WhatsApp para o administrador também leva a parcela.
+- **A receber**: o número de cada filtro (Em aberto, Pagos…) agora conta o mesmo que a lista
+  mostra no mês escolhido.
+- **Teclado e leitor de tela** (sem mudar nada do que se vê):
+  - tudo o que se toca agora também funciona com Tab e Enter;
+  - botões só com ícone têm nome;
+  - os rótulos estão ligados aos campos (clicar no rótulo põe o cursor no campo);
+  - o foco do teclado fica dentro da janela aberta e volta ao botão que a abriu;
+  - há "Pular para o conteúdo";
+  - os títulos estão em ordem e as regiões da página estão marcadas.
+  A auditoria automática (axe) passou de 6 tipos de problema para nenhum, em 13 telas.
+- Selo de situação com letra maior (11px); texto de exemplo nos campos e número de vendidos na
+  tela de entrada com contraste suficiente.
+- Busca com "…" no texto de exemplo; aviso do navegador ao recarregar com uma janela de cadastro
+  preenchida pela metade.
+
+**Avaliação de design (24/40, "aceitável")**: o conteúdo é muito bem feito para o mercado; o
+que mais pesa:
+- "Inadimplência" tem dois números diferentes (Início × Cobrança);
+- a aprovação de reserva esconde a proposta e tem 6 botões;
+- o formulário de reserva do corretor tem 14 campos;
+- o cabeçalho do contrato tem 6 botões.
+O relatório completo está em `.impeccable/critique/`.
+
+- [ ] Decidir a definição única de Inadimplência (Início e Cobrança).
+- [ ] Decidir o que o corretor precisa informar na reserva (proposta de reduzir a nome, telefone
+  e proposta).
+
+Testes no projeto: `testes/fluxo.test.js` (entrar, abrir loteamento, vender, registrar
+recebimento — no iPhone e no computador), `testes/acessibilidade.test.js` (axe), além de
+`detalhes` e `telas`.
+
+---
+
 ## 7z2. Detalhes e movimento (15/10)
 
 Pedido seu: revisar sombras, bordas, carregamento, telas vazias e o retorno ao salvar; e pôr

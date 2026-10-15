@@ -150,8 +150,8 @@ function relEspelho(escopo) {
   const totalV = lista.reduce((s, l) => s + num(l.preco), 0);
   return {
     titulo: 'Espelho de vendas',
-    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Quadra</label><select onchange="relSet('quadra',this.value)">${optHtml(quadras, f.quadra, 'Todas')}</select></div>
-      <div class="fg"><label>Situação</label><select onchange="relSet('status',this.value)">${['todos', 'disponivel', 'reservado', 'vendido', 'bloqueado'].map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${s === 'todos' ? 'Todas' : statusLabel(s)}</option>`).join('')}</select></div></div>
+    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Quadra</label><select aria-label="Quadra" onchange="relSet('quadra',this.value)">${optHtml(quadras, f.quadra, 'Todas')}</select></div>
+      <div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${['todos', 'disponivel', 'reservado', 'vendido', 'bloqueado'].map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${s === 'todos' ? 'Todas' : statusLabel(s)}</option>`).join('')}</select></div></div>
       <p class="tiny muted">Este relatório mostra a situação atual dos lotes, sem depender do período.</p>`,
     kpis: relKpis([
       { lbl: 'Lotes na lista', val: String(lista.length), sub: `de ${ls.length}`, cor: 'c-blue' },
@@ -181,8 +181,8 @@ function relVendas(escopo) {
   const pago = lista.reduce((s, v) => s + vendaResumo(v).pago, 0);
   return {
     titulo: 'Vendas do período',
-    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Corretor</label><select onchange="relSet('corretor',this.value)">${optHtml(corretores, f.corretor, 'Todos')}</select></div>
-      <div class="fg"><label>Situação</label><select onchange="relSet('status',this.value)">${[['todos', 'Ativas e quitadas'], ['distrato', 'Só distratos']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
+    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Corretor</label><select aria-label="Corretor" onchange="relSet('corretor',this.value)">${optHtml(corretores, f.corretor, 'Todos')}</select></div>
+      <div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${[['todos', 'Ativas e quitadas'], ['distrato', 'Só distratos']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
     kpis: relKpis([
       { lbl: 'Vendas', val: String(lista.length), sub: 'no período', cor: 'c-blue' },
       { lbl: 'Valor vendido', val: fmtMoneyShort(total), sub: '', cor: 'c-green' },
@@ -217,8 +217,8 @@ function relReceber(escopo) {
   const recebido = lista.reduce((s, r) => s + num(r.valorPago), 0);
   return {
     titulo: 'Contas a receber',
-    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Situação</label><select onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['aberto', 'Em aberto'], ['atrasado', 'Atrasadas'], ['pago', 'Pagas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="fg"><label>Agrupar</label><select onchange="relSet('agrupar',this.value)">${[['mes', 'Por mês de vencimento'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['aberto', 'Em aberto'], ['atrasado', 'Atrasadas'], ['pago', 'Pagas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="fg"><label>Agrupar</label><select aria-label="Agrupar por" onchange="relSet('agrupar',this.value)">${[['mes', 'Por mês de vencimento'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
       <p class="tiny muted">Os valores já saem corrigidos pelo índice do contrato, quando houver.</p>`,
     kpis: relKpis([
       { lbl: 'Parcelas', val: String(lista.length), sub: 'no período', cor: 'c-blue' },
@@ -284,8 +284,8 @@ function relComissoes(escopo) {
   const aPagar = lista.filter(v => !v.comissaoPaga).reduce((s, v) => s + num(v.comissaoValor), 0);
   return {
     titulo: 'Comissões',
-    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Corretor</label><select onchange="relSet('corretor',this.value)">${optHtml(corretores, f.corretor, 'Todos')}</select></div>
-      <div class="fg"><label>Situação</label><select onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['apagar', 'A pagar'], ['pagas', 'Pagas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
+    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label>Corretor</label><select aria-label="Corretor" onchange="relSet('corretor',this.value)">${optHtml(corretores, f.corretor, 'Todos')}</select></div>
+      <div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['apagar', 'A pagar'], ['pagas', 'Pagas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
     kpis: relKpis([
       { lbl: 'Comissões', val: fmtMoneyShort(total), sub: `${lista.length} venda(s)`, cor: 'c-blue' },
       { lbl: 'A pagar', val: fmtMoneyShort(aPagar), sub: '', cor: 'c-amber' },
@@ -336,12 +336,12 @@ function relDespesas(escopo) {
   return {
     titulo: 'Despesas',
     filtros: `<div class="frow" style="margin-top:8px">
-        <div class="fg"><label>Categoria</label><select onchange="relSet('categoria',this.value)"><option value="">Todas</option>${db.categorias.map(c => `<option value="${esc(c.id)}" ${f.categoria === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select></div>
-        <div class="fg"><label>Fornecedor</label><select onchange="relSet('fornecedor',this.value)">${optHtml(fornecedores, f.fornecedor, 'Todos')}</select></div></div>
+        <div class="fg"><label>Categoria</label><select aria-label="Categoria" onchange="relSet('categoria',this.value)"><option value="">Todas</option>${db.categorias.map(c => `<option value="${esc(c.id)}" ${f.categoria === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select></div>
+        <div class="fg"><label>Fornecedor</label><select aria-label="Fornecedor" onchange="relSet('fornecedor',this.value)">${optHtml(fornecedores, f.fornecedor, 'Todos')}</select></div></div>
       <div class="frow3">
-        <div class="fg"><label>Situação</label><select onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['pago', 'Pagas'], ['pendente', 'A pagar'], ['atrasado', 'Atrasadas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="fg"><label>Data considerada</label><select onchange="relSet('base',this.value)">${[['competencia', 'Competência'], ['vencimento', 'Vencimento'], ['pagamento', 'Pagamento']].map(([k, l]) => `<option value="${k}" ${f.base === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="fg"><label>Agrupar por</label><select onchange="relSet('agrupar',this.value)">${[['categoria', 'Categoria'], ['fornecedor', 'Fornecedor'], ['mes', 'Mês'], ['lote', 'Lote'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
+        <div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['pago', 'Pagas'], ['pendente', 'A pagar'], ['atrasado', 'Atrasadas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="fg"><label>Data considerada</label><select aria-label="Base" onchange="relSet('base',this.value)">${[['competencia', 'Competência'], ['vencimento', 'Vencimento'], ['pagamento', 'Pagamento']].map(([k, l]) => `<option value="${k}" ${f.base === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="fg"><label>Agrupar por</label><select aria-label="Agrupar por" onchange="relSet('agrupar',this.value)">${[['categoria', 'Categoria'], ['fornecedor', 'Fornecedor'], ['mes', 'Mês'], ['lote', 'Lote'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
     kpis: relKpis([
       { lbl: 'Despesas', val: fmtMoneyShort(total), sub: `${lista.length} lançamento(s)`, cor: 'c-amber' },
       { lbl: 'Pagas', val: fmtMoneyShort(pago), sub: '', cor: 'c-green' },
@@ -359,7 +359,7 @@ function orcamentoHtml(escopo, lista) {
   const cats = db.categorias.filter(c => num(orc[c.id]) > 0 || lista.some(x => x.categoriaId === c.id));
   if (!cats.length) return '';
   const todos = custosDo(escopo);
-  return `<div class="card"><h3>Orçado × realizado por categoria</h3>
+  return `<div class="card"><h2>Orçado × realizado por categoria</h2>
     <div class="table-wrap"><table class="tbl"><thead><tr><th>Categoria</th><th class="num">Orçado</th><th class="num">Realizado (total)</th><th class="num">No período</th><th class="num">Saldo</th></tr></thead>
     <tbody>${cats.map(c => {
       const orcado = num(orc[c.id]);

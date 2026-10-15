@@ -121,7 +121,7 @@ function cadPermissoesHtml() {
   const sub = state.sub.perm || 'admin';
   const perms = permsDoPapel(sub);
   const salvo = !!permsSalvas()[sub];
-  return `<div class="card"><h3>Permissões por função</h3>
+  return `<div class="card"><h2>Permissões por função</h2>
     <p class="help">O <b>papel</b> define o que o banco de dados libera para a pessoa. Aqui você afina, dentro do papel, o que ela vê e pode fazer no aplicativo. O dono sempre pode tudo.</p>
     ${!Cloud.active ? '<div class="alert info" style="cursor:default"><span>No modo só deste dispositivo existe um único administrador, que pode tudo. As permissões valem na versão em nuvem, com login por pessoa.</span></div>' : ''}
     <div class="subtabs">${papeis.map(([k, l]) => `<div class="chip ${sub === k ? 'active' : ''}" onclick="state.sub.perm='${k}';renderCurrent()">${l}</div>`).join('')}</div>

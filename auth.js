@@ -152,12 +152,12 @@ function conviteVencido(c) {
 function cadEquipeHtml() {
   const link = c => location.origin + location.pathname + '?convite=' + c.codigo;
   const eu = Cloud.user.id;
-  return `<div class="card"><h3>Equipe <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirConviteForm()"><i class=ico data-i=plus></i>Convite</button></span></h3>
+  return `<div class="card"><h2>Equipe <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirConviteForm()"><i class=ico data-i=plus></i>Convite</button></span></h2>
     <p class="help mb">Quem tem acesso a <b>${esc(Cloud.org.nome)}</b>. Corretores veem a planta, os preços e só as próprias reservas. O financeiro cuida do dinheiro, dos contratos e das vendas, mas não mexe na planta.</p>
     ${Cloud.membros.map(m => `<div class="item ${m.ativo ? '' : 'bloqueado'}" onclick="abrirMembroForm('${m.id}')"><div class="info"><div class="title">${esc(m.nome || m.email || '(sem nome)')} ${m.userId === eu ? '<span class="badge aprovada">você</span>' : ''} ${!m.ativo ? '<span class="badge neutral">inativo</span>' : ''}</div>
       <div class="meta"><span class="badge ${m.papel === 'corretor' ? 'neutral' : 'convertida'}">${statusLabel(m.papel)}</span><span>${esc(m.email)}</span>${m.telefone ? `<span>· ${esc(fmtPhone(m.telefone))}</span>` : ''}${m.creci ? `<span>· ${esc(m.creci)}</span>` : ''}${m.imobiliaria ? `<span>· ${esc(m.imobiliaria)}</span>` : ''}</div></div>
       <div class="side">${m.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(m.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`).join('')}</div>
-    <div class="card"><h3>Convites</h3>
+    <div class="card"><h2>Convites</h2>
     <p class="help mb">Envie o link ao corretor: ele cria a conta (ou entra) e já fica vinculado à sua empresa com o papel do convite.</p>
     ${Cloud.convites.length ? Cloud.convites.map(c => `<div class="item ${conviteVencido(c) ? 'bloqueado' : ''}"><div class="info"><div class="title">${esc(c.codigo)} <span class="badge ${c.papel === 'corretor' ? 'neutral' : 'convertida'}">${statusLabel(c.papel)}</span> ${conviteVencido(c) ? '<span class="badge neutral">expirado</span>' : ''} ${c.descricao ? `<span class="small muted">· ${esc(c.descricao)}</span>` : ''}</div><div class="meta"><span>${c.usos} de ${c.maxUsos || 1} uso(s)</span><span>· ${c.expiraEm ? 'vale até ' + fmtDateTime(c.expiraEm) : 'sem prazo'}</span><span>· criado em ${fmtDateTime(c.criadoEm)}</span></div><div class="code-box mt" style="font-size:0.7rem">${esc(link(c))}</div></div>
       <div class="side"><div class="btns"><button class="btn-icon" title="Copiar link" onclick="copiarTexto('${esc(link(c))}')"><i class=ico data-i=copy></i></button><a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" title="Enviar por WhatsApp" target="_blank" href="${'https://wa.me/?text=' + encodeURIComponent('Acesse a planta de ' + Cloud.org.nome + ' e faça suas reservas por aqui: ' + link(c) + ' (código ' + c.codigo + ')')}"><i class=ico data-i=whatsapp-logo></i></a><button class="btn-icon del" title="Excluir convite" onclick="apagarConvite('${c.id}')"><i class=ico data-i=trash></i></button></div></div></div>`).join('') : '<p class="help">Nenhum convite ativo. Crie um para chamar corretores.</p>'}
@@ -196,7 +196,7 @@ async function salvarMembro(id) {
   catch (e) { toast('⚠️', 'Falha', e.message, true); }
 }
 function cadContaHtml() {
-  return `<div class="card"><h3>Nuvem e conta <span id="syncStatusBox"></span></h3>
+  return `<div class="card"><h2>Nuvem e conta <span id="syncStatusBox"></span></h2>
     <div class="detail-grid"><div><div class="k">Empresa</div><div class="v">${esc(Cloud.org.nome)}</div></div><div><div class="k">Seu papel</div><div class="v">${statusLabel(Cloud.papel)}</div></div><div><div class="k">Usuário</div><div class="v">${esc(Cloud.user.email || '')}</div></div><div><div class="k">Plano</div><div class="v">${esc(Cloud.org.plano || 'gratuito')}</div></div></div>
     <p class="help mt">Os dados ficam no banco da empresa e são atualizados em tempo real em todos os aparelhos. Uma cópia local é mantida neste navegador para abrir mais rápido.</p>
     <div class="btn-row"><button class="btn btn-secondary" onclick="trocarEmpresa()">Trocar de empresa</button><button class="btn btn-outline" onclick="renderAuthNovaSenhaModal()">Alterar minha senha</button><button class="btn btn-outline-danger" onclick="sair()">Sair</button></div></div>`;

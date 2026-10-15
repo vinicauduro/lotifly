@@ -28,7 +28,7 @@ function renderCPlanta() {
         <div class="pill"><span class="dot vendido"></span><div><b id="cStVend">0</b><br>vendidos</div></div>
       </div>
       <div class="filters" style="margin-bottom:8px">
-        <input type="text" id="cBuscaLote" placeholder="Ir para o lote (ex.: A 12)" oninput="cBuscarLote(this.value)">
+        <input type="text" id="cBuscaLote" placeholder="Ir para o lote (ex.: A 12)…" oninput="cBuscarLote(this.value)">
         <select id="cPlantaModo" onchange="cTrocarModo(this.value)" style="flex:0 0 150px"></select>
       </div>
       <div id="cPlantaBox" class="planta-wrap tall"></div>
@@ -76,14 +76,14 @@ function renderCLotes() {
       ${[['all', 'Todos', ls.length], ['disponivel', 'Disponíveis', cnt('disponivel')], ['reservado', 'Reservados', cnt('reservado')], ['vendido', 'Vendidos', cnt('vendido')]].map(([k, l, n]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="cSetFiltro('status','${k}')">${l}<span class="n">${n}</span></div>`).join('')}
     </div>
     <div class="filters">
-      <select onchange="cSetFiltro('quadra',this.value)"><option value="all">Todas as quadras</option>${quadras.map(q => `<option value="${esc(q)}" ${f.quadra === q ? 'selected' : ''}>Quadra ${esc(q)}</option>`).join('')}</select>
-      <select onchange="cSetFiltro('ordem',this.value)">
+      <select aria-label="Quadra" onchange="cSetFiltro('quadra',this.value)"><option value="all">Todas as quadras</option>${quadras.map(q => `<option value="${esc(q)}" ${f.quadra === q ? 'selected' : ''}>Quadra ${esc(q)}</option>`).join('')}</select>
+      <select aria-label="Ordem" onchange="cSetFiltro('ordem',this.value)">
         <option value="quadra" ${f.ordem === 'quadra' ? 'selected' : ''}>Ordem: quadra/lote</option>
         <option value="preco" ${f.ordem === 'preco' ? 'selected' : ''}>Menor preço</option>
         <option value="preco-desc" ${f.ordem === 'preco-desc' ? 'selected' : ''}>Maior preço</option>
         <option value="area" ${f.ordem === 'area' ? 'selected' : ''}>Menor área</option>
       </select>
-      <input type="text" placeholder="Buscar lote" value="${esc(f.busca)}" oninput="cSetFiltro('busca',this.value,true)">
+      <input type="text" placeholder="Buscar lote…" value="${esc(f.busca)}" oninput="cSetFiltro('busca',this.value,true)">
     </div>
     ${list.length ? list.map(l => loteCardHtml(l, 'abrirLoteCorretor')).join('')
       : !ls.length ? `<div class="empty"><div class="ic"><i class=ico data-i=package></i></div><p>Este loteamento ainda não tem lotes cadastrados.</p><p>Quando o escritório cadastrar, eles aparecem aqui e na planta.</p></div>`
@@ -157,6 +157,17 @@ function simuladorHtml(l, cond) {
     <div class="sim-result" id="simResult"></div>
     <div class="tiny muted mt">${cond.jurosMes ? `Juros de ${fmtNum(cond.jurosMes, 2)}% ao mês (tabela Price).` : 'Parcelas sem juros.'} Valores para simulação; a proposta final é definida pela administração.</div>
   </div>`;
+}
+/* Parcela da proposta de reserva: a mesma conta do simulador que o corretor mostrou ao cliente
+   (tabela Price com os juros do empreendimento). Os juros ficam gravados na proposta; reserva
+   antiga, sem eles, usa os juros atuais do empreendimento. */
+function jurosDaProposta(r) {
+  const p = r.proposta || {}; if (p.jurosMes !== undefined && p.jurosMes !== null) return num(p.jurosMes);
+  const lot = getLoteamento(r.loteamentoId); return num(((lot && lot.cond) || {}).jurosMes);
+}
+function parcelaDaProposta(r) {
+  const p = r.proposta || {}; const n = Math.round(num(p.nParcelas)); if (!n) return 0;
+  return Math.round(pmt(jurosDaProposta(r) / 100, n, Math.max(0, num(p.valor) - num(p.entrada))) * 100) / 100;
 }
 function simular(loteId) {
   const l = getLote(loteId); const lot = getLoteamento(l.loteamentoId); const cond = lot.cond || {};
@@ -239,7 +250,7 @@ async function enviarReserva(loteId) {
   registrarCorretor(corretor);
   const hoje = todayStr();
   const r = { id: genId(), loteId, loteamentoId: l.loteamentoId, corretor, cliente, dataReserva: hoje, validade: addDays(hoje, Number(db.config.reservaDias) || 7),
-    status: 'pendente', proposta: { valor: num(val('rpValor')), entrada: num(val('rpEntrada')), nParcelas: Math.round(num(val('rpParcelas'))) }, obs: val('rpObs'), criadoEm: new Date().toISOString() };
+    status: 'pendente', proposta: { valor: num(val('rpValor')), entrada: num(val('rpEntrada')), nParcelas: Math.round(num(val('rpParcelas'))), jurosMes: num((getLoteamento(l.loteamentoId).cond || {}).jurosMes) }, obs: val('rpObs'), criadoEm: new Date().toISOString() };
   if (Cloud.active) {
     // na nuvem a reserva é criada pelo banco (evita dois corretores no mesmo lote)
     corretor.userId = Cloud.user.id; r.corretorUserId = Cloud.user.id;
@@ -257,7 +268,7 @@ async function enviarReserva(loteId) {
   closeModal();
   renderCurrent();
   const lot = getLoteamento(l.loteamentoId);
-  const msg = `Olá! Solicitei a reserva do ${loteLabel(l)} (${lot.nome}) para o cliente ${cliente.nome}. Proposta: ${fmtMoney(r.proposta.valor)}, entrada ${fmtMoney(r.proposta.entrada)} + ${r.proposta.nParcelas}x. Corretor: ${corretor.nome}${corretor.creci ? ' CRECI ' + corretor.creci : ''}.`;
+  const msg = `Olá! Solicitei a reserva do ${loteLabel(l)} (${lot.nome}) para o cliente ${cliente.nome}. Proposta: ${fmtMoney(r.proposta.valor)}, entrada ${fmtMoney(r.proposta.entrada)} + ${r.proposta.nParcelas}x de ${fmtMoney(parcelaDaProposta(r))}. Corretor: ${corretor.nome}${corretor.creci ? ' CRECI ' + corretor.creci : ''}.`;
   openModal({ title: 'Pedido enviado', body: `<p class="small">O lote <b>${esc(loteLabel(l))}</b> ficou marcado como <span class="badge reservado">Reservado</span> aguardando aprovação do administrador.</p><p class="small muted mt">Você acompanha o andamento na aba <b>Minhas reservas</b>.</p>`,
     footer: `${db.config.adminWhatsapp ? `<a class="btn btn-wa" href="${waLink(db.config.adminWhatsapp, msg)}" target="_blank">Avisar administrador</a>` : ''}<button class="btn btn-primary" onclick="closeModal()">OK</button>` });
 }
@@ -342,7 +353,7 @@ function reservaDetalheHtml(r) {
     </div></div>
     ${r.proposta ? `<div class="fieldset"><span class="lg">Proposta</span><div class="detail-grid">
       <div><div class="k">Valor</div><div class="v">${fmtMoney(r.proposta.valor)}</div></div><div><div class="k">Entrada</div><div class="v">${fmtMoney(r.proposta.entrada)}</div></div>
-      <div><div class="k">Parcelas</div><div class="v">${r.proposta.nParcelas}× de ${fmtMoney(r.proposta.nParcelas ? (r.proposta.valor - r.proposta.entrada) / r.proposta.nParcelas : 0)}</div></div>
+      <div><div class="k">Parcelas</div><div class="v">${r.proposta.nParcelas}× de ${fmtMoney(parcelaDaProposta(r))}<div class="tiny muted">${jurosDaProposta(r) ? `tabela Price, ${fmtNum(jurosDaProposta(r), 2)}% a.m.` : 'sem juros'}</div></div></div>
       ${r.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(r.obs)}</div></div>` : ''}
     </div></div>` : ''}`;
 }
@@ -351,14 +362,14 @@ function reservaDetalheHtml(r) {
 function renderCPerfil() {
   const p = corretorPerfil(); const v = $('#cv-perfil');
   v.innerHTML = `
-    <div class="card"><h3>Meus dados</h3>
+    <div class="card"><h2>Meus dados</h2>
       <p class="help mb">${Cloud.active ? 'Esses dados aparecem para a administração e são preenchidos automaticamente nos pedidos de reserva.' : 'Esses dados são preenchidos automaticamente nos pedidos de reserva e ficam salvos neste aparelho.'}</p>
       <div class="fg"><label>Nome completo</label><input type="text" id="pfNome" value="${esc(p.nome)}"></div>
       <div class="frow"><div class="fg"><label>CRECI</label><input type="text" id="pfCreci" value="${esc(p.creci)}"></div><div class="fg"><label>Telefone / WhatsApp</label><input type="tel" id="pfTel" value="${esc(p.telefone)}"></div></div>
       <div class="frow"><div class="fg"><label>E-mail</label><input type="email" id="pfEmail" value="${esc(p.email)}"></div><div class="fg"><label>Imobiliária</label><input type="text" id="pfImob" value="${esc(p.imobiliaria)}"></div></div>
       <button class="btn btn-primary btn-block" onclick="salvarPerfil()">Salvar</button>
     </div>
-    <div class="card"><h3>ℹ️ Sobre o empreendimento</h3>${(() => { const lot = curLot(); if (!lot) return '<p class="help">Nenhum loteamento.</p>'; const c = lot.cond || {}; return `<p class="help"><b>${esc(lot.nome)}</b>${lot.cidade ? ' · ' + esc(lot.cidade) : ''}${lot.endereco ? '<br>' + esc(lot.endereco) : ''}${lot.descricao ? '<br><br>' + esc(lot.descricao) : ''}</p>
+    <div class="card"><h2>ℹ️ Sobre o empreendimento</h2>${(() => { const lot = curLot(); if (!lot) return '<p class="help">Nenhum loteamento.</p>'; const c = lot.cond || {}; return `<p class="help"><b>${esc(lot.nome)}</b>${lot.cidade ? ' · ' + esc(lot.cidade) : ''}${lot.endereco ? '<br>' + esc(lot.endereco) : ''}${lot.descricao ? '<br><br>' + esc(lot.descricao) : ''}</p>
       <div class="detail-grid mt"><div><div class="k">Entrada mínima</div><div class="v">${fmtNum(c.entradaMinPct || 0, 0)}%</div></div><div><div class="k">Parcelas máx.</div><div class="v">${c.maxParcelas || '—'}×</div></div><div><div class="k">Juros</div><div class="v">${c.jurosMes ? fmtNum(c.jurosMes, 2) + '% a.m.' : 'Sem juros'}</div></div><div><div class="k">Desconto à vista</div><div class="v">${fmtNum(c.descontoVistaPct || 0, 0)}%</div></div><div><div class="k">Validade da reserva</div><div class="v">${db.config.reservaDias} dias</div></div><div><div class="k">Comissão</div><div class="v">${fmtNum(db.config.comissaoPct, 1)}%</div></div></div>`; })()}
       ${db.config.adminWhatsapp ? `<a class="btn btn-wa btn-block mt" href="${waLink(db.config.adminWhatsapp, 'Olá! Sou corretor e tenho uma dúvida sobre o loteamento.')}" target="_blank">Falar com a administração</a>` : ''}
     </div>

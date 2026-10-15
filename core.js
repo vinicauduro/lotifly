@@ -125,17 +125,66 @@ function botaoOcupado(btn, texto) {
   else { btn.disabled = false; btn.classList.remove('ocupado'); if (btn.dataset.rotulo) { btn.textContent = btn.dataset.rotulo; delete btn.dataset.rotulo; } }
 }
 
+/* ---- teclado e leitor de tela, para a tela inteira ----
+   Boa parte do que se toca é <div onclick> (cartões, linhas, abas, chips). Em vez de trocar
+   centenas de trechos, uma passada depois de cada desenho da tela:
+   - o que tem onclick e não é botão/link entra na ordem do Tab, e Enter/Espaço acionam;
+     vira role="button" quando não tem botões dentro (botão dentro de botão confunde o leitor);
+   - botão só com ícone recebe como nome o próprio title;
+   - ícone decorativo fica escondido do leitor de tela;
+   - o rótulo de cada campo (.fg > label) fica ligado ao campo: clicar no rótulo foca o campo;
+   - e-mail sem corretor ortográfico; campos fora do login sem sugestão do gerenciador de senhas. */
+function cuidarAcessibilidade() {
+  const CONTROLES = 'button, a, input, select, textarea, [contenteditable]';
+  let agendado = 0;
+  const ajustar = () => {
+    agendado = 0;
+    document.querySelectorAll('[onclick]:not(button):not(a):not(input):not(select):not(textarea):not(label):not([tabindex]):not([aria-hidden])').forEach(el => {
+      if (/^\s*event\.stopPropagation\(\)\s*;?\s*$/.test(el.getAttribute('onclick'))) return;   // só segura o clique dos botões de dentro
+      el.tabIndex = 0;
+      if (!el.hasAttribute('role') && el.tagName !== 'TR' && !el.querySelector(CONTROLES)) el.setAttribute('role', 'button');
+    });
+    document.querySelectorAll('button[title]:not([aria-label]), a[title]:not([aria-label])').forEach(b => { if (!b.textContent.trim()) b.setAttribute('aria-label', b.title); });
+    document.querySelectorAll('i.ico:not([aria-hidden]):not([aria-label])').forEach(i => i.setAttribute('aria-hidden', 'true'));
+    document.querySelectorAll('.fg > label:not([for]):not([data-ligado])').forEach(l => {
+      l.dataset.ligado = '1';
+      const c = l.parentElement.querySelector('input:not([type=hidden]), select, textarea'); if (!c || l.contains(c)) return;
+      if (c.id) l.htmlFor = c.id; else if (!c.hasAttribute('aria-label')) c.setAttribute('aria-label', l.textContent.replace(/[*·].*$/, '').trim());
+    });
+    document.querySelectorAll('input[type=email]:not([spellcheck])').forEach(c => { c.spellcheck = false; c.setAttribute('autocapitalize', 'none'); });
+    document.querySelectorAll('input:not([autocomplete]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]), textarea:not([autocomplete])').forEach(c => { if (!c.closest('#authBox')) c.setAttribute('autocomplete', 'off'); });
+  };
+  ajustar();
+  new MutationObserver(() => { if (!agendado) agendado = requestAnimationFrame(ajustar); }).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target; if (!el || !el.hasAttribute || !el.hasAttribute('onclick') || el.matches(CONTROLES)) return;
+    e.preventDefault(); el.click();
+  });
+}
+/* "Pular para o conteúdo": leva o foco direto para a tela aberta, sem passar pelo menu */
+function pularParaConteudo(e) {
+  e.preventDefault();
+  const v = document.querySelector('.screen.active .view.active') || document.querySelector('.screen.active');
+  if (!v) return; v.tabIndex = -1; v.focus();
+}
+
 // ---------------------------------------------------------------- modal
 function openModal({ title, body, footer = '', wide = false, full = false, onClose = null }) {
   $('#modalTitle').innerHTML = title;
-  $('#modalBody').innerHTML = body;
+  $('#modalBody').innerHTML = body; state.modalSujo = false;
   $('#modalFoot').innerHTML = footer;
   $('#modalFoot').style.display = footer ? 'flex' : 'none';
   $('#modalBox').classList.toggle('wide', wide && !full);
   $('#modalBox').classList.toggle('full', !!full);
   $('#modalBody').scrollTop = 0;
   const jaAberta = $('#modalOverlay').classList.contains('open');
+  /* Foco do teclado: entra na janela, fica nela (Tab dá a volta) e, ao fechar, volta para
+     quem abriu. Se algum campo pedir o foco logo depois (focarSeLivre), ele ganha. */
+  if (!jaAberta) state.focoAntes = document.activeElement;
   $('#modalOverlay').classList.add('open');
+  const caixa = $('#modalBox'); caixa.tabIndex = -1;
+  if (!caixa.contains(document.activeElement)) caixa.focus({ preventScroll: true });
   state.modalOnClose = onClose;
   document.body.style.overflow = 'hidden';
   if (window.Gestos) Gestos.aoAbrirJanela(jaAberta);
@@ -153,7 +202,25 @@ function focarSeLivre(id) {
     const el = document.getElementById(id); if (el) el.focus();
   }, 60);
 }
+/* Janela com campos alterados: fechar ou recarregar a aba pede confirmação ao navegador */
+document.addEventListener('input', e => { if (e.target.closest && e.target.closest('#modalBody')) state.modalSujo = true; });
+window.addEventListener('beforeunload', e => {
+  if (state.modalSujo && document.getElementById('modalOverlay').classList.contains('open')) { e.preventDefault(); e.returnValue = ''; }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || !$('#modalOverlay').classList.contains('open')) return;
+  const caixa = $('#modalBox');
+  const f = [...caixa.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.getClientRects().length);
+  if (!f.length) return;
+  const primeiro = f[0], ultimo = f[f.length - 1];
+  if (!caixa.contains(document.activeElement)) { e.preventDefault(); primeiro.focus(); }
+  else if (e.shiftKey && (document.activeElement === primeiro || document.activeElement === caixa)) { e.preventDefault(); ultimo.focus(); }
+  else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+});
 function closeModal() {
+  state.modalSujo = false;
+  const volta = state.focoAntes; state.focoAntes = null;
+  if (volta && volta.isConnected && typeof volta.focus === 'function') setTimeout(() => { if (!$('#modalOverlay').classList.contains('open')) volta.focus({ preventScroll: true }); }, 0);
   $('#modalOverlay').classList.remove('open');
   if (window.Gestos) Gestos.aoFecharJanela();
   document.body.style.overflow = '';
@@ -679,7 +746,7 @@ function escopoAtual() { return state.escopo || ''; }
 function escopoNome() { const l = escopoAtual() && getLoteamento(escopoAtual()); return l ? l.nome : 'Todos os empreendimentos'; }
 function escopoSelectHtml(onchange) {
   if (db.loteamentos.length < 2) return '';
-  return `<select onchange="state.escopo=this.value;${onchange}"><option value="">Todos os empreendimentos</option>${db.loteamentos.map(l => `<option value="${esc(l.id)}" ${escopoAtual() === l.id ? 'selected' : ''}>${esc(l.nome)}</option>`).join('')}</select>`;
+  return `<select aria-label="Empreendimento" onchange="state.escopo=this.value;${onchange}"><option value="">Todos os empreendimentos</option>${db.loteamentos.map(l => `<option value="${esc(l.id)}" ${escopoAtual() === l.id ? 'selected' : ''}>${esc(l.nome)}</option>`).join('')}</select>`;
 }
 function curLot() {
   let l = db.loteamentos.find(x => x.id === state.lotId);
@@ -1334,6 +1401,9 @@ function registrarCorretor(c) { // modo local: mantém cadastro de corretores a 
 function showScreen(name) {
   $$('.screen').forEach(s => s.classList.remove('active'));
   $('#screen-' + name).classList.add('active');
+  /* O destino do "Pular para o conteúdo" é a área principal da tela que está aberta */
+  $$('main').forEach(m => { if (m.id === 'conteudo') m.removeAttribute('id'); });
+  const principal = $('#screen-' + name + ' main'); if (principal) principal.id = 'conteudo';
   window.scrollTo(0, 0);
 }
 function switchTab(tab) {
@@ -1490,8 +1560,8 @@ function renderLanding() {
     const ls = lotesDo(lot.id);
     const cnt = s => ls.filter(l => l.status === s).length;
     box.innerHTML = `<div class="nome">${esc(lot.nome)}</div><div class="info">${esc([lot.cidade, lot.endereco].filter(Boolean).join(' · '))}</div>
-      <div class="stats"><span><b>${ls.length}</b>lotes</span><span><b style="color:#86efac">${cnt('disponivel')}</b>disponíveis</span><span><b style="color:#fcd34d">${cnt('reservado')}</b>reservados</span><span><b style="color:#fca5a5">${cnt('vendido')}</b>vendidos</span></div>
-      ${db.loteamentos.length > 1 ? `<div class="mt"><select class="lot-select" onchange="setCurLot(this.value)" style="max-width:260px;margin:0 auto"></select></div>` : ''}`;
+      <div class="stats"><span><b>${ls.length}</b>lotes</span><span><b style="color:#86efac">${cnt('disponivel')}</b>disponíveis</span><span><b style="color:#fcd34d">${cnt('reservado')}</b>reservados</span><span><b style="color:#fecaca">${cnt('vendido')}</b>vendidos</span></div>
+      ${db.loteamentos.length > 1 ? `<div class="mt"><select aria-label="Empreendimento" class="lot-select" onchange="setCurLot(this.value)" style="max-width:260px;margin:0 auto"></select></div>` : ''}`;
   }
   updateTopbars();
   $('#landingWarn').style.display = db.config.pinPadrao ? '' : 'none';
@@ -1653,6 +1723,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modalOverlay').classList.contains('open')) fecharJanela(); });
   if (window.Gestos) Gestos.medirTeclado();
   marcarValores();
+  cuidarAcessibilidade();
   state.role = 'landing';
   showScreen('landing');
   if (Cloud.enabled) { Cloud.init(); await Cloud.boot(); return; }

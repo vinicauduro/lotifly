@@ -101,7 +101,7 @@ function renderClientes() {
       <div class="kpi c-green"><div class="lbl">Com contrato</div><div class="val">${db.clientes.filter(c => contratosDoCliente(c).length).length}</div><div class="sub">comprador em ao menos um</div></div>
       <div class="kpi ${incompletos ? 'c-amber' : 'c-green'}"><div class="lbl">Qualificação incompleta</div><div class="val">${incompletos}</div><div class="sub">${incompletos ? 'falta dado para o contrato' : 'todos prontos para contrato'}</div></div>
     </div>
-    <div class="filters"><input type="text" placeholder="Nome, CPF, telefone, e-mail ou cidade" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
+    <div class="filters"><input type="text" placeholder="Nome, CPF, telefone, e-mail ou cidade…" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
       ${edita ? '<button class="btn btn-primary btn-sm" onclick="abrirClienteForm()"><i class=ico data-i=plus></i>Novo cliente</button>' : ''}</div>
     ${lista.length ? lista.map(clienteItemHtml).join('')
       : `<div class="empty"><div class="ic"><i class=ico data-i=users></i></div><p><b>${db.clientes.length ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}</b></p><p class="small">${db.clientes.length ? 'Tente outro nome ou parte do CPF.' : 'Cadastre aqui ou registre um contrato: o comprador entra no cadastro sozinho.'}</p></div>`}`;

@@ -136,7 +136,7 @@ function cadBancoHtml() {
   if (!editandoId && lista.length) return listaContasHtml(lista);
   const c = (editandoId && db.contasBanco.find(x => x.id === editandoId)) || { banco: '001', carteira: '17', variacao: '019', nossoNumeroAtual: 1, remessaSeq: 1, protestoDias: 0, baixaDias: 0, multaPct: num(db.config.multaPct) || 2, jurosMesPct: num(db.config.jurosMesPct) || 1, descontoPct: 0, especie: 'DM', aceite: 'N', mensagem1: '', mensagem2: '' };
   const perfil = BANCOS[pad(c.banco, 3)] || BANCOS['001'];
-  return `<div class="card"><h3>${c.id ? 'Editar conta de cobrança' : 'Nova conta de cobrança'} ${lista.length ? '<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="state.sub.contaEdit=null;renderCurrent()">‹ Voltar</button></span>' : ''}</h3>
+  return `<div class="card"><h2>${c.id ? 'Editar conta de cobrança' : 'Nova conta de cobrança'} ${lista.length ? '<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="state.sub.contaEdit=null;renderCurrent()">‹ Voltar</button></span>' : ''}</h2>
     <p class="help">Dados do convênio de cobrança registrada da empresa. Eles vão no boleto e no arquivo de remessa. Cada empresa preenche os seus; o layout de cada banco é do sistema.</p>
     <div class="fg"><label>Cobra quais vendas?</label><select id="bcEmp">
       <option value="" ${!c.loteamentoId ? 'selected' : ''}>Todos os empreendimentos</option>
@@ -171,7 +171,7 @@ function cadBancoHtml() {
 }
 
 function listaContasHtml(lista) {
-  return `<div class="card"><h3>Contas de cobrança <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.contaEdit='nova';renderCurrent()"><i class=ico data-i=plus></i>Nova conta</button></span></h3>
+  return `<div class="card"><h2>Contas de cobrança <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.contaEdit='nova';renderCurrent()"><i class=ico data-i=plus></i>Nova conta</button></span></h2>
     <p class="help mb">O banco aceita um arquivo de remessa por convênio, então é por conta que a cobrança se organiza. Com uma conta só, todos os empreendimentos saem juntos.</p>
     ${lista.map(c => { const b = BANCOS[pad(c.banco, 3)]; const emp = c.loteamentoId && getLoteamento(c.loteamentoId);
       const n = db.recebiveis.filter(r => { const x = contaCobranca(r.loteamentoId); return x && x.id === c.id && recStatus(r) !== 'pago'; }).length;

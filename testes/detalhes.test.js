@@ -43,6 +43,29 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       await page.evaluate(() => closeModal());
     });
 
+    await passo('reserva: a parcela da proposta é a mesma do simulador do corretor (tabela Price)', async () => {
+      const r = await page.evaluate(() => db.reservas.filter(r => r.proposta && r.proposta.nParcelas).map(r => { const lot = getLoteamento(r.loteamentoId); const sim = Math.round(pmt((num((lot.cond || {}).jurosMes) || 0) / 100, r.proposta.nParcelas, Math.max(0, r.proposta.valor - r.proposta.entrada)) * 100) / 100; return [parcelaDaProposta(r), sim]; }));
+      if (!r.length || r.some(([a, b]) => Math.abs(a - b) > 0.005)) throw new Error(JSON.stringify(r));
+      const id = await page.evaluate(() => db.reservas.find(r => r.proposta && r.proposta.nParcelas).id);
+      await page.evaluate(id => abrirReservaAdmin(id), id); await page.waitForTimeout(250);
+      const t = await page.evaluate(() => [...document.querySelectorAll('#modalBody .k')].find(k => k.textContent === 'Parcelas').parentElement.textContent);
+      const esperado = await page.evaluate(id => fmtMoney(parcelaDaProposta(db.reservas.find(r => r.id === id))), id);
+      if (!t.includes(esperado)) throw new Error(t + ' ≠ ' + esperado);
+      await page.evaluate(() => closeModal());
+    });
+
+    await passo('teclado: a janela recebe o foco, o Tab não sai dela e, ao fechar, o foco volta', async () => {
+      await page.evaluate(() => { const f = filtroRec(); f.status = 'aberto'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); });
+      const botao = page.locator('#av-recebiveis button[aria-label="Registrar pagamento"]').first();
+      await botao.focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(250);
+      if (!await page.evaluate(() => document.getElementById('modalBox').contains(document.activeElement))) throw new Error('foco fora da janela ao abrir');
+      for (let i = 0; i < 15; i++) await page.keyboard.press('Tab');
+      if (!await page.evaluate(() => document.getElementById('modalBox').contains(document.activeElement))) throw new Error('Tab saiu da janela');
+      await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+      const volta = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label'));
+      if (volta !== 'Registrar pagamento') throw new Error('foco voltou para: ' + volta);
+    });
+
     // ---------------------------------------------------------------- pagamento recebido
     await passo('pagamento: a linha paga fica tingida de verde e o aviso diz de quem foi', async () => {
       await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); }); await page.waitForTimeout(200);
