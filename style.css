@@ -455,6 +455,19 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
 .quadra-label { font-family: 'Geist', system-ui, sans-serif; font-weight: 650; fill: #3a3d40; pointer-events: none; }
 .draw-shape { fill: rgba(14,76,115,0.2); stroke: var(--primary); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .draw-pt { fill: var(--primary); stroke: white; stroke-width: 1.5; pointer-events: none; }
+/* Marca da situação sobre a cor (listras, pontos, xadrez): não pega o toque, que é do lote */
+.lote-marca { pointer-events: none; }
+/* Lote em que o cursor do teclado está: contorno escuro grosso */
+.lote-shape.teclado { stroke: #15181b; stroke-width: 4; fill-opacity: 1 !important; }
+.planta-wrap:focus-visible { outline: none; box-shadow: var(--ring); }
+/* Legenda dentro da planta, no canto de baixo à esquerda */
+.planta-legenda { position: absolute; left: 10px; bottom: 10px; right: 64px; z-index: 4; display: flex; flex-wrap: wrap; gap: 4px 12px; background: rgba(255, 255, 255, 0.94); border: 1px solid var(--border); border-radius: var(--r-md); padding: 6px 10px; font-size: 0.74rem; color: var(--text); pointer-events: none; width: max-content; max-width: calc(100% - 74px); }
+.planta-legenda span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.amostra { display: inline-block; width: 14px; height: 14px; border-radius: 3px; flex: none; }
+.amostra.disponivel { background: var(--st-disponivel); }
+.amostra.reservado { background: radial-gradient(circle, rgba(255,255,255,0.8) 1.2px, transparent 1.6px) 0 0 / 5px 5px, var(--st-reservado); }
+.amostra.vendido { background: repeating-linear-gradient(-45deg, rgba(255,255,255,0.6) 0 1.5px, transparent 1.5px 4.5px), var(--st-vendido); }
+.amostra.bloqueado { background: repeating-linear-gradient(45deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 4px), var(--st-bloqueado); }
 .planta-ctrls { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
 .planta-ctrls button { width: 40px; height: 40px; border-radius: var(--r-md); border: 1px solid var(--border-strong); background: rgba(255,255,255,0.96); cursor: pointer; font-size: 1.05rem; color: var(--text-strong); display: grid; place-items: center; }
 @media (hover: hover) and (pointer: fine) { .planta-ctrls button:hover { background: white; } }

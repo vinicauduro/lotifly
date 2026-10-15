@@ -29,6 +29,11 @@ class PlantaView {
     this.svg = document.createElementNS(SVG_NS, 'svg');
     this.svg.setAttribute('class', 'planta-svg');
     this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    /* Situação também por desenho, não só pela cor (daltonismo, impressão em preto e branco):
+       vendido = listras, reservado = pontos, indisponível = xadrez. Disponível fica liso. */
+    this.uid = 'pv' + (PlantaView.n = (PlantaView.n || 0) + 1);
+    this.defs = document.createElementNS(SVG_NS, 'defs');
+    this.svg.appendChild(this.defs);
     this.gBase = document.createElementNS(SVG_NS, 'g');
     this.gLotes = document.createElementNS(SVG_NS, 'g');
     this.gDraw = document.createElementNS(SVG_NS, 'g');
@@ -45,6 +50,23 @@ class PlantaView {
       else this.resetView();
     });
     this.c.appendChild(ctrls);
+    this.ctrls = ctrls;
+    /* Legenda dentro da planta, sempre à vista (no celular a de baixo ficava fora da tela) */
+    this.legenda = document.createElement('div');
+    this.legenda.className = 'planta-legenda';
+    this.legenda.setAttribute('aria-hidden', 'true');
+    this.legenda.innerHTML = [['disponivel', 'Disponível'], ['reservado', 'Reservado'], ['vendido', 'Vendido'], ['bloqueado', 'Indisponível']].map(([k, t]) => `<span><i class="amostra ${k}"></i>${t}</span>`).join('');
+    this.c.appendChild(this.legenda);
+    /* Teclado: a planta é uma parada só no Tab; as setas andam de lote em lote, Enter abre,
+       + e − aproximam, 0 enquadra. O leitor de tela ouve o lote em que o cursor parou. */
+    this.c.tabIndex = 0;
+    this.c.setAttribute('role', 'application');
+    this.c.setAttribute('aria-roledescription', 'planta');
+    this.c.setAttribute('aria-label', 'Planta dos lotes. Use as setas para percorrer os lotes, Enter para abrir, + e − para aproximar.');
+    this.falar = document.createElement('div');
+    this.falar.className = 'sr-only'; this.falar.setAttribute('aria-live', 'polite');
+    this.c.appendChild(this.falar);
+    this.c.addEventListener('keydown', e => this.onKey(e));
     this.hint = document.createElement('div');
     this.hint.className = 'planta-hint';
     this.hint.style.display = 'none';
@@ -203,6 +225,7 @@ class PlantaView {
 
     const opacity = this.mode === 'imagem' ? 0.5 : 0.92;
     const fs = this.tamanhoDaNumeracao();
+    this.desenharPadroes(fs);
     this.lotes.forEach(l => {
       const pts = this.absPts(l); if (!pts) return;
       const poly = document.createElementNS(SVG_NS, 'polygon');
@@ -214,7 +237,16 @@ class PlantaView {
       poly.setAttribute('class', cls);
       poly.setAttribute('fill-opacity', opacity);
       poly.dataset.id = l.id;
+      if (this.kbdId === l.id) poly.classList.add('teclado');
       this.gLotes.appendChild(poly);
+      const st = l.status || 'disponivel';
+      if (st !== 'disponivel') {
+        const marca = document.createElementNS(SVG_NS, 'polygon');
+        marca.setAttribute('points', poly.getAttribute('points'));
+        marca.setAttribute('class', 'lote-marca');
+        marca.setAttribute('fill', `url(#${this.uid}-${st})`);
+        this.gLotes.appendChild(marca);
+      }
       /* Pinta com a cor antiga e troca no quadro seguinte: a transição de fill faz a passagem */
       if (antes) requestAnimationFrame(() => requestAnimationFrame(() => { poly.classList.remove(antes); poly.classList.add(l.status || 'disponivel', 'mudou'); setTimeout(() => poly.classList.remove('mudou'), 1100); }));
       const c = PlantaView.centroid(pts);
@@ -255,14 +287,20 @@ class PlantaView {
 
   // ------------------------------------------------ viewBox / zoom
   applyVB() { const v = this.vb; this.svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); }
+  /* Enquadrar deixa livre a coluna dos botões de zoom (à direita) e a faixa da legenda (embaixo):
+     nenhum lote fica escondido atrás deles. */
   resetView() {
     const rect = this.svg.getBoundingClientRect();
-    const ar = rect.width && rect.height ? rect.width / rect.height : 1.4;
-    let w = this.W, h = this.H;
-    if (w / h < ar) w = h * ar; else h = w / ar;
-    const pad = 1.04;
-    w *= pad; h *= pad;
-    this.vb = { x: (this.W - w) / 2, y: (this.H - h) / 2, w, h };
+    if (!rect.width || !rect.height) {
+      const ar = 1.4; let w = this.W, h = this.H;
+      if (w / h < ar) w = h * ar; else h = w / ar;
+      this.vb = { x: (this.W - w * 1.04) / 2, y: (this.H - h * 1.04) / 2, w: w * 1.04, h: h * 1.04 }; this.applyVB(); return;
+    }
+    const pr = this.ctrls ? this.ctrls.offsetWidth + 20 : 0, pb = this.legenda ? this.legenda.offsetHeight + 16 : 0;
+    const uw = Math.max(80, rect.width - pr), uh = Math.max(80, rect.height - pb);
+    const s = Math.min(uw / this.W, uh / this.H) / 1.04;   // px por unidade
+    const w = rect.width / s, h = rect.height / s;
+    this.vb = { x: this.W / 2 - (uw / 2) / s, y: this.H / 2 - (uh / 2) / s, w, h };
     this.applyVB();
   }
   zoomBy(f) { this.zoomAt(f, this.vb.x + this.vb.w / 2, this.vb.y + this.vb.h / 2); }
@@ -364,6 +402,53 @@ class PlantaView {
       const id = p.target && p.target.dataset ? p.target.dataset.id : null;
       if (id && this.opts.onLotClick) this.opts.onLotClick(id);
     }
+  }
+  desenharPadroes(fs) {
+    const t = Math.max(4, Math.round(fs * 0.55)), lw = Math.max(1, t * 0.18);
+    const p = (id, corpo) => `<pattern id="${this.uid}-${id}" patternUnits="userSpaceOnUse" width="${t}" height="${t}">${corpo}</pattern>`;
+    this.defs.innerHTML =
+      p('vendido', `<path d="M-1,${t + 1} L${t + 1},-1" stroke="#ffffff" stroke-opacity="0.55" stroke-width="${lw}"/>`) +
+      p('reservado', `<circle cx="${t / 2}" cy="${t / 2}" r="${lw * 1.1}" fill="#ffffff" fill-opacity="0.75"/>`) +
+      p('bloqueado', `<path d="M0,0 L${t},${t} M${t},0 L0,${t}" stroke="#ffffff" stroke-opacity="0.6" stroke-width="${lw * 0.8}"/>`);
+  }
+  /* Setas: vai para o lote mais perto naquela direção (pesa mais o desvio para o lado) */
+  onKey(e) {
+    if (e.target !== this.c) return;
+    const k = e.key;
+    if (k === '+' || k === '=') { e.preventDefault(); this.zoomBy(1.4); return; }
+    if (k === '-' || k === '_') { e.preventDefault(); this.zoomBy(1 / 1.4); return; }
+    if (k === '0') { e.preventDefault(); this.resetView(); return; }
+    if ((k === 'Enter' || k === ' ') && this.kbdId) { e.preventDefault(); if (this.opts.onLotClick) this.opts.onLotClick(this.kbdId); return; }
+    const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }[k]; if (!dir) return;
+    e.preventDefault();
+    const centros = this.lotes.map(l => { const pts = this.absPts(l); if (!pts) return null; const c = PlantaView.bbox(pts); return { l, x: c.cx, y: c.cy }; }).filter(Boolean);
+    if (!centros.length) return;
+    const atual = centros.find(c => c.l.id === this.kbdId);
+    let prox;
+    if (!atual) prox = centros.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x))[0];
+    else {
+      let melhor = Infinity;
+      centros.forEach(c => {
+        if (c === atual) return;
+        const dx = c.x - atual.x, dy = c.y - atual.y, frente = dx * dir[0] + dy * dir[1];
+        if (frente <= 1e-6) return;
+        const lado = Math.abs(dx * dir[1] - dy * dir[0]), custo = frente + lado * 2.5;
+        if (custo < melhor) { melhor = custo; prox = c; }
+      });
+      if (!prox) return;
+    }
+    this.focarLote(prox.l.id);
+  }
+  focarLote(id) {
+    this.kbdId = id;
+    this.gLotes.querySelectorAll('.lote-shape.teclado').forEach(p => p.classList.remove('teclado'));
+    const poly = this.gLotes.querySelector(`.lote-shape[data-id="${id}"]`); if (poly) poly.classList.add('teclado');
+    const l = this.lotes.find(x => x.id === id), pts = l && this.absPts(l); if (!l) return;
+    /* Se o lote está fora da parte visível, a planta anda até ele */
+    if (pts) { const c = PlantaView.bbox(pts), v = this.vb; if (c.cx < v.x || c.cx > v.x + v.w || c.cy < v.y || c.cy > v.y + v.h) { this.vb = Object.assign({}, v, { x: c.cx - v.w / 2, y: c.cy - v.h / 2 }); this.applyVB(); } }
+    const mostraPreco = l.status !== 'vendido' || (db.config && db.config.mostrarPrecoVendido) || state.role === 'admin';
+    const preco = num(l.preco) && mostraPreco ? ` — ${fmtMoney(l.preco)}` : '';
+    this.falar.textContent = `${loteLabel(l)} — ${statusLabel(l.status || 'disponivel')}${num(l.area) ? ` — ${fmtNum(l.area, 0)} m²` : ''}${preco}`;
   }
   undoPoint() { this.drawPts.pop(); this.renderDraw(); }
   cancelDraw() { this.drawPts = []; this.rectStart = null; this.renderDraw(); this.setHint(''); }
