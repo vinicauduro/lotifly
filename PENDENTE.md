@@ -1,7 +1,106 @@
 # Pendências para testar no computador
 
 Lista do que foi construído e ainda não foi testado por você, mais as decisões que dependem da
-sua conferência. Atualizada em 23/09/2026: menu lateral (seção 7l) e cadastro de clientes (seção 7m).
+sua conferência. Atualizada em 15/10/2026: roteiro único de conferência logo abaixo.
+
+---
+
+## ✔ Roteiro de conferência (15/10)
+
+Em 15/10 passei pelos 156 itens abertos desta lista e cruzei cada um com o que você já fez
+e com os testes automáticos de `testes/`:
+
+- **14 já estavam feitos por você.** Os oito "rode o schema" anteriores à Fase 4 entraram
+  quando você rodou o schema em 15/10, porque ele é cumulativo. Também já estavam feitos a
+  planta do Hessen, a empresa na nuvem, o visual aprovado, a faixa do nosso número e a
+  carteira sem orçamento.
+- **19 estão cobertos pelos testes automáticos atuais**: reserva, permissões, contrato,
+  despesas, fluxo principal, telas e banco.
+- **5 ficaram obsoletos**, porque a tela mudou depois (abas que viraram menu, chip de
+  Cobrança, painel antigo).
+- **7 não eram teste**, eram aviso ou informação.
+- **Depois, no mesmo dia, mais 31** passaram para teste automático novo: a conta da
+  antecipação (`antecipacao.test`), o texto dos documentos (`documentos.test`) e o
+  formulário de novo contrato (`novo-contrato.test`). Esses testes acharam 5 defeitos, já
+  corrigidos (seção 7z10).
+
+Esses 76 ficaram marcados `[x]` em cada seção, com o motivo ao lado. Os que sobraram estão
+agrupados abaixo, sem repetição. Cada bloco é uma sentada.
+
+Os testes antigos (test8 a test39), que conferiram muita coisa na época de cada entrega, se
+perderam na limpeza do ambiente. Só os 13 arquivos de `testes/` contam como cobertura hoje.
+
+### A. Configurar com os seus dados (uma vez; não é teste)
+- [ ] Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
+- [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
+      Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
+- [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
+- [ ] **Chave PIX** e os cinco textos da régua de cobrança (seção 6).
+- [ ] **Multa** da conta bancária (seção 7d).
+- [ ] **Redistribuir o orçamento** entre as categorias divididas e revisar os lançamentos
+      antigos (seção 7b2).
+- [ ] Revisar o padrão de permissões de cada função (seção 7b).
+- [ ] Contratos › **Numerar agora**; se quiser, `{{contrato.numero}}` no modelo (seção 7t).
+- [ ] Clientes › **Trazer agora** (seção 7m).
+- [ ] Lote 15 da Quadra 300: tipo **Lote** e valor de venda (seções 7r e 7o).
+- [ ] Quem instalou o app: reinstalar pelo endereço novo (seção 00).
+
+### B. Conferir as contas com a sua planilha (só você tem o número certo)
+- [ ] **Índices**: o valor corrigido bate; lançar um mês antigo e ver a tela de diferença.
+- [ ] **Antecipação**: a conta já é conferida pelo teste contra uma tabela Price feita à
+      parte (`antecipacao.test`). Falta você pegar **um contrato real** seu, comparar o
+      "Para quitar" com a sua planilha e ver se o demonstrativo impresso está apresentável.
+- [ ] **Início**: os quatro números do mês e o Total a receber batem com o que você sabe;
+      clicar abre a lista certa (seções 7s e 7u).
+- [ ] **Orçado × realizado** com o seu orçamento redistribuído (seção 7c).
+
+### C. Ler os documentos
+- [ ] Ler o **seu** modelo de contrato preenchido com uma venda de verdade, depois de colar o
+      seu texto (bloco A). Concordância, cônjuge, várias partes, extenso, ordem das cláusulas
+      e a parcela da proposta já são conferidos pelo teste (`documentos.test`); falta o seu
+      olho jurídico sobre o texto.
+- [ ] **Recibo** de pagamento e o PDF dele (seção 7v).
+- [ ] **Relatórios**: os sete abrem, filtros de despesas, PDF apresentável, CSV na planilha
+      (inclusive o da inadimplência) (seções 6 e 7c).
+
+### D. Novo contrato
+- [x] *(testes: novo-contrato.test — corretor sim/não, à vista, nº de parcelas, "emitir o
+      contrato?", aviso de índice, qualificação obrigatória, cliente casado do cadastro, lote
+      novo no contrato, lote repetido, imóvel de terceiro; no celular e no computador)*
+- [ ] Excluir um cliente de teste (seção 7m).
+
+### E. Banco do Brasil (precisa do banco)
+- [ ] **Remessa de teste** com poucos títulos pelo Gerenciador Financeiro (seção 7d).
+- [ ] Retorno com título **recusado**: o número fica queimado (seção 7i).
+- [ ] **Boletos e banco**: gerar as cobranças do mês, tudo junto com uma conta só (seções 7e
+      e 7l).
+- [ ] Uma **cobrança de verdade** pelo WhatsApp; o caminho Início › alerta de atraso ›
+      Cobrança, com os filtros respondendo (seções 6 e 7j).
+
+### F. Equipe na nuvem (precisa de duas pessoas)
+- [ ] Convite aberto em outro aparelho, com as opções de validade e de quantas pessoas
+      (seções 2 e 7b).
+- [ ] Um **financeiro de verdade** logado: vê o que deve ver, e o banco recusa mudar o preço
+      de um lote (seção 7b).
+- [ ] Cadastrar dois imóveis, editar o valor de um e recarregar a página: a mudança fica
+      salva (seção 7p).
+
+### G. Planta real (Hessen)
+- [ ] Numeração uniforme e legível, na administração e na tela do corretor (seção 7k).
+- [ ] ＋ Lote desenhando, filtro "Só lotes sem posição", camadas do DXF (seção 1).
+
+### H. No celular de verdade (o teste automático simula, mas não substitui)
+- [ ] Tocar num campo de valor sem a tela aproximar; puxar a janela pela alça; abrir e
+      fechar a gaveta do menu; registrar pagamento com o teclado aberto e o Confirmar à vista
+      (seções 7l e 7y).
+- [ ] Com **Reduzir movimento** ligado nos Ajustes, abrir uma janela e registrar um pagamento
+      (seção 7z2).
+- [ ] No iPhone, abrir pelo ícone da tela inicial e conferir o topo (seção 7x).
+- [ ] Planta: legenda e desenhos de situação legíveis (seção 7z7).
+- [ ] Contrato grande: os valores aparecem inteiros nos cartões (seção 7z).
+
+As decisões e a segurança continuam nas seções 7f, 8b e 8c: planos do SaaS, domínio, e-mail,
+dois passos, Supabase Pro, backup e termos de uso.
 
 ---
 
@@ -30,7 +129,7 @@ como o mesmo site.
 
 - [x] ~~Rodar o `schema.sql`~~ — feito por você em 17/09, já com a separação do perfil
       financeiro e os convites novos.
-- [ ] **Rodar o `schema.sql` de novo.** Acumulou o seguinte desde aquela execução: a limpeza
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* **Rodar o `schema.sql` de novo.** Acumulou o seguinte desde aquela execução: a limpeza
       de dados passou a apagar também categorias e modelos (antes sobrava resto ao importar
       backup), a semente de categorias já vem dividida, os juros da conta bancária ganharam
       coluna em % ao mês, e agora entrou a **tabela de vendedores** e as colunas de
@@ -41,15 +140,15 @@ como o mesmo site.
       para quem não tem login. E entrou a **tabela de clientes** (seção 7m): sem rodar, o
       cadastro de clientes funciona só neste computador e não sincroniza, mas o resto do
       aplicativo segue normal.
-- [ ] Abrir o app e forçar a atualização (Ctrl+Shift+R no computador) para pegar a versão nova.
+- [x] *(obsoleto: o endereço mudou para /lotifly/ e o app se atualiza sozinho)* Abrir o app e forçar a atualização (Ctrl+Shift+R no computador) para pegar a versão nova.
       Endereço: https://vinicauduro.github.io/agenda-corretor/gestao/
-- [ ] Conferir o **menu lateral novo** (seção 7l). A barra de abas em cima saiu.
+- [x] *(em uso desde 23/09; telas.test abre todas as telas do menu)* Conferir o **menu lateral novo** (seção 7l). A barra de abas em cima saiu.
 
 ---
 
 ## 1. Planta em DXF e lotes manuais
 
-- [ ] Importar o DXF do Hessen e conferir se a planta ficou bonita e alinhada.
+- [x] *(feito por você: a planta do Hessen já está no sistema (seção 7k))* Importar o DXF do Hessen e conferir se a planta ficou bonita e alinhada.
 - [ ] Testar o botão **＋ Lote** para criar um lote que a detecção não pegou, desenhando o
       retângulo sobre a planta.
 - [ ] Testar o filtro **Só lotes sem posição** no seletor de lotes.
@@ -63,11 +162,11 @@ nos próximos dias, com as alterações do loteamento — quando chegar, eu reim
 
 ## 2. Nuvem, equipe e corretores
 
-- [ ] Criar conta, criar a empresa e entrar como dono.
+- [x] *(feito por você: a empresa está na nuvem com dados reais (seções 7o e 7p))* Criar conta, criar a empresa e entrar como dono.
 - [ ] Gerar um convite em Configurações › Equipe e testar em outro celular ou janela anônima.
-- [ ] Conferir que o corretor vê a planta e os preços, mas não vê recebíveis, custos nem as
+- [x] *(testes: permissoes-banco (o banco barra o corretor) e telas (área do corretor))* Conferir que o corretor vê a planta e os preços, mas não vê recebíveis, custos nem as
       reservas dos outros.
-- [ ] Testar a reserva pelo corretor e a aprovação por você.
+- [x] *(testes: reserva.test (pedido do corretor, aprovação, recusa, prazo))* Testar a reserva pelo corretor e a aprovação por você.
 
 ---
 
@@ -79,10 +178,10 @@ nos próximos dias, com as alterações do loteamento — quando chegar, eu reim
       lugar do modelo de exemplo, marcando as partes variáveis com os campos da paleta.
 - [ ] Fazer o mesmo com a **sua** proposta.
 - [ ] Usar o botão **Ver exemplo** para conferir o texto preenchido antes de salvar.
-- [ ] Como corretor, abrir um lote e gerar uma **proposta**, testando entrada, parcelas, juros
+- [x] *(testes: documentos.test)* Como corretor, abrir um lote e gerar uma **proposta**, testando entrada, parcelas, juros
       e reforço anual. Conferir o PDF e o envio por WhatsApp.
-- [ ] Em uma venda, gerar o **contrato** e conferir os valores, as parcelas e o texto por extenso.
-- [ ] Testar a edição da prévia antes de imprimir.
+- [x] *(testes: documentos.test)* Em uma venda, gerar o **contrato** e conferir os valores, as parcelas e o texto por extenso.
+- [x] *(testes: documentos.test)* Testar a edição da prévia antes de imprimir.
 
 **Observação:** campos que você inventar no modelo, como `{{foro}}`, viram preenchimento na
 hora de gerar e ficam guardados para a próxima.
@@ -120,16 +219,16 @@ com o total da diferença. Quem já pagou aparece numa lista à parte, com o avi
 muda e quanto deixou de ser cobrado. Se o lançamento não mexe em parcela nenhuma, salva direto.
 
 - [ ] Testar: lance um mês antigo de propósito e confira a tela de diferença.
-- [ ] Lembrar que, se a parcela já virou boleto, o boleto precisa ser refeito.
+- [x] *(lembrete, não é teste)* Lembrar que, se a parcela já virou boleto, o boleto precisa ser refeito.
 
 ---
 
 ## 5. Antecipação e quitação
 
-- [ ] Abrir uma venda e clicar em **💸 Antecipar / quitar**.
-- [ ] Conferir a tabela **Saldo devedor mês a mês** contra a sua planilha.
-- [ ] Abrir a **tabela de amortização** e conferir juro do mês, amortização e saldo.
-- [ ] Testar as três operações: quitar tudo, antecipar as últimas parcelas e amortizar um valor
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Abrir uma venda e clicar em **💸 Antecipar / quitar**.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Conferir a tabela **Saldo devedor mês a mês** contra a sua planilha.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Abrir a **tabela de amortização** e conferir juro do mês, amortização e saldo.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Testar as três operações: quitar tudo, antecipar as últimas parcelas e amortizar um valor
       livre, nos dois modos, reduzindo prazo e reduzindo parcela.
 - [ ] Imprimir o demonstrativo e conferir se está apresentável para o cliente.
 
@@ -142,7 +241,7 @@ o cliente não usou. É o que já está implementado. Sem taxa de antecipação 
 
 - [ ] Preencher a **chave PIX** em Configurações › Régua de cobrança.
 - [ ] Revisar os cinco textos da régua e ajustar ao seu tom.
-- [ ] Abrir o painel pelo chip **🔔 Cobrança** na aba Recebíveis.
+- [x] *(obsoleto: Cobrança virou item do menu (seção 7l))* Abrir o painel pelo chip **🔔 Cobrança** na aba Recebíveis.
 - [ ] Testar uma cobrança de verdade: escolher etapa, editar a mensagem, abrir o WhatsApp e ver
       o registro aparecer no histórico.
 - [ ] Conferir o CSV da inadimplência.
@@ -166,7 +265,7 @@ nada que exista; dá para removê-las quando você quiser.
       vendas, mas não vê reservas nem consegue editar lote.
 - [ ] Com o financeiro logado, tentar mudar o preço de um lote (Empreendimentos › o
       loteamento › Lotes): tem que dar recusa vinda do banco, não só sumir o botão.
-- [ ] Testar desmarcar uma permissão e ver a aba sumir para quem tem aquele papel.
+- [x] *(testes: permissoes.test (o item some do menu para quem não tem a permissão))* Testar desmarcar uma permissão e ver a aba sumir para quem tem aquele papel.
 - [ ] Gerar um convite e conferir as novas opções de validade e de quantas pessoas podem usar.
 
 ---
@@ -191,7 +290,7 @@ as antigas recebe a divisão sozinho, e fica registrado no histórico.
       não chuta rateio. Abra Custos › ✏️ e divida do seu jeito. Vale o mesmo para as outras.
 - [ ] Conferir se algum lançamento antigo precisa trocar de categoria (o que estava em Água e
       Esgoto foi todo para Água).
-- [ ] Categoria que você mesmo criou ou renomeou não foi tocada.
+- [x] *(informação, não é teste)* Categoria que você mesmo criou ou renomeou não foi tocada.
 
 ---
 
@@ -241,9 +340,9 @@ Pela mesma fonte confirmei as posições do **retorno** (valor recebido 254-266,
 176-181, tarifa 182-188, mora 267-279, multa 280-292, motivo da recusa 383-392), que eu tinha
 escrito de memória com erro de uma posição em alguns campos.
 
-- [ ] Rodar o `schema.sql` (entraram `remessas` e as colunas `banco_valor`/`banco_venc`).
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql` (entraram `remessas` e as colunas `banco_valor`/`banco_venc`).
 - [ ] Ajustar a **multa** em Configurações › Contas bancárias (o arquivo atual é de aluguel, 10%).
-- [ ] **Escolher a faixa do nosso número — corrigido em 17/09.** Eu tinha dito "comece em
+- [x] *(decidido por você: faixa alta, a partir de 10.000.000 (seção 7i))* **Escolher a faixa do nosso número — corrigido em 17/09.** Eu tinha dito "comece em
       2637". **Estava errado**: 2636 era só o maior número da única remessa que você mandou, de
       02/09. O boleto que você enviou tem nosso número **1819** e foi processado em 17/09, ou
       seja, *depois* — a numeração do seu ERP não segue ordem de emissão. E a remessa de 02/09
@@ -341,12 +440,12 @@ conta do empreendimento dela; se o empreendimento não tiver conta própria, cai
 
 O corretor não muda: continua vendo planta e reservando lote, e carteiras não aparecem para ele.
 
-- [ ] Passear pelas seis abas e conferir que nada sumiu do caminho.
-- [ ] Abrir um empreendimento e usar planta, lotes, reservas e obra por dentro dele.
-- [ ] Criar uma carteira e registrar uma venda de imóvel avulso.
-- [ ] Ver os recebíveis e os relatórios com todos os empreendimentos juntos, e depois filtrados.
+- [x] *(obsoleto: as abas viraram o menu lateral (seção 7l))* Passear pelas seis abas e conferir que nada sumiu do caminho.
+- [x] *(testes: fluxo.test (abre o loteamento, vende um lote) e telas.test)* Abrir um empreendimento e usar planta, lotes, reservas e obra por dentro dele.
+- [x] *(testes: novo-contrato.test)* Criar uma carteira e registrar uma venda de imóvel avulso.
+- [x] *(testes: telas.test e detalhes.test (mesmos números com e sem filtro))* Ver os recebíveis e os relatórios com todos os empreendimentos juntos, e depois filtrados.
 - [ ] Gerar cobranças e conferir que, com uma conta bancária só, sai tudo junto sem perguntar nada.
-- [ ] Decidir se a carteira precisa de orçamento de custos (hoje a tela existe igual).
+- [x] *(decidido por você: carteira não tem orçamento (seção 7f))* Decidir se a carteira precisa de orçamento de custos (hoje a tela existe igual).
 
 ---
 
@@ -358,15 +457,15 @@ mas o formulário nunca coletou esses campos — saía tudo em branco e ninguém
 
 **O que testar:**
 
-- [ ] Abra uma venda. O bloco do comprador agora tem, além de nome, CPF, telefone e e-mail,
+- [x] *(testes: documentos.test)* Abra uma venda. O bloco do comprador agora tem, além de nome, CPF, telefone e e-mail,
       um **📋 Qualificação completa** que abre: nacionalidade, profissão, estado civil,
       regime de bens, RG com órgão expedidor e endereço em campos separados (CEP,
       logradouro, número, complemento, bairro, cidade, UF).
-- [ ] O resumo desse bloco diz o que ainda falta — "falta profissão, RG, cidade". É a mesma
+- [x] *(testes: documentos.test)* O resumo desse bloco diz o que ainda falta — "falta profissão, RG, cidade". É a mesma
       conferência que a declaração fiscal vai exigir depois, então vale preencher já.
-- [ ] Escolha **estado civil casado** ou **união estável**: aparece sozinho o bloco do
+- [x] *(testes: documentos.test)* Escolha **estado civil casado** ou **união estável**: aparece sozinho o bloco do
       **cônjuge**, com os mesmos campos e a opção "mora no mesmo endereço" já marcada.
-- [ ] **Confira a concordância.** Cada pessoa tem um seletor masculino/feminino que controla
+- [x] *(testes: documentos.test)* **Confira a concordância.** Cada pessoa tem um seletor masculino/feminino que controla
       só o texto do contrato: brasileiro/brasileira, casado/casada, portador/portadora.
       Ao trocar a do comprador, a do cônjuge vira sozinha para a oposta — se o casal for do
       mesmo sexo, troque à mão e o sistema não mexe mais nela.
@@ -379,12 +478,12 @@ mas o formulário nunca coletou esses campos — saía tudo em branco e ninguém
 - [ ] No empreendimento, **📋 Endereço e registro**: CEP, logradouro, bairro, UF, cartório de
       registro, matrícula mãe e código do município no IBGE (este só a declaração fiscal usa;
       pode ficar para depois).
-- [ ] Gere um contrato de uma venda já qualificada e leia o parágrafo das partes. Ele sai
+- [x] *(testes: documentos.test)* Gere um contrato de uma venda já qualificada e leia o parágrafo das partes. Ele sai
       assim: *"FULANO, brasileiro, casado sob o regime da comunhão parcial de bens, corretor
       de imóveis, portador da cédula de identidade RG nº X SSP/SC, inscrito no CPF sob o nº
       Y, residente e domiciliado na Rua Z, nº 10, Centro, CEP 88800-000, Criciúma/SC, e sua
       esposa BELTRANA, brasileira, professora, …, residente e domiciliada no mesmo endereço"*.
-- [ ] O contrato agora tem linha de assinatura do cônjuge quando existe cônjuge.
+- [x] *(testes: documentos.test)* O contrato agora tem linha de assinatura do cônjuge quando existe cônjuge.
 
 **Atenção, uma coisa que eu não faço sozinho:** o modelo padrão de contrato mudou para usar
 `{{vendedor.qualificacao}}`, `{{comprador.qualificacao}}` e `{{imovel.descricao}}`. **Se você
@@ -395,16 +494,16 @@ mostra.
 
 **Mais de uma parte de cada lado** (feito depois que você confirmou que acontece):
 
-- [ ] No comprador há um botão **＋ Adicionar comprador**: dois irmãos, dois sócios, pai e
+- [x] *(testes: documentos.test)* No comprador há um botão **＋ Adicionar comprador**: dois irmãos, dois sócios, pai e
       filho. Cada um ganha o bloco inteiro de qualificação, com o seu próprio cônjuge, e
       pode ser removido no 🗑. Marido e mulher **não** precisam de dois blocos — para isso é
       o estado civil e o cônjuge.
 - [ ] No vendedor há **＋ Adicionar vendedor**, quando duas empresas do grupo assinam a mesma
       venda. Escolher o mesmo vendedor duas vezes não duplica.
-- [ ] O **primeiro** comprador continua sendo quem aparece nas telas de venda, recebível,
+- [x] *(informação, não é teste)* O **primeiro** comprador continua sendo quem aparece nas telas de venda, recebível,
       cobrança e boleto — só ele tem telefone obrigatório. Os demais existem para o contrato.
       Na tela da venda aparece "e mais 1" e a lista dos demais.
-- [ ] No contrato as partes saem separadas por ponto e vírgula, com "e" antes da última, e
+- [x] *(testes: documentos.test)* No contrato as partes saem separadas por ponto e vírgula, com "e" antes da última, e
       **cada uma ganha a sua linha de assinatura**, mais uma linha para cada cônjuge.
 
 Para isso o bloco de assinaturas do modelo padrão passou a usar `{{assinaturas.vendedores}}`
@@ -421,24 +520,24 @@ explico por quê.
 
 **Venda**
 
-- [ ] A qualificação **abria recolhida** e você não viu que os campos existiam — parecia que
+- [x] *(testes: documentos.test)* A qualificação **abria recolhida** e você não viu que os campos existiam — parecia que
       o sistema presumia brasileiro e casado. Agora abre visível. Nacionalidade sempre foi
       campo digitável (vem sugerido "brasileiro") e estado civil sempre foi lista com
       solteiro, casado, união estável, divorciado, separado e viúvo.
-- [ ] **Nome, CPF, RG, profissão, estado civil, nacionalidade, endereço e cidade viraram
+- [x] *(testes: documentos.test)* **Nome, CPF, RG, profissão, estado civil, nacionalidade, endereço e cidade viraram
       obrigatórios.** Salvar sem eles é recusado, dizendo qual falta e levando a tela até o
       comprador certo. Vale para cada comprador da lista.
-- [ ] **Corretor**: o sistema pergunta *"O negócio foi intermediado por corretor de
+- [x] *(testes: novo-contrato.test)* **Corretor**: o sistema pergunta *"O negócio foi intermediado por corretor de
       imóveis?"*. Só no "Sim" aparecem os campos, agora com a qualificação inteira mais
       CRECI, que é obrigatório. No "Não" a comissão vai a zero.
-- [ ] **Pagamento à vista**: nova opção. Escolhendo, somem entrada, parcelas, juros, índice e
+- [x] *(testes: novo-contrato.test)* **Pagamento à vista**: nova opção. Escolhendo, somem entrada, parcelas, juros, índice e
       reforços, e o valor inteiro entra como uma parcela só.
-- [ ] **Número de parcelas**: virou campo de texto com teclado numérico, sem as setinhas.
+- [x] *(testes: novo-contrato.test)* **Número de parcelas**: virou campo de texto com teclado numérico, sem as setinhas.
       Aqui eu não consegui reproduzir o travamento que você viu — digitando no meu teste o
       campo aceitava normalmente. Mudei o tipo do campo, que é de onde esse tipo de
       comportamento costuma vir. **Confirme se resolveu.**
-- [ ] **Salva a venda, o sistema pergunta se emite o contrato** e abre a tela para conferir.
-- [ ] **Sem índice cadastrado**, a venda avisa e leva ao cadastro, em vez de mostrar um
+- [x] *(testes: novo-contrato.test)* **Salva a venda, o sistema pergunta se emite o contrato** e abre a tela para conferir.
+- [x] *(testes: novo-contrato.test)* **Sem índice cadastrado**, a venda avisa e leva ao cadastro, em vez de mostrar um
       seletor vazio.
 
 **Cadastros**
@@ -453,13 +552,13 @@ explico por quê.
 
 **Banco — dois pedidos que eu resolvi diferente, e o porquê**
 
-- [ ] **Nosso número saiu do cadastro**: o sistema numera sozinho, começando em
+- [x] *(informação, não é teste)* **Nosso número saiu do cadastro**: o sistema numera sozinho, começando em
       **10.000.000**. Você pediu número *aleatório* e perguntou a chance de repetir; a conta
       está na seção 7i. Resumo: sequencial não tem probabilidade de colisão nenhuma, e a
       faixa alta serve para ficar longe do sistema antigo, que estava na casa dos milhares.
       Conta que já vinha numerando continua de onde estava; conta cadastrada mas que ainda
       não emitiu boleto acompanha o piso novo.
-- [ ] **Códigos de instrução saíram da tela.** Você perguntou o que fazem: são o comando para
+- [x] *(informação, não é teste)* **Códigos de instrução saíram da tela.** Você perguntou o que fazem: são o comando para
       o banco **agir sozinho** depois do vencimento — protestar em cartório, baixar o título,
       negativar. Cada banco tem os seus códigos. **Zerados, o banco não faz nada por conta
       própria**: o boleto fica registrado, o cliente pode pagar depois do vencimento com
@@ -479,19 +578,19 @@ explico por quê.
 
 **Painel e recebíveis**
 
-- [ ] Saíram do painel os **próximos vencimentos** e a **atividade recente**.
-- [ ] **Recebíveis abre no mês corrente.** Para ver tudo, o seletor de mês tem "Todos os
+- [x] *(obsoleto: o Início foi refeito em 29/09 (seção 7s))* Saíram do painel os **próximos vencimentos** e a **atividade recente**.
+- [x] *(informação, não é teste)* **Recebíveis abre no mês corrente.** Para ver tudo, o seletor de mês tem "Todos os
       meses"; o extrato completo de um contrato fica na tela da venda. **Atenção:** no filtro
       **Atrasados** o mês é ignorado de propósito — parcela vencida em julho continua
       atrasada em setembro, e esconder isso seria pior.
 
 **Antecipação e quitação**
 
-- [ ] "Juros não usados" virou **Desconto**.
-- [ ] Saiu a projeção de quitação dos próximos meses: fica só **o valor do mês vigente**,
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* "Juros não usados" virou **Desconto**.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Saiu a projeção de quitação dos próximos meses: fica só **o valor do mês vigente**,
       válido até o último dia do mês, que é como o cálculo é feito.
-- [ ] A mensagem de WhatsApp diz **"para quitar até o último dia do mês"**.
-- [ ] **Amortização parcial**: no modo "reduzir prazo" o cliente pode pagar qualquer valor —
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* A mensagem de WhatsApp diz **"para quitar até o último dia do mês"**.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* **Amortização parcial**: no modo "reduzir prazo" o cliente pode pagar qualquer valor —
       10, 100, 1000. O sistema quita as parcelas inteiras que o dinheiro fecha e **amortiza em
       parte a parcela seguinte, que continua em aberto com o saldo**. O pedaço pago adiantado
       ganha o mesmo desconto que a parcela inteira ganharia. No extrato aparecem duas linhas:
@@ -501,7 +600,7 @@ explico por quê.
 
 **Distrato**
 
-- [ ] Como combinado, o distrato saiu e virou **🗑️ Excluir contrato**, em duas etapas: a
+- [x] *(testes: contrato.test (Excluir no menu Mais) e despesas.test (exclusão com EXCLUIR))* Como combinado, o distrato saiu e virou **🗑️ Excluir contrato**, em duas etapas: a
       primeira tela mostra quantas parcelas somem, quanto já foi recebido e que o lote volta a
       ficar disponível; a segunda pede que você escreva **EXCLUIR**. Se o contrato tiver
       pagamento registrado, o aviso é explícito: esse dinheiro some dos relatórios. Tire um
@@ -566,7 +665,7 @@ rota de volta para a lista.
 
 - [ ] Refazer o caminho do vídeo e confirmar: painel › alerta de atraso › cobrança › clicar em
       cada um dos quatro filtros.
-- [ ] Testar também o contrário: da lista, chip 🔔 Cobrança, e voltar.
+- [x] *(obsoleto: o chip saiu, Cobrança é item do menu)* Testar também o contrário: da lista, chip 🔔 Cobrança, e voltar.
 
 O `test24` cobre esses caminhos. Conferi que ele **falha** no código antigo e passa no novo —
 teste que passa nos dois não prova nada.
@@ -591,7 +690,7 @@ Vale para as duas telas, porque o desenho da planta é o mesmo código: administ
 
 - [ ] Abrir a planta do Hessen e conferir se a numeração ficou uniforme e legível.
 - [ ] Conferir também na tela do corretor.
-- [ ] Se ficar pequena demais na sua planta, me diga: o piso e o teto são dois números, ajusto
+- [x] *(só se precisar ajustar)* Se ficar pequena demais na sua planta, me diga: o piso e o teto são dois números, ajusto
       na hora.
 
 Em **esquemática** a numeração já era uniforme, porque ali todos os blocos têm o mesmo tamanho.
@@ -635,9 +734,9 @@ O que mudou de lugar:
 
 Para conferir:
 
-- [ ] Passar por cada item do menu e ver se a tela abre no lugar certo.
-- [ ] Aprovar uma reserva pelo item **Reservas**.
-- [ ] Lançar uma despesa por **A pagar** (o formulário pergunta de quem é) e ver ela aparecer
+- [x] *(testes: telas.test (abre as 20 telas do menu, administração e corretor))* Passar por cada item do menu e ver se a tela abre no lugar certo.
+- [x] *(testes: reserva.test)* Aprovar uma reserva pelo item **Reservas**.
+- [x] *(testes: despesas.test)* Lançar uma despesa por **A pagar** (o formulário pergunta de quem é) e ver ela aparecer
       também dentro do empreendimento, em Obra e orçamento.
 - [ ] Abrir **Boletos e banco** e gerar as cobranças do mês por ali.
 - [ ] No celular, abrir e fechar a gaveta do menu.
@@ -650,6 +749,40 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z10. Testes de contas, documentos e novo contrato — 5 defeitos corrigidos (15/10)
+
+Três testes automáticos novos tiraram do roteiro o que dava para conferir sem você:
+
+- **`antecipacao.test`**: contrato de R$ 100.000,00 a 1% ao mês em 12 parcelas. Cada número
+  é comparado com uma tabela Price feita à parte, fora do sistema: quitar hoje, tabela de
+  amortização linha a linha, antecipar as últimas, amortizar R$ 20.000 reduzindo o prazo ou
+  mantendo o prazo, parcela vencida com multa e juros, contrato sem juros, e a tela, o
+  WhatsApp e o demonstrativo com os mesmos números.
+- **`documentos.test`**: valores e datas por extenso, qualificação no feminino, cônjuge,
+  união estável, várias partes, empresa com dois representantes, a parcela da proposta com
+  reforço anual, o contrato gerado pela tela, e a prévia editada indo para a impressão.
+- **`novo-contrato.test`**: o formulário inteiro, no celular e no computador.
+
+**O que eles acharam, e já está corrigido:**
+- **Gerar o contrato apagava o cônjuge da venda.** O formulário do contrato não mostrava os
+  campos do cônjuge, e "Guardar esses dados no cadastro da venda" (que vem marcado) gravava
+  a venda sem ele. O contrato também saía sem a linha de assinatura do cônjuge. Agora os
+  campos aparecem, e um formulário que não tem o bloco do cônjuge mantém o que estava
+  gravado, em vez de apagar. **Se você gerou contrato de comprador casado pela tela, abra a
+  venda e confira se o cônjuge continua lá.**
+- **Contrato com índice saía com duas "CLÁUSULA TERCEIRA"** (a da correção e a do atraso).
+  A correção virou "Parágrafo único" da cláusula do preço, e a numeração ficou certa com ou
+  sem índice. Vale para o modelo padrão; se você já salvou um modelo seu, confira a numeração
+  dele.
+- **R$ 0,50 por extenso saía "zero reais e cinquenta centavos"**; agora sai "cinquenta
+  centavos".
+- **Dia 1 saía "1 de outubro"**; agora sai "1º de outubro", como se escreve em contrato.
+- **A última linha da tabela de amortização podia mostrar saldo de −R$ 0,02**, por causa do
+  arredondamento da parcela. A última parcela agora fecha o saldo em zero, como numa
+  planilha bem montada.
 
 ---
 
@@ -680,10 +813,10 @@ a despesa sem empreendimento e cria o vínculo com o contrato. Enquanto não rod
 recusa salvar despesas (falta a coluna nova).
 
 - [ ] Rodar o `supabase/schema.sql` de novo no Supabase.
-- [ ] Lançar o aluguel do escritório como **Empresa** e ver em A pagar › Só da empresa.
-- [ ] Lançar uma despesa para um lote e outra para um imóvel da carteira; abrir o contrato e
+- [x] *(testes: despesas.test)* Lançar o aluguel do escritório como **Empresa** e ver em A pagar › Só da empresa.
+- [x] *(testes: despesas.test)* Lançar uma despesa para um lote e outra para um imóvel da carteira; abrir o contrato e
       ver o cartão **Despesas deste imóvel**.
-- [ ] No relatório de despesas, agrupar por **Empresa ou empreendimento**.
+- [x] *(testes: despesas.test)* No relatório de despesas, agrupar por **Empresa ou empreendimento**.
 
 `testes/despesas.test.js` cobre tudo isso no celular e no computador; o teste do banco
 (`testes/permissoes-banco.test.mjs`) confere a despesa sem empreendimento e a ligada ao contrato.
@@ -718,10 +851,10 @@ O que é só "ver uma tela" continua por função (o financeiro já enxerga esse
 **⚠ Para valer, rode o `supabase/schema.sql` de novo no Supabase** (SQL Editor › colar › Run).
 Enquanto não rodar, tudo funciona como antes, com a trava por pessoa só no aplicativo.
 
-- [ ] Em Equipe, ajustar as permissões de uma pessoa (ex.: tirar "Registrar cobranças"), pedir
+- [x] *(testes: permissoes.test (ajuste, pessoa logada, voltar ao padrão))* Em Equipe, ajustar as permissões de uma pessoa (ex.: tirar "Registrar cobranças"), pedir
   para ela entrar e ver que a opção sumiu.
-- [ ] Voltar ao padrão e conferir que a opção voltou.
-- [ ] Rodar o `supabase/schema.sql` de novo no Supabase.
+- [x] *(testes: permissoes.test)* Voltar ao padrão e conferir que a opção voltou.
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `supabase/schema.sql` de novo no Supabase.
 
 `testes/permissoes-banco.test.mjs` roda o schema inteiro num Postgres de teste e confere, como
 cada pessoa, o que o banco aceita e recusa. `testes/permissoes.test.js` simula uma equipe (dono, administradora, financeiro, corretor) só
@@ -765,7 +898,7 @@ Agora:
 - Os menus fecham ao escolher uma opção, ao clicar fora ou com Esc, e abrem para o lado em que
   cabem na tela.
 
-- [ ] No celular: abrir um contrato e registrar um pagamento pelo botão do topo.
+- [x] *(testes: contrato.test, no celular e no computador)* No celular: abrir um contrato e registrar um pagamento pelo botão do topo.
 
 `testes/contrato.test.js` confere tudo isso no celular e no computador.
 
@@ -814,9 +947,9 @@ mesmo número.
   nova validade antes de confirmar. Não aparece mais a caixinha do navegador.
 - Reserva aprovada: a ação principal vira Converter em venda.
 
-- [ ] No celular: pedir uma reserva com o perfil preenchido e ver que só pede nome, telefone e
+- [x] *(testes: reserva.test, no celular)* No celular: pedir uma reserva com o perfil preenchido e ver que só pede nome, telefone e
   proposta.
-- [ ] No computador: aprovar, tocar em "Avisar o corretor" e conferir a mensagem no WhatsApp.
+- [x] *(testes: reserva.test (Avisar o corretor e Desfazer))* No computador: aprovar, tocar em "Avisar o corretor" e conferir a mensagem no WhatsApp.
 
 `testes/reserva.test.js` faz o caminho inteiro (pedido no celular → aprovar, desfazer, recusar
 com motivo, renovar prazo) e falha se aparecer qualquer caixa do navegador.
@@ -899,7 +1032,7 @@ somem; as cores que mudam continuam (ajudam a entender e não são movimento).
 - Categoria de custo salva sem nome era ignorada em silêncio; agora avisa. Salvar mostra
   "Categoria salva".
 
-- [ ] No computador: abrir e fechar uma janela; registrar um pagamento e ver a linha e os totais.
+- [x] *(testes: detalhes.test)* No computador: abrir e fechar uma janela; registrar um pagamento e ver a linha e os totais.
 - [ ] No celular, com "Reduzir movimento" ligado (Ajustes › Acessibilidade › Movimento): abrir
   uma janela e ver que ela só aparece.
 
@@ -1013,7 +1146,7 @@ mantendo as cores da marca, com os números financeiros em destaque e tudo padro
 **Achado no caminho, sem mexer:** o gráfico "Custos por categoria" em A pagar já aparecia
 vazio antes — fica para uma correção à parte.
 
-- [ ] Abrir no computador e no celular e ver se o visual agrada.
+- [x] *(aprovado por você no PR do visual novo (14/10))* Abrir no computador e no celular e ver se o visual agrada.
 - [ ] No iPhone, abrir pelo ícone da tela inicial e conferir o topo (relógio e bateria).
 
 Prints de antes (`diagnostico/`) e depois (`diagnostico/depois/`) de todas as telas estão no
@@ -1127,9 +1260,9 @@ da janela:
 
 Para conferir:
 
-- [ ] Rodar o `schema.sql` (coluna do número, contador por ano e a função que dá o número).
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql` (coluna do número, contador por ano e a função que dá o número).
 - [ ] Em **Todos os contratos**, clicar em **Numerar agora** e conferir a ordem.
-- [ ] Abrir um contrato e passar pelas cinco abas; registrar um pagamento pela aba Parcelas.
+- [x] *(testes: contrato.test e fluxo.test)* Abrir um contrato e passar pelas cinco abas; registrar um pagamento pela aba Parcelas.
 - [ ] Se quiser o número impresso no contrato, pôr `{{contrato.numero}}` no seu modelo.
 
 Fica para a próxima rodada: o **novo contrato em passos** (imóvel, compradores, vendedor,
@@ -1197,7 +1330,7 @@ Os outros são um imóvel só, com valor de venda.
 - **O contrato continua dizendo "Lote 3 da Quadra A do Loteamento Tal"**, que é o nome
   jurídico. "Empreendimento" é só como aparece na tela.
 
-- [ ] Rodar o `schema.sql` (coluna nova `categoria` em loteamentos).
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql` (coluna nova `categoria` em loteamentos).
 - [ ] Abrir o Lote 15 da Quadra 300, escolher **Lote** e salvar.
 
 `test33` cobre a ordem da lista, o tipo obrigatório, os exemplos por tipo, a troca entre
@@ -1224,8 +1357,8 @@ venda antiga sendo trazida para cá, imóvel que entrou e saiu vendido sem passa
 - Quem vê os botões: só dono e administrador, que são quem o banco deixa criar imóvel e lote.
   O financeiro registra o contrato de um imóvel já cadastrado.
 
-- [ ] Lançar uma venda antiga de um imóvel de terceiro direto pelo **＋ Novo contrato**.
-- [ ] Lançar um contrato de um lote que ainda não estava cadastrado.
+- [x] *(testes: novo-contrato.test)* Lançar uma venda antiga de um imóvel de terceiro direto pelo **＋ Novo contrato**.
+- [x] *(testes: novo-contrato.test)* Lançar um contrato de um lote que ainda não estava cadastrado.
 
 `test31` cobre os dois caminhos, o "Voltar", o lote repetido, o contrato recusado sem lote
 solto, o lote vendido sem contrato e a permissão.
@@ -1263,7 +1396,7 @@ Reproduzi exatamente isso no teste.
 O que você perdeu naquela sessão não dá para recuperar. Por isso, **rode o `schema.sql`
 antes de continuar os testes** e cadastre os dois imóveis de novo.
 
-- [ ] Rodar o `schema.sql`.
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql`.
 - [ ] Recadastrar os dois imóveis e editar o valor de um, recarregando a página no fim.
 
 `test30` simula o banco sem as colunas novas e cobre todos os passos: falhava no código
@@ -1294,11 +1427,11 @@ O que você pediu testando:
 
 Para conferir:
 
-- [ ] Rodar o `schema.sql` (colunas novas de valor de venda, área, matrícula e descrição da
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql` (colunas novas de valor de venda, área, matrícula e descrição da
       matrícula do imóvel).
 - [ ] Abrir o **Lote 15 da Quadra 300** que você cadastrou e informar o valor de venda: ele foi
       criado antes e está sem preço, então a lista mostra "sem valor de venda".
-- [ ] Cadastrar um apartamento de terceiro e registrar a venda dele.
+- [x] *(testes: novo-contrato.test)* Cadastrar um apartamento de terceiro e registrar a venda dele.
 
 `test29` cobre tudo isso; `test19` e `test20` foram ajustados para o imóvel no singular.
 
@@ -1352,10 +1485,10 @@ excluir. Ficou no menu como **Contratos › Clientes**, entre "Todos os contrato
 
 Para conferir:
 
-- [ ] Rodar o `schema.sql` (cria a tabela de clientes).
+- [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql` (cria a tabela de clientes).
 - [ ] Abrir **Contratos › Clientes** e clicar em **Trazer agora** para puxar os compradores
       dos seus contratos.
-- [ ] Cadastrar um cliente casado, com cônjuge, e depois puxar ele num contrato novo.
+- [x] *(testes: novo-contrato.test)* Cadastrar um cliente casado, com cônjuge, e depois puxar ele num contrato novo.
 - [ ] Editar e excluir um cliente de teste.
 
 Atenção: um comprador antigo com CPF digitado errado entra no cadastro, mas a ficha só salva
