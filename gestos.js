@@ -81,6 +81,8 @@
   /* Chamado por openModal. Só anima quando a janela estava fechada; trocar o conteúdo de uma
      janela aberta não sacode a tela. Se ela estava saindo, volta de onde está. */
   function aoAbrirJanela(jaAberta) {
+    /* Abriu outra janela enquanto esta saía: cancela a saída e ela fica, só troca o conteúdo */
+    clearTimeout(saida); overlay().classList.remove('saindo');
     if (!usaGaveta()) return;
     if (jaAberta) { if (gaveta.andando && gaveta.alvo > 0) gaveta.ir(0, { resposta: 0.3, amortecimento: 1 }); return; }
     altura = caixa().offsetHeight || innerHeight;
@@ -96,10 +98,20 @@
   /* Fechar pelo ✕, pelo fundo ou pelo Esc: no celular a gaveta desce e só então fecha */
   function fecharJanela(velocidade) {
     if (!overlay().classList.contains('open')) return;
-    if (!usaGaveta()) { closeModal(); return; }
+    if (!usaGaveta()) { sairNoComputador(); return; }
     if (document.activeElement && caixa().contains(document.activeElement)) document.activeElement.blur();
     altura = caixa().offsetHeight || innerHeight;
     gaveta.ir(altura, { velocidade, resposta: 0.3, amortecimento: 1, aoParar: () => closeModal() });
+  }
+
+  /* No computador a janela some em 140 ms (o fundo clareia e ela encolhe um pouco) e só então
+     fecha: sai pelo mesmo caminho por onde entrou, mais rápido que a entrada. */
+  let saida = 0;
+  function sairNoComputador() {
+    const o = overlay(); if (o.classList.contains('saindo')) return;
+    o.classList.add('saindo');
+    clearTimeout(saida);
+    saida = setTimeout(() => { o.classList.remove('saindo'); if (o.classList.contains('open')) closeModal(); }, 140);
   }
 
   // arrastar a gaveta pela alça / cabeçalho

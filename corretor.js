@@ -85,7 +85,9 @@ function renderCLotes() {
       </select>
       <input type="text" placeholder="Buscar lote" value="${esc(f.busca)}" oninput="cSetFiltro('busca',this.value,true)">
     </div>
-    ${list.length ? list.map(l => loteCardHtml(l, 'abrirLoteCorretor')).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhum lote com esses filtros.</p></div>`}`;
+    ${list.length ? list.map(l => loteCardHtml(l, 'abrirLoteCorretor')).join('')
+      : !ls.length ? `<div class="empty"><div class="ic"><i class=ico data-i=package></i></div><p>Este loteamento ainda não tem lotes cadastrados.</p><p>Quando o escritório cadastrar, eles aparecem aqui e na planta.</p></div>`
+      : `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhum lote com esses filtros.</p><p><button class="btn btn-secondary btn-sm" onclick="state.filters.clotes={quadra:'all',status:'all',ordem:'${f.ordem}',busca:''};renderCLotes()">Limpar filtros</button></p></div>`}`;
 }
 function cSetFiltro(k, v, keepFocus) {
   state.filters.clotes[k] = v;
@@ -98,7 +100,7 @@ function cSetFiltro(k, v, keepFocus) {
 function loteCardHtml(l, onclick) {
   const m2 = l.area ? l.preco / l.area : 0;
   const mostrarPreco = l.status !== 'vendido' || db.config.mostrarPrecoVendido || state.role === 'admin';
-  return `<div class="item ${l.status}" onclick="${onclick}('${l.id}')">
+  return `<div class="item ${l.status}" data-st="l:${l.id}" onclick="${onclick}('${l.id}')">
     <div class="info">
       <div class="title">${esc(loteLabel(l))} ${l.tipo === 'comercial' ? '<span class="badge neutral">Comercial</span>' : ''}</div>
       <div class="meta">${[num(l.area) ? `${fmtNum(l.area, 0)} m²` : '', l.frente ? `${fmtNum(l.frente, 1)}m × ${fmtNum(l.fundos || 0, 1)}m` : '', m2 ? `${fmtMoney(m2)}/m²` : '', l.obs ? esc(l.obs) : ''].filter(Boolean).map((t, i) => `<span>${i ? '· ' : ''}${t}</span>`).join('')}</div>
@@ -241,9 +243,9 @@ async function enviarReserva(loteId) {
   if (Cloud.active) {
     // na nuvem a reserva é criada pelo banco (evita dois corretores no mesmo lote)
     corretor.userId = Cloud.user.id; r.corretorUserId = Cloud.user.id;
-    const btn = $('#modalFoot .btn-primary'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    const btn = $('#modalFoot .btn-primary'); botaoOcupado(btn, 'Enviando…');
     try { await Cloud.solicitarReserva(r); }
-    catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Enviar pedido'; } toast('⚠️', 'Não foi possível reservar', e.message, true); if (/disponível/.test(e.message)) { closeModal(); Cloud.loadAll().then(renderCurrent); } return; }
+    catch (e) { botaoOcupado(btn); toast('⚠️', 'Não foi possível reservar', e.message, true); if (/disponível/.test(e.message)) { closeModal(); Cloud.loadAll().then(renderCurrent); } return; }
     // reflete localmente; o tempo real confirma em seguida
     db.reservas.push(r); const li = db.lotes.findIndex(x => x.id === l.id); if (li >= 0) db.lotes[li] = Object.assign({}, l, { status: 'reservado', reservaId: r.id }); saveLocal();
     if (!Cloud.membro.telefone || !Cloud.membro.nome) Cloud.atualizarMeuPerfil({ nome: corretor.nome, telefone: corretor.telefone, creci: corretor.creci, imobiliaria: corretor.imobiliaria }).then(() => Cloud.loadEquipe()).catch(() => {});

@@ -102,13 +102,27 @@ function pmt(rateMonth, n, pv) { // parcela Price
 function toast(icon, title, body, isErr) {
   const c = $('#toastContainer');
   const t = document.createElement('div');
-  t.className = 'toast' + (isErr ? ' err' : '');
+  t.className = 'toast' + (isErr ? ' err' : icon === '✅' ? ' ok' : '');
   /* As chamadas passam um emoji; aqui ele vira o ícone do aviso. */
   const ICONES_TOAST = { '✅': 'check-circle', '⚠️': 'warning', '⛔': 'prohibit', '🔒': 'lock', '🗑️': 'trash', '↩️': 'arrow-u-up-left' };
   const nomeIco = isErr ? 'warning-circle' : (ICONES_TOAST[icon] || 'info');
   t.innerHTML = `<div class="t"><i class=ico data-i=${nomeIco}></i><span>${esc(title)}</span></div>${body ? `<div class="b">${esc(body)}</div>` : ''}`;
   c.appendChild(t);
-  setTimeout(() => t.remove(), 4200);
+  /* Sai com uma animação curta; o remove() de garantia cobre aba em segundo plano, onde a
+     animação não termina. */
+  setTimeout(() => { t.classList.add('saindo'); t.addEventListener('animationend', () => t.remove(), { once: true }); setTimeout(() => t.remove(), 400); }, 4200);
+}
+
+/* Esperando algo (nuvem, arquivo): um indicador que gira, diferente da tela vazia (que não
+   espera nada). Só aparece se a espera passar de 250 ms, para carregamento rápido não piscar. */
+function carregandoHtml(texto) {
+  return `<div class="empty carregando" role="status"><div class="ic"><span class="spinner" aria-hidden="true"></span></div><p>${texto}</p></div>`;
+}
+/* Botão esperando a resposta: fica travado, com o indicador no lugar, e volta se der erro. */
+function botaoOcupado(btn, texto) {
+  if (!btn) return;
+  if (texto) { btn.dataset.rotulo = btn.dataset.rotulo || btn.textContent; btn.disabled = true; btn.classList.add('ocupado'); btn.textContent = texto; }
+  else { btn.disabled = false; btn.classList.remove('ocupado'); if (btn.dataset.rotulo) { btn.textContent = btn.dataset.rotulo; delete btn.dataset.rotulo; } }
 }
 
 // ---------------------------------------------------------------- modal
@@ -1332,9 +1346,72 @@ function switchTab(tab) {
 }
 function renderCurrent() {
   if (state.role === 'landing' || !state.role) { renderLanding(); return; }
+  const mudou = registrarMudancas();
+  const kpisAntes = mudou ? lerKpis() : null;
   if (state.role === 'corretor') renderCorretorTab();
   else if (state.role === 'admin') renderAdminTab();
   updateTopbars();
+  marcarMudancas();
+  if (kpisAntes) marcarKpisMudados(kpisAntes);
+}
+/* Cartões de total que mudaram de valor na mesma tela por causa de uma mudança pequena (um
+   pagamento muda "Recebido" e "A receber") ganham o mesmo tom passageiro. Filtro, troca de
+   tela e carga de dados não marcam nada. */
+function lerKpis() {
+  const v = document.querySelector('.screen.active .view.active') || document.querySelector('.view.active');
+  const m = new Map(); if (!v) return { tela: '', m };
+  v.querySelectorAll('.kpi').forEach(k => { const l = k.querySelector('.lbl'), x = k.querySelector('.val'); if (l && x) m.set(l.textContent.trim(), x.textContent.trim()); });
+  return { tela: state.role + '|' + state.tab + '|' + (v.id || ''), m };
+}
+function marcarKpisMudados(antes) {
+  const depois = lerKpis();
+  if (!antes.m.size || antes.tela !== depois.tela) return;
+  const mudados = [...depois.m].filter(([l, x]) => antes.m.has(l) && antes.m.get(l) !== x).map(([l]) => l);
+  if (!mudados.length || mudados.length > 3) return;
+  const v = document.querySelector('.screen.active .view.active') || document.querySelector('.view.active');
+  v.querySelectorAll('.kpi').forEach(k => {
+    const l = k.querySelector('.lbl'); if (!l || !mudados.includes(l.textContent.trim())) return;
+    k.style.setProperty('--destaque', k.classList.contains('c-green') ? 'var(--success-bg)' : k.classList.contains('c-red') ? 'var(--danger-bg)' : k.classList.contains('c-amber') ? 'var(--warn-bg)' : 'var(--primary-soft)');
+    tingir(k);
+  });
+}
+
+/* ---- o que mudou de situação desde a última tela ----
+   Quando um lote troca de situação (reservado, vendido, liberado) ou uma parcela é paga, a
+   linha dele fica tingida da cor nova por um instante e o selo de situação se acomoda: o olho
+   acha o que acabou de mudar, inclusive quando a mudança veio de outra pessoa pela nuvem.
+   Só conta mudança pequena (até 6 de uma vez): carregar dados ou importar não pisca a tela. */
+const Mudancas = { antes: null, recentes: new Map(), em: 0 };
+const COR_DA_MUDANCA = { disponivel: 'var(--success-bg)', pago: 'var(--success-bg)', reservado: 'var(--warn-bg)', parcial: 'var(--warn-bg)', pendente: 'var(--warn-bg)', vendido: 'var(--danger-bg)', atrasado: 'var(--danger-bg)', bloqueado: '#efeeea' };
+function registrarMudancas() {
+  const agora = new Map();
+  db.lotes.forEach(l => agora.set('l:' + l.id, l.status || 'disponivel'));
+  if (typeof recStatus === 'function') db.recebiveis.forEach(r => agora.set('p:' + r.id, recStatus(r)));
+  const mud = new Map();
+  if (Mudancas.antes) agora.forEach((s, k) => { const a = Mudancas.antes.get(k); if (a !== undefined && a !== s) mud.set(k, { de: a, para: s }); });
+  Mudancas.antes = agora;
+  if (mud.size && mud.size <= 6) { Mudancas.recentes = mud; Mudancas.em = performance.now(); return true; }
+  if (mud.size) Mudancas.recentes = new Map();   // em massa: não marca nada, nem o que estava marcado
+  return false;
+}
+/* Situação anterior de um lote/parcela que acabou de mudar (ou undefined). A planta usa para
+   pintar o lote com a cor antiga e passar para a nova. */
+function mudouAgora(chave) {
+  if (performance.now() - Mudancas.em > 1200) return undefined;
+  const m = Mudancas.recentes.get(chave); return m && m.de;
+}
+function marcarMudancas() {
+  if (!Mudancas.recentes.size || performance.now() - Mudancas.em > 1200) return;
+  Mudancas.recentes.forEach((m, k) => document.querySelectorAll(`[data-st="${k}"]`).forEach(el => {
+    el.style.setProperty('--destaque', COR_DA_MUDANCA[m.para] || 'var(--primary-soft)');
+    tingir(el);
+  }));
+}
+/* A marca sai pelo relógio, não pelo fim da animação: numa aba escondida a animação não roda
+   e a marca ficaria esperando para piscar quando a aba aparecesse. */
+function tingir(el) {
+  el.classList.remove('st-mudou'); void el.offsetWidth; el.classList.add('st-mudou');
+  clearTimeout(el._tingir); el._tingir = setTimeout(() => el.classList.remove('st-mudou'), 1500);
 }
 function updateTopbars() {
   const lot = curLot();
