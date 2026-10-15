@@ -882,3 +882,238 @@ begin
     execute $p$create policy plantas_delete on storage.objects for delete to authenticated using (bucket_id = 'plantas' and public.eh_admin(((storage.foldername(name))[1])::uuid))$p$;
   end if;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- 8. Permissões pessoa a pessoa também no banco (Fase 6)
+--    O papel continua sendo a primeira barreira (políticas acima). Em cima dele, o dono ajusta
+--    cada pessoa no app (organizacoes.config -> 'permissoesPessoas'), e o padrão de cada função
+--    pode ser mudado (config -> 'permissoes'). Aqui o banco confere essas mesmas regras nas ações
+--    que mexem com dinheiro, contratos, despesas, equipe e configuração: quem tiver uma permissão
+--    desligada é recusado mesmo que tente gravar por fora do aplicativo.
+--    Ordem: ajuste da pessoa > padrão da função salvo > padrão de fábrica. O dono pode tudo.
+-- ---------------------------------------------------------------------
+
+-- Padrão de fábrica de cada função. Precisa ficar igual a PERM_PADRAO em permissoes.js
+-- (o teste testes/permissoes-banco.test.mjs confere).
+create or replace function public.permissao_padrao(p_papel text, p_chave text)
+returns boolean language sql immutable as $$
+  select case p_papel
+    when 'dono' then true
+    when 'admin' then true
+    when 'financeiro' then coalesce(('{
+      "lotes.editar": false, "planta.editar": false, "lotes.preco": false, "reservas.aprovar": false,
+      "vendas.criar": true, "vendas.editar": true, "vendas.distrato": false, "comissao.gerenciar": true,
+      "financeiro.ver": true, "financeiro.baixar": true, "financeiro.antecipar": true,
+      "cobranca.ver": true, "cobranca.registrar": true, "custos.ver": true, "custos.editar": true,
+      "relatorios.ver": true, "documentos.editar": false, "indices.editar": true,
+      "equipe.gerenciar": false, "config.editar": false, "backup.usar": false
+    }'::jsonb ->> p_chave)::boolean, false)
+    else false
+  end
+$$;
+
+-- A pessoa logada tem esta permissão nesta empresa?
+create or replace function public.tem_permissao(p_org uuid, p_chave text)
+returns boolean language plpgsql stable security definer set search_path = public as $$
+declare v_papel text; v_cfg jsonb; v jsonb;
+begin
+  select papel into v_papel from public.membros where org_id = p_org and user_id = auth.uid() and ativo limit 1;
+  if v_papel is null then return false; end if;
+  if v_papel = 'dono' then return true; end if;
+  select coalesce(config, '{}'::jsonb) into v_cfg from public.organizacoes where id = p_org;
+  v := v_cfg -> 'permissoesPessoas' -> (auth.uid()::text);
+  if v ? p_chave then return coalesce((v ->> p_chave)::boolean, false); end if;
+  v := v_cfg -> 'permissoes' -> v_papel;
+  if v ? p_chave then return coalesce((v ->> p_chave)::boolean, false); end if;
+  return public.permissao_padrao(v_papel, p_chave);
+end $$;
+
+-- Recusa se a pessoa não tiver nenhuma das permissões pedidas.
+create or replace function public.exigir_permissao(p_org uuid, p_chaves text[], p_acao text)
+returns void language plpgsql stable security definer set search_path = public as $$
+declare k text;
+begin
+  foreach k in array p_chaves loop
+    if public.tem_permissao(p_org, k) then return; end if;
+  end loop;
+  raise exception 'Sem permissão para %. Fale com o dono da empresa.', p_acao using errcode = '42501';
+end $$;
+
+-- Colunas que mudaram de uma versão da linha para a outra.
+create or replace function public.colunas_mudadas(p_new jsonb, p_old jsonb)
+returns text[] language sql immutable as $$
+  select coalesce(array_agg(n.key), '{}') from jsonb_each(p_new) n join jsonb_each(p_old) o using (key)
+  where n.value is distinct from o.value
+$$;
+
+-- "Limpar dados" (restaurar backup) apaga tudo de uma vez; essa operação tem a própria
+-- permissão e não passa pelas travas de cada linha.
+create or replace function public.limpando_dados() returns boolean language sql stable as $$
+  select coalesce(current_setting('lotifly.limpando', true), '') = 'on'
+$$;
+
+-- Parcelas (recebíveis)
+create or replace function public.recebiveis_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_org uuid := coalesce(new.org_id, old.org_id); m text[];
+begin
+  if public.limpando_dados() or auth.uid() is null then return coalesce(new, old); end if;   -- limpeza autorizada ou rotina interna do banco
+  if tg_op = 'INSERT' then
+    -- upsert de linha que já existe é edição: quem confere é o gatilho de UPDATE
+    if exists (select 1 from public.recebiveis where org_id = new.org_id and id = new.id) then return new; end if;
+    perform public.exigir_permissao(v_org, array['vendas.criar','vendas.editar','financeiro.antecipar'], 'criar parcelas');
+    return new;
+  end if;
+  if tg_op = 'DELETE' then
+    perform public.exigir_permissao(v_org, array['vendas.editar','vendas.distrato','financeiro.antecipar'], 'apagar parcelas');
+    return old;
+  end if;
+  m := public.colunas_mudadas(to_jsonb(new), to_jsonb(old));
+  if m && array['valor_pago','data_pagamento','forma','obs_pagamento'] then
+    perform public.exigir_permissao(v_org, array['financeiro.baixar','financeiro.antecipar'], 'registrar ou estornar pagamentos');
+  end if;
+  if m && array['valor','vencimento','descricao','numero','tipo','valor_corrigido','venda_id'] then
+    perform public.exigir_permissao(v_org, array['financeiro.baixar','vendas.editar','financeiro.antecipar','indices.editar'], 'alterar parcelas');
+  end if;
+  return new;
+end $$;
+drop trigger if exists recebiveis_permissoes on public.recebiveis;
+create trigger recebiveis_permissoes before insert or update or delete on public.recebiveis
+  for each row execute function public.recebiveis_permissoes();
+
+-- Contratos (vendas)
+create or replace function public.vendas_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_org uuid := coalesce(new.org_id, old.org_id); m text[]; resto text[];
+begin
+  if public.limpando_dados() or auth.uid() is null then return coalesce(new, old); end if;   -- limpeza autorizada ou rotina interna do banco
+  if tg_op = 'INSERT' then
+    if exists (select 1 from public.vendas where org_id = new.org_id and id = new.id) then return new; end if;
+    perform public.exigir_permissao(v_org, array['vendas.criar'], 'registrar vendas');
+    return new;
+  end if;
+  if tg_op = 'DELETE' then
+    perform public.exigir_permissao(v_org, array['vendas.distrato'], 'excluir contratos');
+    return old;
+  end if;
+  m := public.colunas_mudadas(to_jsonb(new), to_jsonb(old));
+  if new.status = 'distrato' and old.status is distinct from 'distrato' or m && array['distrato_em','motivo'] then
+    perform public.exigir_permissao(v_org, array['vendas.distrato'], 'fazer distrato');
+  elsif 'status' = any(m) then
+    -- ativa <-> quitada acontece sozinho ao registrar pagamento ou antecipar
+    perform public.exigir_permissao(v_org, array['financeiro.baixar','financeiro.antecipar','vendas.editar'], 'mudar a situação do contrato');
+  end if;
+  if m && array['comissao_paga','comissao_data'] then
+    perform public.exigir_permissao(v_org, array['comissao.gerenciar'], 'marcar comissões');
+  end if;
+  resto := array(select unnest(m) except select unnest(array['status','distrato_em','motivo','comissao_paga','comissao_data']));
+  if cardinality(resto) > 0 then
+    if resto <@ array['valor_parcela','indice_base'] then
+      perform public.exigir_permissao(v_org, array['financeiro.antecipar','vendas.editar'], 'recalcular o contrato');
+    else
+      perform public.exigir_permissao(v_org, array['vendas.editar'], 'editar contratos');
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists vendas_permissoes on public.vendas;
+create trigger vendas_permissoes before insert or update or delete on public.vendas
+  for each row execute function public.vendas_permissoes();
+
+-- Despesas (custos)
+create or replace function public.custos_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_org uuid := coalesce(new.org_id, old.org_id);
+begin
+  if public.limpando_dados() or auth.uid() is null then return coalesce(new, old); end if;   -- limpeza autorizada ou rotina interna do banco
+  if tg_op = 'INSERT' and exists (select 1 from public.custos where org_id = new.org_id and id = new.id) then return new; end if;
+  if tg_op = 'UPDATE' and public.colunas_mudadas(to_jsonb(new), to_jsonb(old)) = '{}' then return new; end if;
+  perform public.exigir_permissao(v_org, array['custos.editar'], 'lançar ou editar despesas');
+  return coalesce(new, old);
+end $$;
+drop trigger if exists custos_permissoes on public.custos;
+create trigger custos_permissoes before insert or update or delete on public.custos
+  for each row execute function public.custos_permissoes();
+
+-- Configuração da empresa: permissões pedem "gerenciar a equipe"; o resto, "alterar
+-- configurações". Ninguém além do dono muda o próprio ajuste (não se dá mais poder).
+create or replace function public.organizacoes_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  c_new jsonb := coalesce(new.config, '{}'::jsonb); c_old jsonb := coalesce(old.config, '{}'::jsonb);
+  eu text := auth.uid()::text;
+begin
+  if auth.uid() is null then return new; end if;   -- rotinas internas do banco
+  if (c_new -> 'permissoes') is distinct from (c_old -> 'permissoes')
+     or (c_new -> 'permissoesPessoas') is distinct from (c_old -> 'permissoesPessoas') then
+    perform public.exigir_permissao(new.id, array['equipe.gerenciar'], 'mudar permissões');
+    if (c_new -> 'permissoesPessoas' -> eu) is distinct from (c_old -> 'permissoesPessoas' -> eu)
+       and coalesce(public.papel_na_org(new.id), '') <> 'dono' then
+      raise exception 'Ninguém ajusta as próprias permissões. Fale com o dono da empresa.' using errcode = '42501';
+    end if;
+  end if;
+  if (c_new - 'permissoes' - 'permissoesPessoas') is distinct from (c_old - 'permissoes' - 'permissoesPessoas')
+     or new.nome is distinct from old.nome then
+    perform public.exigir_permissao(new.id, array['config.editar'], 'alterar configurações da empresa');
+  end if;
+  return new;
+end $$;
+drop trigger if exists organizacoes_permissoes on public.organizacoes;
+create trigger organizacoes_permissoes before update on public.organizacoes
+  for each row execute function public.organizacoes_permissoes();
+
+-- Equipe: mudar papel/situação de alguém, editar ou remover outro membro e mexer em convites
+-- pedem "gerenciar a equipe". Cada um continua podendo editar o próprio perfil.
+create or replace function public.membros_protege_papel()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (new.papel is distinct from old.papel or new.ativo is distinct from old.ativo or new.org_id <> old.org_id or new.user_id <> old.user_id)
+     and not (public.eh_admin(old.org_id) and public.tem_permissao(old.org_id, 'equipe.gerenciar')) then
+    raise exception 'Sem permissão para alterar papel ou situação do membro' using errcode = '42501';
+  end if;
+  if old.papel = 'dono' and new.papel <> 'dono'
+     and not exists (select 1 from public.membros where org_id = old.org_id and papel = 'dono' and id <> old.id) then
+    raise exception 'A empresa precisa ter pelo menos um dono';
+  end if;
+  return new;
+end $$;
+drop policy if exists membros_update on public.membros;
+drop policy if exists membros_delete on public.membros;
+create policy membros_update on public.membros for update to authenticated
+  using ((public.eh_admin(org_id) and public.tem_permissao(org_id, 'equipe.gerenciar')) or user_id = auth.uid())
+  with check ((public.eh_admin(org_id) and public.tem_permissao(org_id, 'equipe.gerenciar')) or user_id = auth.uid());
+create policy membros_delete on public.membros for delete to authenticated
+  using ((public.eh_admin(org_id) and public.tem_permissao(org_id, 'equipe.gerenciar')) or user_id = auth.uid());
+drop policy if exists convites_all on public.convites;
+create policy convites_all on public.convites for all to authenticated
+  using (public.eh_admin(org_id) and public.tem_permissao(org_id, 'equipe.gerenciar'))
+  with check (public.eh_admin(org_id) and public.tem_permissao(org_id, 'equipe.gerenciar'));
+
+-- Limpar dados (usado ao restaurar backup) pede "fazer backup e restaurar" e marca a
+-- transação para as travas de linha não barrarem a limpeza que ela mesma autorizou.
+create or replace function public.limpar_dados_org(p_org uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.eh_admin(p_org) then raise exception 'Sem permissão'; end if;
+  perform public.exigir_permissao(p_org, array['backup.usar'], 'restaurar backup');
+  perform set_config('lotifly.limpando', 'on', true);
+  delete from public.recebiveis where org_id = p_org;
+  delete from public.vendas where org_id = p_org;
+  delete from public.reservas where org_id = p_org;
+  delete from public.custos where org_id = p_org;
+  delete from public.lotes where org_id = p_org;
+  delete from public.leads where org_id = p_org;
+  delete from public.indices where org_id = p_org;
+  delete from public.cobrancas where org_id = p_org;
+  delete from public.remessas where org_id = p_org;
+  delete from public.contas_banco where org_id = p_org;
+  delete from public.modelos where org_id = p_org;
+  delete from public.vendedores where org_id = p_org;
+  delete from public.clientes where org_id = p_org;
+  delete from public.contratos_seq where org_id = p_org;
+  delete from public.categorias where org_id = p_org;
+  delete from public.vitrines where org_id = p_org;
+  delete from public.loteamentos where org_id = p_org;
+  delete from public.log where org_id = p_org;
+  perform set_config('lotifly.limpando', '', true);
+end $$;

@@ -154,7 +154,7 @@ function cadEquipeHtml() {
   const eu = Cloud.user.id;
   return `<div class="card"><h2>Equipe <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirConviteForm()"><i class=ico data-i=plus></i>Convite</button></span></h2>
     <p class="help mb">Quem tem acesso a <b>${esc(Cloud.org.nome)}</b>. Corretores veem a planta, os preços e só as próprias reservas. O financeiro cuida do dinheiro, dos contratos e das vendas, mas não mexe na planta.</p>
-    ${Cloud.membros.map(m => `<div class="item ${m.ativo ? '' : 'bloqueado'}" onclick="abrirMembroForm('${m.id}')"><div class="info"><div class="title">${esc(m.nome || m.email || '(sem nome)')} ${m.userId === eu ? '<span class="badge aprovada">você</span>' : ''} ${!m.ativo ? '<span class="badge neutral">inativo</span>' : ''}</div>
+    ${Cloud.membros.map(m => `<div class="item ${m.ativo ? '' : 'bloqueado'}" onclick="abrirMembroForm('${m.id}')"><div class="info"><div class="title">${esc(m.nome || m.email || '(sem nome)')} ${m.userId === eu ? '<span class="badge aprovada">você</span>' : ''} ${!m.ativo ? '<span class="badge neutral">inativo</span>' : ''} ${m.papel !== 'dono' && m.papel !== 'corretor' && temAjustes(m.userId) ? '<span class="badge pendente" title="Tem permissões diferentes do padrão da função">permissões próprias</span>' : ''}</div>
       <div class="meta"><span class="badge ${m.papel === 'corretor' ? 'neutral' : 'convertida'}">${statusLabel(m.papel)}</span><span>${esc(m.email)}</span>${m.telefone ? `<span>· ${esc(fmtPhone(m.telefone))}</span>` : ''}${m.creci ? `<span>· ${esc(m.creci)}</span>` : ''}${m.imobiliaria ? `<span>· ${esc(m.imobiliaria)}</span>` : ''}</div></div>
       <div class="side">${m.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(m.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`).join('')}</div>
     <div class="card"><h2>Convites</h2>
@@ -187,7 +187,7 @@ function abrirMembroForm(id) {
     <div class="frow"><div class="fg"><label>Imobiliária</label><input type="text" id="mbImob" value="${esc(m.imobiliaria)}"></div><div class="fg"><label>Papel</label><select id="mbPapel" ${eu ? 'disabled' : ''}><option value="corretor" ${m.papel === 'corretor' ? 'selected' : ''}>Corretor</option><option value="financeiro" ${m.papel === 'financeiro' ? 'selected' : ''}>Financeiro</option><option value="admin" ${m.papel === 'admin' ? 'selected' : ''}>Administrador</option><option value="dono" ${m.papel === 'dono' ? 'selected' : ''}>Dono</option></select></div></div>
     <label class="check"><input type="checkbox" id="mbAtivo" ${m.ativo ? 'checked' : ''} ${eu ? 'disabled' : ''}> Ativo (desmarque para bloquear o acesso)</label>
     <p class="help mt">E-mail: ${esc(m.email)}</p>`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarMembro('${m.id}')">Salvar</button>` });
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>${m.papel !== 'corretor' && (pode('equipe.gerenciar') || Cloud.papel === 'dono') ? `<button class="btn btn-outline" onclick="abrirPermissoesPessoa('${m.id}')">Permissões</button>` : ''}<button class="btn btn-primary" onclick="salvarMembro('${m.id}')">Salvar</button>` });
 }
 async function salvarMembro(id) {
   const m = Cloud.membros.find(x => x.id === id); if (!m) return;
