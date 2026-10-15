@@ -684,9 +684,14 @@ que mais pesa:
 - o cabeçalho do contrato tem 6 botões.
 O relatório completo está em `.impeccable/critique/`.
 
-- [ ] Decidir a definição única de Inadimplência (Início e Cobrança).
-- [ ] Decidir o que o corretor precisa informar na reserva (proposta de reduzir a nome, telefone
-  e proposta).
+- **Início, cartão "Em atraso"** (decisão sua, 15/10): mostra a % em atraso **do mês** — das
+  parcelas que vencem neste mês, quanto do valor já venceu e não foi pago, sobre o valor de
+  todas elas. O valor grande continua sendo o atraso total, de todos os meses. No começo do mês
+  a % é baixa e sobe conforme as parcelas vencem sem pagamento.
+- [ ] Cobrança (menu Financeiro › Cobrança) ainda mostra "1,4% da carteira": alinhar com o Início.
+- [ ] Reserva do corretor só com o essencial: nome e telefone do cliente + proposta (decidido em
+  15/10); a qualificação completa fica para o contrato.
+- [ ] Próximo: refazer a aprovação de reserva (proposta no topo, Aprovar/Recusar em destaque).
 
 Testes no projeto: `testes/fluxo.test.js` (entrar, abrir loteamento, vender, registrar
 recebimento — no iPhone e no computador), `testes/acessibilidade.test.js` (axe), além de

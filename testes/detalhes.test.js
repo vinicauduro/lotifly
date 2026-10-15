@@ -66,6 +66,12 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       if (volta !== 'Registrar pagamento') throw new Error('foco voltou para: ' + volta);
     });
 
+    await passo('Início: % em atraso do mês = atraso das parcelas do mês ÷ valor de todas as parcelas do mês', async () => {
+      await page.evaluate(() => { const m = todayStr().slice(0, 7); const r = recebiveisDo('').find(r => monthKey(r.vencimento) === m && !r.valorPago); upsert('recebiveis', Object.assign({}, r, { vencimento: addDays(todayStr(), -1).slice(0, 7) === m ? addDays(todayStr(), -1) : r.vencimento })); switchTab('painel'); });
+      const r = await page.evaluate(() => { const m = todayStr().slice(0, 7); const rs = recebiveisDo('').filter(r => monthKey(r.vencimento) === m); const prev = rs.reduce((s, r) => s + recValor(r), 0), atr = rs.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0); return { esperado: fmtNum(atr / prev * 100, 1) + '% das parcelas do mês em atraso', txt: document.querySelector('#av-painel .kpi.c-red .sub').textContent }; });
+      if (!r.txt.includes(r.esperado)) throw new Error(r.txt + ' ≠ ' + r.esperado);
+    });
+
     // ---------------------------------------------------------------- pagamento recebido
     await passo('pagamento: a linha paga fica tingida de verde e o aviso diz de quem foi', async () => {
       await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); }); await page.waitForTimeout(200);
