@@ -132,9 +132,7 @@ function inicioMes() {
     aPagar: custosMes.reduce((s, c) => s + num(c.valor), 0), nPagar: custosMes.length,
     pagarVencido: custosMes.filter(c => c.vencimento && c.vencimento < hoje).length,
     atrasado: atrasados.reduce((s, r) => s + recRestante(r), 0), nAtrasados: atrasados.length,
-    /* Inadimplência do mês (pedido do dono, 15/10): das parcelas que vencem neste mês, quanto do
-       valor já venceu e não foi pago, sobre o valor de todas elas. */
-    atrasoMes: recsMes.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0),
+    inadMes: inadimplenciaDoMes(''),   // a mesma conta da Cobrança (financeiro.js)
     clientesAtraso: new Set(atrasados.map(r => r.vendaId)).size,
     carteira: carteira.reduce((s, r) => s + recRestante(r), 0), nCarteira: carteira.length,
     contratosCarteira: new Set(carteira.map(r => r.vendaId)).size
@@ -182,7 +180,7 @@ function renderPainel() {
     ${alerts}
     <div class="kpi-grid inicio">
       <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
-      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>${k.previsto ? `${fmtNum(k.atrasoMes / k.previsto * 100, 1)}% das parcelas do mês em atraso (${fmtMoneyShort(k.atrasoMes)} de ${fmtMoneyShort(k.previsto)})` : 'nenhuma parcela vence este mês'} ›</div></div>
+      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>${inadimplenciaTexto(k.inadMes)} ›</div></div>
       <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
       <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
       <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>

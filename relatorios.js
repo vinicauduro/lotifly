@@ -245,14 +245,14 @@ function relInadimplencia(escopo) {
   });
   const cols = [{ t: 'Cliente' }, { t: 'Lote' }, { t: 'Parcelas', num: true }, { t: 'Venceu em' }, { t: 'Dias', num: true }, { t: 'Principal', num: true }, { t: 'Atualizado', num: true }, { t: 'Última cobrança' }];
   const total = lista.reduce((s, x) => s + x.valor, 0);
-  const carteira = recebiveisDo(escopo).reduce((s, r) => s + recRestante(r), 0);
+  const im = inadimplenciaDoMes(escopo);
   return {
     titulo: 'Inadimplência',
     filtros: '<p class="tiny muted" style="margin-top:8px">Mostra a situação atual dos contratos em atraso, sem depender do período.</p>',
     kpis: relKpis([
       { lbl: 'Contratos', val: String(lista.length), sub: 'em atraso', cor: 'c-red' },
       { lbl: 'Total atualizado', val: fmtMoneyShort(total), sub: 'com multa e juros', cor: 'c-red' },
-      { lbl: 'Inadimplência', val: (carteira ? fmtNum(total / carteira * 100, 1) : '0,0') + '%', sub: 'da carteira', cor: 'c-amber' },
+      { lbl: 'Inadimplência do mês', val: fmtNum(im.pct, 1) + '%', sub: im.previsto ? `${fmtMoneyShort(im.atraso)} de ${fmtMoneyShort(im.previsto)} em ${monthLabel(im.mesKey)}` : 'nenhuma parcela no mês', cor: 'c-amber' },
       { lbl: 'Sem contato', val: String(lista.filter(x => !x.ultima).length), sub: 'nunca cobrados', cor: 'c-blue' }
     ]),
     html: relTabela(cols, linhas, ['Total', '', '', '', '', fmtMoney(lista.reduce((s, x) => s + x.valorBase, 0)), fmtMoney(total), '']),

@@ -63,8 +63,9 @@ function renderCobranca() {
     if (f.busca) { const alvo = (it.venda.cliente.nome + ' ' + imovelLabel(it.venda)).toLowerCase(); if (!alvo.includes(f.busca.toLowerCase())) return false; }
     return true;
   });
-  const total = todos.reduce((s, x) => s + x.valor, 0);
-  const carteira = recebiveisDo(esc0).reduce((s, r) => s + recRestante(r), 0);
+  /* Mesmos números do Início: o atraso é o principal; multa e juros aparecem à parte. */
+  const total = todos.reduce((s, x) => s + x.valorBase, 0), totalCorrigido = todos.reduce((s, x) => s + x.valor, 0);
+  const im = inadimplenciaDoMes(esc0);
   const mesKey = todayStr().slice(0, 7);
   const recuperado = recebiveisDo(esc0).filter(r => r.dataPagamento && monthKey(r.dataPagamento) === mesKey && r.vencimento < r.dataPagamento).reduce((s, r) => s + num(r.valorPago), 0);
   const semCobranca = todos.filter(x => !x.ultima).length;
@@ -72,8 +73,8 @@ function renderCobranca() {
   v.innerHTML = `
     ${db.loteamentos.length > 1 ? `<div class="filters">${escopoSelectHtml('renderCobranca()')}</div>` : ''}
     <div class="kpi-grid">
-      <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoneyShort(total)}</div><div class="sub">${todos.length} contrato(s)</div></div>
-      <div class="kpi c-amber"><div class="lbl">Inadimplência</div><div class="val">${carteira ? fmtNum(total / carteira * 100, 1) : '0,0'}%</div><div class="sub">da carteira a receber</div></div>
+      <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(total)}</div><div class="sub">${todos.length} contrato(s)${totalCorrigido > total + 0.005 ? ` · com multa e juros ${fmtMoneyShort(totalCorrigido)}` : ''}</div></div>
+      <div class="kpi c-amber"><div class="lbl">Inadimplência do mês</div><div class="val">${fmtNum(im.pct, 1)}%</div><div class="sub">${im.previsto ? `${fmtMoneyShort(im.atraso)} em atraso de ${fmtMoneyShort(im.previsto)} que vence em ${monthLabel(im.mesKey)}` : 'nenhuma parcela vence este mês'}</div></div>
       <div class="kpi c-green"><div class="lbl">Recuperado no mês</div><div class="val">${fmtMoneyShort(recuperado)}</div><div class="sub">pagamentos em atraso</div></div>
       <div class="kpi c-blue"><div class="lbl">Sem contato</div><div class="val">${semCobranca}</div><div class="sub">nunca cobrados</div></div>
     </div>

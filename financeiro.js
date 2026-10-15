@@ -66,6 +66,18 @@ function renderRecebiveis() {
       : f.status === 'atrasado' ? `<div class="empty"><div class="ic"><i class=ico data-i=check-circle></i></div><p>Nenhuma parcela em atraso.</p></div>`
       : `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Nenhuma parcela nesta lista.</p></div>`}`;
 }
+/* Inadimplência do mês (definição do dono, 15/10), a mesma no Início e na Cobrança: das
+   parcelas que vencem no mês, quanto do valor já venceu e não foi pago, sobre o valor de todas
+   elas. Só o principal (sem multa e juros) e sem contratos distratados. */
+function inadimplenciaDoMes(escopo, mesKey = todayStr().slice(0, 7)) {
+  const rs = recebiveisDo(escopo).filter(r => monthKey(r.vencimento) === mesKey);
+  const previsto = rs.reduce((s, r) => s + recValor(r), 0);
+  const atraso = rs.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0);
+  return { mesKey, previsto, atraso, pct: previsto ? atraso / previsto * 100 : 0 };
+}
+function inadimplenciaTexto(im) {
+  return im.previsto ? `${fmtNum(im.pct, 1)}% das parcelas do mês em atraso (${fmtMoneyShort(im.atraso)} de ${fmtMoneyShort(im.previsto)})` : 'nenhuma parcela vence este mês';
+}
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
 function recRowHtml(r) {
   const v = getVenda(r.vendaId); const st = recStatus(r);

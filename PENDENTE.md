@@ -654,6 +654,26 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z5. Inadimplência com um número só (15/10)
+
+A % de inadimplência agora é a mesma em todo o sistema, com a definição que você escolheu:
+**das parcelas que vencem no mês, quanto do valor já venceu e não foi pago, sobre o valor de
+todas elas** (só o principal, sem multa e juros, sem contratos distratados).
+
+- **Início**, cartão "Em atraso": "X% das parcelas do mês em atraso (R$ a de R$ b)".
+- **Cobrança** (Financeiro › Cobrança): o cartão passou a se chamar "Inadimplência do mês" com
+  a mesma %; antes era "1,4% da carteira a receber". O "Em atraso" mostra o mesmo valor do
+  Início (o principal, ex.: R$ 6.910,00) e, embaixo, "com multa e juros R$ 7.153,00" — antes
+  mostrava só o valor com multa e juros, e os dois números não batiam.
+- **Relatório de Inadimplência**: o mesmo cartão "Inadimplência do mês".
+- O gráfico "Recebido × inadimplência (12 meses)" já seguia a mesma regra mês a mês.
+
+A conta mora num lugar só (`inadimplenciaDoMes`, em financeiro.js), então as três telas não
+voltam a divergir. `testes/detalhes.test.js` confere que Início, Cobrança e Relatório mostram o
+mesmo número.
+
+---
+
 ## 7z4. Reserva: pedido enxuto e aprovação refeita (15/10)
 
 **Pedido do corretor (celular)**: só o essencial, como você decidiu.
@@ -720,7 +740,7 @@ O relatório completo está em `.impeccable/critique/`.
   parcelas que vencem neste mês, quanto do valor já venceu e não foi pago, sobre o valor de
   todas elas. O valor grande continua sendo o atraso total, de todos os meses. No começo do mês
   a % é baixa e sobe conforme as parcelas vencem sem pagamento.
-- [ ] Cobrança (menu Financeiro › Cobrança) ainda mostra "1,4% da carteira": alinhar com o Início.
+- [x] Cobrança e Relatório de Inadimplência alinhados com o Início (7z5).
 - [x] Reserva do corretor só com o essencial e aprovação refeita: ver 7z4.
 
 Testes no projeto: `testes/fluxo.test.js` (entrar, abrir loteamento, vender, registrar
