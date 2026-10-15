@@ -98,6 +98,13 @@ await passo('despesas: administrador com "lançar despesas" desligado é recusad
   await recusa('admin', `insert into public.custos (org_id, id, loteamento_id, descricao, valor, data_competencia) values ('${ORG}','c1','lot1','Terraplanagem',5000,'2026-10-01')`, 'despesas');
   await como('dono', `insert into public.custos (org_id, id, loteamento_id, descricao, valor, data_competencia) values ('${ORG}','c1','lot1','Terraplanagem',5000,'2026-10-01')`);
 });
+await passo('despesas da empresa: sem empreendimento, e despesa ligada a um contrato da carteira', async () => {
+  await como('fin', `insert into public.custos (org_id, id, loteamento_id, descricao, valor, data_competencia) values ('${ORG}','c2',null,'Aluguel do escritório',3800,'2026-10-01')`);
+  await como('fin', `insert into public.custos (org_id, id, loteamento_id, venda_id, descricao, valor, data_competencia) values ('${ORG}','c3','lot1','v1','IPTU do imóvel',420,'2026-10-01')`);
+  const r = (await db.query(`select id, loteamento_id, venda_id from public.custos where id in ('c2','c3') order by id`)).rows;
+  if (r.length !== 2 || r[0].loteamento_id !== null || r[1].venda_id !== 'v1') throw new Error('gravou errado: ' + JSON.stringify(r));
+  await recusa('cor', `insert into public.custos (org_id, id, loteamento_id, descricao, valor, data_competencia) values ('${ORG}','c4',null,'Café',50,'2026-10-01')`);
+});
 await passo('ninguém ajusta as próprias permissões; o administrador ajusta os outros', async () => {
   await ajustar({ permissoesPessoas: {} });
   await recusa('admin', `update public.organizacoes set config = config || jsonb_build_object('permissoesPessoas', jsonb_build_object('${U.admin}', '{"x.y": true}'::jsonb)) where id = '${ORG}'`, 'próprias permissões');

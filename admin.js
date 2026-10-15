@@ -450,6 +450,7 @@ function excluirLote(id) {
   const l = getLote(id); if (!l) return;
   if (l.status === 'vendido' || l.status === 'reservado') { toast('⚠️', 'Lote com reserva ou venda não pode ser excluído', '', true); return; }
   if (!confirm(`Excluir ${loteLabel(l)}?`)) return;
+  db.custos.filter(c => c.loteId === id).forEach(c => upsert('custos', Object.assign({}, c, { loteId: null })));
   removeRec('lotes', id); closeModal(); renderCurrent();
 }
 function abrirGerarLotes() {
@@ -1019,6 +1020,8 @@ function confirmarExclusaoVenda(id) {
   const nome = x.cliente.nome, imovel = imovelLabel(x);
   recebiveisDe(x.id).forEach(r => removeRec('recebiveis', r.id));
   db.cobrancas.filter(c => c.vendaId === x.id).forEach(c => removeRec('cobrancas', c.id));
+  // a despesa já foi gasta: fica no empreendimento, só perde o vínculo com o contrato
+  db.custos.filter(c => c.vendaId === x.id).forEach(c => upsert('custos', Object.assign({}, c, { vendaId: null })));
   const l = x.loteId ? getLote(x.loteId) : null;
   if (l && l.vendaId === x.id) upsert('lotes', Object.assign({}, l, { status: 'disponivel', vendaId: null, reservaId: null }));
   removeRec('vendas', x.id);

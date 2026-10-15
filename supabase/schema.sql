@@ -595,6 +595,10 @@ alter table public.loteamentos add column if not exists matricula text not null 
 alter table public.loteamentos add column if not exists descricao_matricula text not null default '';
 -- numa carteira a venda não aponta para lote
 alter table public.vendas alter column lote_id drop not null;
+-- Despesa da empresa (escritório, contabilidade) não pertence a empreendimento,
+-- e a despesa de um imóvel avulso da carteira aponta para o contrato.
+alter table public.custos alter column loteamento_id drop not null;
+alter table public.custos add column if not exists venda_id text;
 
 -- ---------------------------------------------------------------------
 -- 4c. Cobranças registradas (régua de inadimplência)
