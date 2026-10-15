@@ -654,6 +654,21 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z8. A pagar: gráfico "Custos por categoria" em branco — corrigido (15/10)
+
+O cartão aparecia vazio, sem a rosca e sem a legenda, sempre que a aba **Custos** de um
+empreendimento tinha sido aberta antes (em Imóveis). As duas telas usam o mesmo desenho, e a
+do empreendimento continuava na página, escondida; o gráfico era desenhado nela, e não no
+cartão de A pagar. Agora cada tela desenha o próprio gráfico. Nenhum cálculo mudou.
+
+- [ ] Abrir Imóveis › um empreendimento › Custos, depois **A pagar** no menu, e conferir a
+      rosca e a lista de categorias.
+
+`testes/custos.test.js` confere a rosca e a legenda no celular e no computador: em A pagar,
+nos custos do empreendimento, em A pagar depois deles e com o filtro de empreendimento.
+
+---
+
 ## 7z7. Planta: situação por desenho, legenda à vista e teclado (15/10)
 
 - **Situação também por desenho**, não só pela cor: vendido com listras, reservado com pontos,

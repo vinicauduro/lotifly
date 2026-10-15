@@ -260,7 +260,9 @@ function renderCustos(alvo) {
     </div>
     <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
     ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…</p></div>`}`;
-  drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
+  /* Procura o gráfico dentro de v: a mesma tela pode estar também no empreendimento (oculta),
+     e o $ no documento todo pegava aquela cópia, deixando esta em branco. */
+  drawDonut($('#chartCustos', v), $('#chartCustosLegend', v), catData, true);
 }
 function custoRowHtml(c) {
   const st = custoStatus(c); const cat = getCategoria(c.categoriaId);
