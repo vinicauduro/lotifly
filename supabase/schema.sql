@@ -875,12 +875,15 @@ alter table public.clientes replica identity full;
 do $$
 begin
   if to_regclass('storage.buckets') is not null then
-    insert into storage.buckets (id, name, public) values ('plantas', 'plantas', true) on conflict (id) do nothing;
+    /* Plantas fechadas (15/10): o bucket deixa de ser público e o arquivo só abre para quem é
+       membro ativo da empresa dona da pasta — quem entrou pelo convite dela. O app pede um
+       link assinado, que vence em uma hora; link público antigo deixa de abrir. */
+    insert into storage.buckets (id, name, public) values ('plantas', 'plantas', false) on conflict (id) do update set public = false;
     execute 'drop policy if exists plantas_leitura on storage.objects';
     execute 'drop policy if exists plantas_escrita on storage.objects';
     execute 'drop policy if exists plantas_update on storage.objects';
     execute 'drop policy if exists plantas_delete on storage.objects';
-    execute $p$create policy plantas_leitura on storage.objects for select using (bucket_id = 'plantas')$p$;
+    execute $p$create policy plantas_leitura on storage.objects for select to authenticated using (bucket_id = 'plantas' and public.eh_membro(case when (storage.foldername(name))[1] ~ '^[0-9a-f-]{36}$' then ((storage.foldername(name))[1])::uuid end))$p$;
     execute $p$create policy plantas_escrita on storage.objects for insert to authenticated with check (bucket_id = 'plantas' and public.eh_admin(((storage.foldername(name))[1])::uuid))$p$;
     execute $p$create policy plantas_update on storage.objects for update to authenticated using (bucket_id = 'plantas' and public.eh_admin(((storage.foldername(name))[1])::uuid))$p$;
     execute $p$create policy plantas_delete on storage.objects for delete to authenticated using (bucket_id = 'plantas' and public.eh_admin(((storage.foldername(name))[1])::uuid))$p$;

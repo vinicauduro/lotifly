@@ -693,8 +693,33 @@ const Cloud = {
     const path = `${this.org.id}/${loteamentoId}.jpg`;
     const { error } = await this.client.storage.from('plantas').upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
     if (error) throw new Error(error.message);
-    const { data } = this.client.storage.from('plantas').getPublicUrl(path);
-    return data.publicUrl + '?v=' + Date.now();
+    /* Guarda a referência ao arquivo, não um link: o bucket é fechado e quem abre a planta
+       pede um link assinado na hora (urlPlantaAgora). O ?v= muda a cada envio. */
+    return `storage:plantas/${path}?v=${Date.now()}`;
+  },
+  _assinadas: {},
+  /* Caminho do arquivo no bucket, a partir da referência nova (storage:plantas/…) ou do link
+     público antigo (…/storage/v1/object/public/plantas/…), que deixou de abrir. */
+  caminhoPlanta(ref) {
+    const s = String(ref || '');
+    if (s.startsWith('storage:plantas/')) return s.slice(16).split('?')[0];
+    const m = s.match(/\/storage\/v1\/object\/(?:public|sign)\/plantas\/([^?#]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  },
+  /* Link assinado de uma hora, guardado por 50 minutos para não pedir a cada redesenho. */
+  async urlPlanta(ref) {
+    const c = this._assinadas[ref];
+    if (c && c.ate > Date.now()) return c.url;
+    if (c && c.pedindo) return c.pedindo;
+    const path = this.caminhoPlanta(ref);
+    if (!path || !this.client) return '';
+    const pedindo = this.client.storage.from('plantas').createSignedUrl(path, 3600).then(({ data, error }) => {
+      if (error || !data) { delete this._assinadas[ref]; return ''; }
+      this._assinadas[ref] = { url: data.signedUrl, ate: Date.now() + 50 * 60 * 1000 };
+      return data.signedUrl;
+    }).catch(() => { delete this._assinadas[ref]; return ''; });
+    this._assinadas[ref] = { pedindo, ate: 0 };
+    return pedindo;
   },
   // --- funções do banco ---
   criarOrganizacao(nome, usuarioNome, telefone) { return this.rpc('criar_organizacao', { p_nome: nome, p_usuario_nome: usuarioNome, p_telefone: telefone }); },
@@ -1361,6 +1386,17 @@ function recebiveisDe(vendaId) { return db.recebiveis.filter(r => r.vendaId === 
    As telas de dinheiro — vendas, recebíveis, cobrança, relatórios — trabalham na empresa
    inteira. Passar um id de empreendimento restringe; passar vazio traz tudo. O espaço de
    trabalho do empreendimento (planta, lotes, reservas, obra) é que é sempre de um só. */
+/* O endereço da imagem da planta para pôr na tela agora. Imagem do modo local (data:) vai
+   direto; arquivo da nuvem precisa de link assinado: se ainda não tem, devolve vazio, pede o
+   link e chama depois(url) quando chegar. */
+function urlPlantaAgora(ref, depois) {
+  if (!ref || /^(data|blob):/.test(ref)) return ref || '';
+  if (!Cloud.caminhoPlanta(ref)) return ref;
+  const c = Cloud._assinadas[ref];
+  if (c && c.url && c.ate > Date.now()) return c.url;
+  Cloud.urlPlanta(ref).then(u => { if (u && depois) depois(u); });
+  return '';
+}
 function noEscopo(rec, escopo) { return !escopo || rec.loteamentoId === escopo; }
 function vendasDo(escopo) { return db.vendas.filter(v => noEscopo(v, escopo)); }
 function recebiveisDo(escopo) {

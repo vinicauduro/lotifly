@@ -204,7 +204,9 @@ class PlantaView {
 
     if (this.mode === 'imagem') {
       const img = document.createElementNS(SVG_NS, 'image');
-      img.setAttribute('href', this.lot.planta.img);
+      /* Na nuvem a planta é fechada: o link assinado pode chegar depois do desenho. */
+      const href = urlPlantaAgora(this.lot.planta.img, url => { if (img.isConnected) img.setAttribute('href', url); });
+      if (href) img.setAttribute('href', href);
       img.setAttribute('x', 0); img.setAttribute('y', 0);
       img.setAttribute('width', this.W); img.setAttribute('height', this.H);
       img.setAttribute('preserveAspectRatio', 'none');
