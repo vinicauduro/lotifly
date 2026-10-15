@@ -637,19 +637,56 @@ Para conferir:
 
 - [ ] Passar por cada item do menu e ver se a tela abre no lugar certo.
 - [ ] Aprovar uma reserva pelo item **Reservas**.
-- [ ] Lançar uma despesa por **A pagar** (ele pergunta o empreendimento) e ver ela aparecer
+- [ ] Lançar uma despesa por **A pagar** (o formulário pergunta de quem é) e ver ela aparecer
       também dentro do empreendimento, em Obra e orçamento.
 - [ ] Abrir **Boletos e banco** e gerar as cobranças do mês por ali.
 - [ ] No celular, abrir e fechar a gaveta do menu.
 
 Próximas fases, na ordem combinada: **2** contrato como página própria, com número
 sequencial · **3** cadastro de clientes · **4** despesas da empresa com vínculo opcional
-(empresa, empreendimento ou carteira › imóvel) · **5** Início com a rotina do mês · **6**
+(empresa, empreendimento ou carteira › imóvel — feita, 7z9) · **5** Início com a rotina do mês · **6**
 permissões por funcionário, definidas por você e garantidas também no banco.
 
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z9. Fase 4: despesas da empresa, do empreendimento ou de um imóvel (15/10)
+
+Antes toda despesa precisava ser de um empreendimento — aluguel do escritório, salários e
+contador não tinham onde entrar. Agora, ao lançar, o primeiro campo é **De quem é a despesa**:
+
+- **Empresa** — escritório, pessoal, contador… Não pertence a nenhum empreendimento.
+- **Um empreendimento** — e, se quiser, **um imóvel dele**: um lote do loteamento ou, numa
+  carteira de imóveis de terceiros, o imóvel do contrato (IPTU, conserto, taxa de transferência).
+
+Onde aparece:
+- **Financeiro › A pagar** ganhou os filtros **Todas as despesas · Só da empresa · Só de
+  empreendimentos**. Cada linha diz de quem é (as da empresa com a marca **Empresa**).
+  **Lançar** já vem com a escolha do filtro.
+- **No contrato**, o resumo tem o cartão **Despesas deste imóvel**, com total, quanto falta
+  pagar e o botão **+ Despesa**, que já abre o formulário no imóvel certo.
+- **Relatório de despesas**: nova coluna **De quem** e o agrupamento **Empresa ou
+  empreendimento**.
+- **Orçado × realizado** da obra **não conta** despesa da empresa — orçamento é da obra.
+- O Início (a pagar no mês), o fluxo de caixa e o resumo gerencial continuam somando tudo.
+- Excluir um contrato ou um lote **não apaga** a despesa ligada a ele: ela fica no
+  empreendimento, só sem o vínculo.
+
+**⚠ Rode o `supabase/schema.sql` de novo no Supabase** (SQL Editor › colar › Run). Ele deixa
+a despesa sem empreendimento e cria o vínculo com o contrato. Enquanto não rodar, a nuvem
+recusa salvar despesas (falta a coluna nova).
+
+- [ ] Rodar o `supabase/schema.sql` de novo no Supabase.
+- [ ] Lançar o aluguel do escritório como **Empresa** e ver em A pagar › Só da empresa.
+- [ ] Lançar uma despesa para um lote e outra para um imóvel da carteira; abrir o contrato e
+      ver o cartão **Despesas deste imóvel**.
+- [ ] No relatório de despesas, agrupar por **Empresa ou empreendimento**.
+
+`testes/despesas.test.js` cobre tudo isso no celular e no computador; o teste do banco
+(`testes/permissoes-banco.test.mjs`) confere a despesa sem empreendimento e a ligada ao contrato.
 
 ---
 

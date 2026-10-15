@@ -228,7 +228,11 @@ function renderCustos(alvo) {
   const lot = escopo ? getLoteamento(escopo) : null;
   const v = alvo || alvoDoEmp('av-custos');
   const f = state.filters.custos = state.filters.custos || { status: 'all', cat: 'all', mes: 'all', busca: '' };
-  const all = custosDo(escopo);
+  /* Na lista da empresa (sem empreendimento escolhido): todas, só as da empresa ou só as dos
+     empreendimentos. Escolhido um empreendimento, valem só as dele. */
+  const vinc = global && !escopo ? (f.vinc || 'todos') : 'todos';
+  const doEscopo = custosDo(escopo);
+  const all = vinc === 'empresa' ? doEscopo.filter(c => !c.loteamentoId) : vinc === 'emps' ? doEscopo.filter(c => c.loteamentoId) : doEscopo;
   const meses = [...new Set(all.map(c => monthKey(c.dataCompetencia)))].sort().reverse();
   const list = all.filter(c => (f.status === 'all' || custoStatus(c) === f.status) && (f.cat === 'all' || c.categoriaId === f.cat) && (f.mes === 'all' || monthKey(c.dataCompetencia) === f.mes) && (!f.busca || (c.descricao + ' ' + (c.fornecedor || '')).toLowerCase().includes(f.busca.toLowerCase())))
     .sort((a, b) => (b.dataCompetencia || '').localeCompare(a.dataCompetencia || ''));
@@ -246,6 +250,7 @@ function renderCustos(alvo) {
       <div class="kpi c-red"><div class="lbl">Vencidos</div><div class="val">${fmtMoney(atr)}</div><div class="sub">${all.filter(c => custoStatus(c) === 'atrasado').length} conta(s)</div></div>
     </div>
     ${global ? `<div class="filters">${escopoSelectHtml('renderCustos()')}</div>` : ''}
+    ${global && !escopo ? `<div class="chips chips-vinc" role="group" aria-label="De quem é a despesa">${[['todos', 'Todas as despesas'], ['empresa', 'Só da empresa'], ['emps', 'Só de empreendimentos']].map(([k, l]) => `<div class="chip ${vinc === k ? 'active' : ''}" onclick="state.filters.custos.vinc='${k}';renderCustos()">${l}<span class="n">${k === 'todos' ? doEscopo.length : k === 'empresa' ? doEscopo.filter(c => !c.loteamentoId).length : doEscopo.filter(c => c.loteamentoId).length}</span></div>`).join('')}</div>` : ''}
     <div class="grid2">
       <div class="card"><h2>Custos por categoria</h2><canvas class="chart" id="chartCustos" height="190"></canvas><div class="legend-list" id="chartCustosLegend"></div></div>
       ${!lot ? `<div class="card"><h2>Orçado × realizado</h2><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h2>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></span></h2>
@@ -256,47 +261,66 @@ function renderCustos(alvo) {
       <select aria-label="Categoria" onchange="state.filters.custos.cat=this.value;renderCustos()"><option value="all">Todas as categorias</option>${db.categorias.map(c => `<option value="${c.id}" ${f.cat === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>
       <select aria-label="Mês" onchange="state.filters.custos.mes=this.value;renderCustos()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}</option>`).join('')}</select>
       <input type="text" placeholder="Descrição ou fornecedor…" value="${esc(f.busca)}" oninput="aSetFiltro('custos','busca',this.value,renderCustos,this)">
-      <button class="btn btn-primary btn-sm" onclick="${global ? 'novoCustoEscolhendoEmp()' : 'abrirCustoForm()'}"><i class=ico data-i=plus></i>Lançar</button>
+      <button class="btn btn-primary btn-sm" onclick="abrirCustoForm(null, { emp: ${escopo ? `'${escopo}'` : vinc === 'emps' ? `'${(curLot() || {}).id || ''}'` : 'null'} })"><i class=ico data-i=plus></i>Lançar</button>
     </div>
     <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
-    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…</p></div>`}`;
+    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}`;
   drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
 }
 function custoRowHtml(c) {
   const st = custoStatus(c); const cat = getCategoria(c.categoriaId);
-  const emp = state.tab === 'custos' && !escopoAtual() ? getLoteamento(c.loteamentoId) : null;
-  return `<div class="item ${st}" onclick="setCurLotSilencioso('${c.loteamentoId}');abrirCustoForm('${c.id}')">
-    <div class="info"><div class="title">${esc(c.descricao)}${emp ? ` <span class="tiny muted">· ${esc(emp.nome)}</span>` : ''}</div>
+  /* De quem é: na lista da empresa aparece sempre; dentro do empreendimento, só o imóvel */
+  const vc = vinculoDoCusto(c), naEmpresa = state.tab === 'custos' && !escopoAtual();
+  const rotulo = naEmpresa ? vc.rotulo : vc.tipo === 'imovel' ? vc.rotulo.split(' · ').pop() : '';
+  return `<div class="item ${st}" data-vinculo="${vc.tipo}" onclick="abrirCustoForm('${c.id}')">
+    <div class="info"><div class="title">${esc(c.descricao)}${rotulo ? ` <span class="vinc ${vc.tipo}">${vc.tipo === 'empresa' ? '<i class=ico data-i=buildings></i>' : ''}${esc(rotulo)}</span>` : ''}</div>
       <div class="meta"><span class="badge neutral badge-cat"><span class="dot" style="background:${cat ? cat.cor : '#94a3b8'}"></span>${cat ? esc(cat.nome) : 'Sem categoria'}</span>${c.fornecedor ? `<span>· ${esc(c.fornecedor)}</span>` : ''}<span>· ${fmtDate(c.dataCompetencia)}</span>${c.vencimento && st !== 'pago' ? `<span ${st === 'atrasado' ? 'style="color:var(--danger)"' : ''}>· vence ${fmtDate(c.vencimento)}</span>` : ''}${st === 'pago' && c.dataPagamento ? `<span>· pago em ${fmtDate(c.dataPagamento)}</span>` : ''}</div></div>
     <div class="side"><div class="value">${fmtMoney(c.valor)}</div><span class="badge ${st}">${statusLabel(st)}</span>
       <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')"><i class=ico data-i=money></i></button>` : ''}<button class="btn-icon del" onclick="excluirCusto('${c.id}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div></div></div>`;
 }
-/* Lançar a partir da lista da empresa: primeiro diz de qual empreendimento é. (A despesa da
-   empresa sem empreendimento entra na próxima fase.) */
-function novoCustoEscolhendoEmp() {
-  comEmpreendimento('Nova despesa', 'De qual empreendimento é esta despesa?', () => abrirCustoForm());
+/* Mantido para chamadas antigas: agora o formulário já pergunta de quem é a despesa */
+function novoCustoEscolhendoEmp() { abrirCustoForm(null, { emp: escopoAtual() || null }); }
+/* De quem é a despesa: empresa, um empreendimento ou um imóvel dele (lote do loteamento ou
+   imóvel avulso de um contrato da carteira). "imovel" vale 'l:<lote>' ou 'v:<contrato>'. */
+function opcoesImovelCusto(empId, atual) {
+  const emp = getLoteamento(empId); if (!emp) return '';
+  const geral = `<option value="">— Despesa geral ${ehCarteira(emp) ? 'da carteira' : 'do empreendimento'} —</option>`;
+  const lotes = lotesDo(emp.id).map(l => `<option value="l:${l.id}" ${atual === 'l:' + l.id ? 'selected' : ''}>${esc(loteLabel(l))}</option>`).join('');
+  const contratos = ehCarteira(emp) ? db.vendas.filter(v => v.loteamentoId === emp.id && v.status !== 'distrato').map(v => `<option value="v:${v.id}" ${atual === 'v:' + v.id ? 'selected' : ''}>${esc(imovelShort(v) || imovelLabel(v))} · ${esc(v.cliente.nome || '')}</option>`).join('') : '';
+  return geral + lotes + contratos;
 }
-function abrirCustoForm(id) {
-  const lot = curLot(); const c = id ? db.custos.find(x => x.id === id) : null;
+function cuTrocarVinculo() {
+  const emp = val('cuEmp'), box = document.getElementById('cuImovelBox');
+  if (!box) return;
+  box.style.display = emp ? '' : 'none';
+  const sel = document.getElementById('cuImovel'); if (sel) sel.innerHTML = opcoesImovelCusto(emp, '');
+}
+function abrirCustoForm(id, opc = {}) {
+  const c = id ? db.custos.find(x => x.id === id) : null;
+  /* empreendimento inicial: o da despesa; ao lançar, o pedido (null = empresa); sem pedido, o atual */
+  const empIni = c ? (c.loteamentoId || '') : ('emp' in opc ? (opc.emp || '') : (curLot() || {}).id || '');
+  const imovelIni = c ? (c.loteId ? 'l:' + c.loteId : c.vendaId ? 'v:' + c.vendaId : '') : (opc.imovel || '');
   const fornecedores = [...new Set(db.custos.map(x => x.fornecedor).filter(Boolean))].sort(naturalCmp);
-  const body = `<div class="fg"><label>Descrição *</label><input type="text" id="cuDesc" value="${esc(c ? c.descricao : '')}" placeholder="Ex.: Pavimentação — 2ª medição"></div>
+  const body = `<div class="frow"><div class="fg"><label>De quem é a despesa *</label><select id="cuEmp" onchange="cuTrocarVinculo()"><option value="" ${!empIni ? 'selected' : ''}>Empresa (escritório, pessoal, contador…)</option>${db.loteamentos.map(l => `<option value="${l.id}" ${empIni === l.id ? 'selected' : ''}>${esc(l.nome)}</option>`).join('')}</select></div>
+      <div class="fg" id="cuImovelBox" style="${empIni ? '' : 'display:none'}"><label>Imóvel (opcional)</label><select id="cuImovel">${empIni ? opcoesImovelCusto(empIni, imovelIni) : ''}</select></div></div>
+    <div class="fg"><label>Descrição *</label><input type="text" id="cuDesc" value="${esc(c ? c.descricao : '')}" placeholder="Ex.: Pavimentação — 2ª medição"></div>
     <div class="frow"><div class="fg"><label>Categoria *</label><select id="cuCat">${optionsHtml(db.categorias, c ? c.categoriaId : db.categorias[0].id)}</select></div><div class="fg"><label>Fornecedor</label><input type="text" id="cuForn" list="fornList" value="${esc(c ? c.fornecedor || '' : '')}"><datalist id="fornList">${fornecedores.map(f => `<option value="${esc(f)}">`).join('')}</datalist></div></div>
     <div class="frow"><div class="fg"><label>Valor (R$) *</label><input type="number" id="cuValor" step="0.01" value="${c ? c.valor : ''}"></div><div class="fg"><label>Forma de pagamento</label><select id="cuForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c && c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
     <div class="frow"><div class="fg"><label>Competência *</label><input type="date" id="cuComp" value="${c ? c.dataCompetencia : todayStr()}"></div><div class="fg"><label>Vencimento</label><input type="date" id="cuVenc" value="${c ? c.vencimento || '' : ''}"></div></div>
     <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="document.getElementById('cuDataPg').parentElement.style.display=this.value==='pago'?'':'none'"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c ? c.dataPagamento || todayStr() : todayStr()}"></div></div>
-    <div class="fg"><label>Lote (opcional)</label><select id="cuLote"><option value="">— Custo geral do loteamento —</option>${optionsHtml(lotesDo(lot.id), c ? c.loteId || '' : '', l => loteLabel(l))}</select></div>
     <div class="fg"><label>Observações</label><textarea id="cuObs">${esc(c ? c.obs || '' : '')}</textarea></div>`;
-  openModal({ title: c ? 'Editar custo' : 'Lançar custo', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
+  openModal({ title: c ? 'Editar despesa' : 'Lançar despesa', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
   focarSeLivre('cuDesc');
 }
 function salvarCusto(id) {
-  const lot = curLot(); const prev = id ? db.custos.find(x => x.id === id) : null;
+  const prev = id ? db.custos.find(x => x.id === id) : null;
   if (!val('cuDesc') || !num(val('cuValor')) || !val('cuComp')) { toast('⚠️', 'Preencha descrição, valor e competência', '', true); return; }
   const st = val('cuStatus');
-  const rec = Object.assign({}, prev || { id: genId(), loteamentoId: lot.id, criadoEm: new Date().toISOString() }, { descricao: val('cuDesc'), categoriaId: val('cuCat'), fornecedor: val('cuForn'), valor: num(val('cuValor')), formaPagamento: val('cuForma'), dataCompetencia: val('cuComp'), vencimento: val('cuVenc') || null, status: st, dataPagamento: st === 'pago' ? (val('cuDataPg') || todayStr()) : null, loteId: val('cuLote') || null, obs: val('cuObs') });
+  const emp = val('cuEmp') || null, imv = emp ? val('cuImovel') : '';
+  const rec = Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString() }, { loteamentoId: emp, loteId: imv.startsWith('l:') ? imv.slice(2) : null, vendaId: imv.startsWith('v:') ? imv.slice(2) : null, descricao: val('cuDesc'), categoriaId: val('cuCat'), fornecedor: val('cuForn'), valor: num(val('cuValor')), formaPagamento: val('cuForma'), dataCompetencia: val('cuComp'), vencimento: val('cuVenc') || null, status: st, dataPagamento: st === 'pago' ? (val('cuDataPg') || todayStr()) : null, obs: val('cuObs') });
   upsert('custos', rec);
-  if (!prev) logAct(`Custo lançado: ${rec.descricao} — ${fmtMoney(rec.valor)}`);
-  closeModal(); renderCurrent(); toast('✅', 'Custo salvo', rec.descricao);
+  if (!prev) logAct(`Despesa lançada: ${rec.descricao} — ${fmtMoney(rec.valor)} (${vinculoDoCusto(rec).rotulo})`);
+  closeModal(); renderCurrent(); toast('✅', 'Despesa salva', `${rec.descricao} · ${vinculoDoCusto(rec).rotulo}`);
 }
 function pagarCusto(id) {
   const c = db.custos.find(x => x.id === id); if (!c) return;

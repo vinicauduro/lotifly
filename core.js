@@ -444,7 +444,7 @@ const TABLE_COLS = {
   clientes: ['id', 'tipo', 'genero', 'nome', 'cpf', 'rg', 'rgOrgao', 'nacionalidade', 'profissao', 'estadoCivil', 'regimeBens', 'conjuge', 'inscricaoEstadual', 'representante', 'telefone', 'email', 'cep', 'logradouro', 'numeroEnd', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'obs', 'criadoEm'],
   vendas: ['id', 'numeroContrato', 'loteamentoId', 'loteId', 'imovel', 'vendedorId', 'vendedor', 'vendedoresExtras', 'reservaId', 'cliente', 'compradoresExtras', 'corretor', 'corretorUserId', 'dataVenda', 'valorTotal', 'entrada', 'dataEntrada', 'nParcelas', 'jurosMes', 'valorParcela', 'primeiroVencimento', 'baloes', 'indiceId', 'indiceBase', 'comissaoPct', 'comissaoValor', 'comissaoPaga', 'comissaoData', 'status', 'obs', 'motivo', 'distratoEm', 'criadoEm'],
   recebiveis: ['id', 'loteamentoId', 'vendaId', 'tipo', 'numero', 'descricao', 'vencimento', 'valor', 'valorPago', 'valorCorrigido', 'nossoNumero', 'contaId', 'remessaEm', 'bancoValor', 'bancoVenc', 'dataPagamento', 'forma', 'obsPagamento'],
-  custos: ['id', 'loteamentoId', 'loteId', 'descricao', 'categoriaId', 'fornecedor', 'valor', 'formaPagamento', 'dataCompetencia', 'vencimento', 'status', 'dataPagamento', 'obs', 'criadoEm'],
+  custos: ['id', 'loteamentoId', 'loteId', 'vendaId', 'descricao', 'categoriaId', 'fornecedor', 'valor', 'formaPagamento', 'dataCompetencia', 'vencimento', 'status', 'dataPagamento', 'obs', 'criadoEm'],
   modelos: ['id', 'nome', 'tipo', 'corpo', 'criadoEm'],
   indices: ['id', 'codigo', 'nome', 'tipo', 'valores', 'criadoEm'],
   contasBanco: ['id', 'loteamentoId', 'banco', 'carteira', 'variacao', 'agencia', 'agenciaDv', 'conta', 'contaDv', 'convenio', 'nossoNumeroAtual', 'nnMax', 'remessaSeq', 'multaPct', 'jurosMesPct', 'jurosDia', 'descontoPct', 'protestoDias', 'baixaDias', 'especie', 'aceite', 'instrucao1', 'instrucao2', 'mensagem1', 'mensagem2', 'criadoEm'],
@@ -454,7 +454,7 @@ const TABLE_COLS = {
 };
 /* Tabelas criadas depois da primeira versão do schema: se faltarem, o app segue sem elas. */
 const TABELAS_NOVAS = ['clientes'];
-const NULLABLE_EMPTY = new Set(['validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area']);
+const NULLABLE_EMPTY = new Set(['loteamentoId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area']);
 const INT_FIELDS = new Set(['nParcelas', 'numero']);
 function snakeKey(k) { return k.replace(/[A-Z]/g, m => '_' + m.toLowerCase()); }
 /* No aplicativo a coleção é camelCase (contasBanco); no Postgres a tabela é snake_case
@@ -1366,6 +1366,15 @@ function recebiveisDo(escopo) {
 }
 function custoStatus(c) { if (c.status === 'pago') return 'pago'; if (c.vencimento && c.vencimento < todayStr()) return 'atrasado'; return 'pendente'; }
 function custosDo(escopo) { return db.custos.filter(c => noEscopo(c, escopo)); }
+/* De quem é a despesa (Fase 4): da empresa (sem empreendimento), de um empreendimento ou de um
+   imóvel — um lote do loteamento ou o imóvel avulso de um contrato da carteira. */
+function vinculoDoCusto(c) {
+  if (!c.loteamentoId) return { tipo: 'empresa', rotulo: 'Empresa' };
+  const emp = getLoteamento(c.loteamentoId), nome = emp ? emp.nome : 'Empreendimento';
+  const l = c.loteId && getLote(c.loteId); if (l) return { tipo: 'imovel', rotulo: `${nome} · ${loteShort(l)}` };
+  const v = c.vendaId && getVenda(c.vendaId); if (v) return { tipo: 'imovel', rotulo: imovelShort(v) || nome };
+  return { tipo: 'emp', rotulo: nome };
+}
 
 function gerarRecebiveis(venda) {
   const list = [];
@@ -1692,12 +1701,15 @@ async function carregarDemo() {
     ['Impulsionamento mídias (mês)', 'marketing', 'Agência Vale Digital', 3500, 0, 'pendente'],
     ['ITBI', 'impostos', 'Prefeitura', 9800, -4, 'pago'],
     ['Taxas municipais de aprovação', 'taxas', 'Prefeitura', 3000, -4, 'pago'],
-    ['Contabilidade (trimestre)', 'administrativo', 'Contábil Rio', 4200, -1, 'atrasado']
+    /* despesas da empresa, sem empreendimento (Fase 4) */
+    ['Contabilidade (trimestre)', 'administrativo', 'Contábil Rio', 4200, -1, 'atrasado', 'empresa'],
+    ['Aluguel do escritório', 'administrativo', 'Imobiliária Centro', 3800, 0, 'pendente', 'empresa'],
+    ['Salários e encargos do escritório', 'administrativo', 'Folha de pagamento', 14600, -1, 'pago', 'empresa']
   ];
-  custos.forEach(([desc, cat, forn, valor, meses, st], i) => {
+  custos.forEach(([desc, cat, forn, valor, meses, st, de], i) => {
     const comp = addMonths(t, meses);
     const venc = st === 'atrasado' ? addDays(t, -9) : addDays(comp, 15);
-    d.custos.push({ id: 'cu-' + i, loteamentoId: lot.id, descricao: desc, categoriaId: cat, fornecedor: forn, valor, dataCompetencia: comp, vencimento: venc, status: st === 'pago' ? 'pago' : 'pendente', dataPagamento: st === 'pago' ? venc : null, formaPagamento: 'Transferência', obs: '' });
+    d.custos.push({ id: 'cu-' + i, loteamentoId: de === 'empresa' ? null : lot.id, descricao: desc, categoriaId: cat, fornecedor: forn, valor, dataCompetencia: comp, vencimento: venc, status: st === 'pago' ? 'pago' : 'pendente', dataPagamento: st === 'pago' ? venc : null, formaPagamento: 'Transferência', obs: '' });
   });
   d.log.push({ id: genId(), ts: new Date().toISOString(), who: 'Sistema', msg: 'Dados de exemplo carregados.' });
   await replaceDB(d);

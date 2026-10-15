@@ -309,7 +309,8 @@ function relDespesas(escopo) {
     .sort((a, b) => (dataBase(a) || '').localeCompare(dataBase(b) || ''));
   const chave = c => f.agrupar === 'fornecedor' ? (c.fornecedor || 'Sem fornecedor')
     : f.agrupar === 'mes' ? monthLabel(monthKey(dataBase(c)))
-      : f.agrupar === 'lote' ? (c.loteId ? loteShort(getLote(c.loteId) || {}) || 'Geral' : 'Geral do loteamento')
+      : f.agrupar === 'lote' ? (c.loteId ? loteShort(getLote(c.loteId) || {}) || 'Geral' : c.vendaId && getVenda(c.vendaId) ? imovelShort(getVenda(c.vendaId)) || 'Imóvel' : c.loteamentoId ? 'Geral do empreendimento' : 'Empresa (sem empreendimento)')
+        : f.agrupar === 'vinculo' ? (c.loteamentoId ? (getLoteamento(c.loteamentoId) || {}).nome || 'Empreendimento' : 'Empresa (sem empreendimento)')
         : (getCategoria(c.categoriaId) || {}).nome || 'Sem categoria';
   const linhas = [], csv = [];
   let atual = null;
@@ -323,10 +324,10 @@ function relDespesas(escopo) {
     }
     const cat = getCategoria(c.categoriaId);
     const l = c.loteId ? getLote(c.loteId) : null;
-    linhas.push({ cells: [fmtDate(dataBase(c)), esc(c.descricao), cat ? esc(cat.nome) : '—', esc(c.fornecedor || '—'), l ? esc(loteShort(l)) : '—', fmtMoney(c.valor), statusLabel(custoStatus(c))] });
-    csv.push([fmtDate(c.dataCompetencia), c.vencimento ? fmtDate(c.vencimento) : '', c.dataPagamento ? fmtDate(c.dataPagamento) : '', c.descricao, cat ? cat.nome : '', c.fornecedor || '', l ? loteShort(l) : '', fmtNum(c.valor), statusLabel(custoStatus(c)), c.formaPagamento || '', c.obs || '']);
+    linhas.push({ cells: [fmtDate(dataBase(c)), esc(c.descricao), cat ? esc(cat.nome) : '—', esc(c.fornecedor || '—'), esc(vinculoDoCusto(c).rotulo), fmtMoney(c.valor), statusLabel(custoStatus(c))] });
+    csv.push([fmtDate(c.dataCompetencia), c.vencimento ? fmtDate(c.vencimento) : '', c.dataPagamento ? fmtDate(c.dataPagamento) : '', c.descricao, cat ? cat.nome : '', c.fornecedor || '', vinculoDoCusto(c).rotulo, fmtNum(c.valor), statusLabel(custoStatus(c)), c.formaPagamento || '', c.obs || '']);
   });
-  const cols = [{ t: 'Data' }, { t: 'Descrição' }, { t: 'Categoria' }, { t: 'Fornecedor' }, { t: 'Lote' }, { t: 'Valor', num: true }, { t: 'Situação' }];
+  const cols = [{ t: 'Data' }, { t: 'Descrição' }, { t: 'Categoria' }, { t: 'Fornecedor' }, { t: 'De quem' }, { t: 'Valor', num: true }, { t: 'Situação' }];
   const total = lista.reduce((s, c) => s + num(c.valor), 0);
   const pago = lista.filter(c => c.status === 'pago').reduce((s, c) => s + num(c.valor), 0);
   const atrasado = lista.filter(c => custoStatus(c) === 'atrasado').reduce((s, c) => s + num(c.valor), 0);
@@ -341,24 +342,26 @@ function relDespesas(escopo) {
       <div class="frow3">
         <div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['pago', 'Pagas'], ['pendente', 'A pagar'], ['atrasado', 'Atrasadas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="fg"><label>Data considerada</label><select aria-label="Base" onchange="relSet('base',this.value)">${[['competencia', 'Competência'], ['vencimento', 'Vencimento'], ['pagamento', 'Pagamento']].map(([k, l]) => `<option value="${k}" ${f.base === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="fg"><label>Agrupar por</label><select aria-label="Agrupar por" onchange="relSet('agrupar',this.value)">${[['categoria', 'Categoria'], ['fornecedor', 'Fornecedor'], ['mes', 'Mês'], ['lote', 'Lote'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
+        <div class="fg"><label>Agrupar por</label><select aria-label="Agrupar por" onchange="relSet('agrupar',this.value)">${[['categoria', 'Categoria'], ['vinculo', 'Empresa ou empreendimento'], ['fornecedor', 'Fornecedor'], ['mes', 'Mês'], ['lote', 'Lote'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
     kpis: relKpis([
       { lbl: 'Despesas', val: fmtMoneyShort(total), sub: `${lista.length} lançamento(s)`, cor: 'c-amber' },
       { lbl: 'Pagas', val: fmtMoneyShort(pago), sub: '', cor: 'c-green' },
       { lbl: 'Em atraso', val: fmtMoneyShort(atrasado), sub: '', cor: 'c-red' },
-      { lbl: 'Orçado no projeto', val: fmtMoneyShort(orcTotal), sub: orcTotal ? `realizado ${fmtNum(custosDo(escopo).reduce((s, c) => s + num(c.valor), 0) / orcTotal * 100, 0)}%` : 'sem orçamento', cor: 'c-blue' }
+      { lbl: 'Orçado no projeto', val: fmtMoneyShort(orcTotal), sub: orcTotal ? `realizado ${fmtNum(custosDo(escopo).filter(c => c.loteamentoId).reduce((s, c) => s + num(c.valor), 0) / orcTotal * 100, 0)}%` : 'sem orçamento', cor: 'c-blue' }
     ]),
     html: relTabela(cols, linhas, ['Total', '', '', '', '', fmtMoney(total), '']) + orcamentoHtml(escopo, lista),
-    cols, csv, csvHead: ['Competência', 'Vencimento', 'Pagamento', 'Descrição', 'Categoria', 'Fornecedor', 'Lote', 'Valor', 'Situação', 'Forma', 'Observação']
+    cols, csv, csvHead: ['Competência', 'Vencimento', 'Pagamento', 'Descrição', 'Categoria', 'Fornecedor', 'De quem', 'Valor', 'Situação', 'Forma', 'Observação']
   };
 }
 
 function orcamentoHtml(escopo, lista) {
+  /* Orçamento é da obra: despesa da empresa (sem empreendimento) não entra no realizado */
+  lista = lista.filter(c => c.loteamentoId);
   const orc = {};
   empsDo(escopo).forEach(e => Object.entries(e.orcamento || {}).forEach(([k, v]) => { orc[k] = num(orc[k]) + num(v); }));
   const cats = db.categorias.filter(c => num(orc[c.id]) > 0 || lista.some(x => x.categoriaId === c.id));
   if (!cats.length) return '';
-  const todos = custosDo(escopo);
+  const todos = custosDo(escopo).filter(c => c.loteamentoId);
   return `<div class="card"><h2>Orçado × realizado por categoria</h2>
     <div class="table-wrap"><table class="tbl"><thead><tr><th>Categoria</th><th class="num">Orçado</th><th class="num">Realizado (total)</th><th class="num">No período</th><th class="num">Saldo</th></tr></thead>
     <tbody>${cats.map(c => {

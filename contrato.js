@@ -152,7 +152,20 @@ function ctResumoHtml(x) {
       <div><div class="k">Comissão</div><div class="v">${num(x.comissaoValor) ? `${fmtMoney(x.comissaoValor)} (${fmtNum(x.comissaoPct, 1)}%) <span class="badge ${x.comissaoPaga ? 'paga' : 'pendente'}">${x.comissaoPaga ? 'paga' : 'a pagar'}</span>` : '—'}</div></div>
       ${x.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(x.obs)}</div></div>` : ''}
     </div></div>
-    ${correcaoResumoVenda(x)}`;
+    ${correcaoResumoVenda(x)}
+    ${despesasDoImovelHtml(x)}`;
+}
+/* Despesas vinculadas a este imóvel (Fase 4): as lançadas para o contrato ou para o lote dele —
+   IPTU de imóvel avulso, conserto, taxa de transferência… Com o atalho para lançar outra. */
+function despesasDoImovelHtml(x) {
+  if (!pode('custos.ver')) return '';
+  const lista = db.custos.filter(c => c.vendaId === x.id || (x.loteId && c.loteId === x.loteId)).sort((a, b) => (b.dataCompetencia || '').localeCompare(a.dataCompetencia || ''));
+  const imovel = x.loteId ? 'l:' + x.loteId : 'v:' + x.id;
+  const lancar = pode('custos.editar') ? `<button class="btn btn-secondary btn-sm" onclick="abrirCustoForm(null, { emp: '${x.loteamentoId}', imovel: '${imovel}' })"><i class=ico data-i=plus></i>Despesa</button>` : '';
+  const tot = lista.reduce((s, c) => s + num(c.valor), 0), aPagar = lista.filter(c => c.status !== 'pago').reduce((s, c) => s + num(c.valor), 0);
+  return `<div class="card"><h2>Despesas deste imóvel <span class="h-actions">${lancar}</span></h2>
+    ${lista.length ? `<p class="small muted mb">${lista.length} lançamento(s) · ${fmtMoney(tot)}${aPagar ? ` · ${fmtMoney(aPagar)} a pagar` : ''}</p>${lista.map(c => custoRowHtml(c)).join('')}`
+      : '<p class="help">Nenhuma despesa vinculada a este imóvel. Lance aqui o que for dele — IPTU, conserto, taxa de transferência — para saber o custo de cada imóvel.</p>'}</div>`;
 }
 function ctPartesHtml(x) {
   const bloco = (titulo, pessoas, comFicha) => `<div class="card"><h2>${titulo}</h2>${pessoas.map(p => {
