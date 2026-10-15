@@ -28,10 +28,11 @@ Esses 76 ficaram marcados `[x]` em cada seção, com o motivo ao lado. Os que so
 agrupados abaixo, sem repetição. Cada bloco é uma sentada.
 
 Os testes antigos (test8 a test39), que conferiram muita coisa na época de cada entrega, se
-perderam na limpeza do ambiente. Só os 13 arquivos de `testes/` contam como cobertura hoje.
+perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobertura hoje.
 
 ### A. Configurar com os seus dados (uma vez; não é teste)
-- [ ] Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
+- [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
+- [ ] **Rodar o `supabase/schema.sql` de novo** para fechar as plantas (seção 7z11).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -752,6 +753,37 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z11. Plantas fechadas: só quem é da empresa abre (15/10)
+
+Antes, a imagem da planta ficava num endereço público: quem tivesse o link abria, mesmo sem
+conta. Agora a planta só abre para quem é **membro da empresa**, ou seja, quem entrou pelo
+**convite da construtora**: dono, administrador, financeiro e corretores convidados.
+
+- Para mostrar a planta, o app pede ao banco um **link que vence em uma hora**, e só entrega
+  esse link para quem é da empresa. Link antigo, copiado ou mandado por WhatsApp, deixa de
+  abrir.
+- Quem não é da empresa, o visitante sem login e a pessoa **desativada** na equipe não
+  conseguem abrir. Uma empresa não grava na pasta de outra.
+- As plantas que você já enviou continuam valendo, sem precisar enviar de novo: o app
+  reconhece o endereço antigo e pede o link novo do mesmo arquivo.
+- O aplicativo instalado deixou de guardar no aparelho o que vem da nuvem (dados e
+  plantas). Só os arquivos do próprio app ficam guardados, para abrir sem internet.
+- No modo local (sem nuvem), nada muda: a planta fica no próprio aparelho.
+
+**⚠ Rode o `supabase/schema.sql` de novo no Supabase.** É ele que fecha a pasta das plantas.
+Enquanto não rodar, a planta continua abrindo como antes.
+
+- [ ] Rodar o `supabase/schema.sql`.
+- [ ] Abrir a planta como administrador e como corretor convidado: ela aparece.
+- [ ] Copiar o endereço da imagem da planta (botão direito › copiar endereço da imagem) e abrir
+      numa janela anônima depois de uma hora: não abre.
+
+`testes/plantas-privadas.test.js` confere o app (link assinado, reaproveitamento, endereço
+antigo, falha sem quebrar a tela, corretor, modo local). O teste do banco confere quem abre e
+quem não abre o arquivo.
+
+---
+
 ## 7z10. Testes de contas, documentos e novo contrato — 5 defeitos corrigidos (15/10)
 
 Três testes automáticos novos tiraram do roteiro o que dava para conferir sem você:
@@ -812,7 +844,7 @@ Onde aparece:
 a despesa sem empreendimento e cria o vínculo com o contrato. Enquanto não rodar, a nuvem
 recusa salvar despesas (falta a coluna nova).
 
-- [ ] Rodar o `supabase/schema.sql` de novo no Supabase.
+- [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` de novo no Supabase.
 - [x] *(testes: despesas.test)* Lançar o aluguel do escritório como **Empresa** e ver em A pagar › Só da empresa.
 - [x] *(testes: despesas.test)* Lançar uma despesa para um lote e outra para um imóvel da carteira; abrir o contrato e
       ver o cartão **Despesas deste imóvel**.
@@ -1590,7 +1622,7 @@ Revisei o código e o banco em 17/09. Resumo honesto.
       ficam travados, e criar ou excluir lote é só do administrador. Ele também deixou de
       convidar gente, publicar vitrine, trocar o modelo de contrato, mexer na configuração da
       empresa e apagar dados — o que fecha o caminho de virar administrador sozinho.
-- [ ] **Bucket das plantas é de leitura pública.** Era por causa da vitrine, que saiu; agora
+- [x] *(feito 15/10, seção 7z11 — vale depois de rodar o schema)* ~~**Bucket das plantas é de leitura pública.**~~ Era por causa da vitrine, que saiu; agora
       dá para fechar, mas as telas usam o link público da imagem, então fechar exige trocar
       para link assinado. Fica para uma rodada própria. O endereço
       tem o identificador da empresa e é impossível de adivinhar, mas quem tiver o link abre o
