@@ -654,6 +654,28 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z6. Cabeçalho do contrato mais limpo (15/10)
+
+Antes eram 6 botões soltos (Editar, Antecipar / quitar, Contrato, Extrato, Enviar resumo,
+Excluir), dois verdes, com Excluir ao lado de Enviar resumo; no celular ocupavam três linhas.
+
+Agora:
+- **Registrar pagamento** é o único botão de destaque: abre direto a próxima parcela em aberto
+  do contrato. Some quando o contrato está quitado ou distratado.
+- **Documentos ▾**: Contrato, Extrato e Enviar resumo pelo WhatsApp.
+- **Mais ▾**: Editar contrato, Antecipar / quitar e, separado por uma linha e em vermelho,
+  Excluir contrato (que continua pedindo confirmação).
+- No celular: Voltar, Documentos e Mais numa linha; Registrar pagamento ocupa a linha de baixo
+  inteira, perto do polegar.
+- Os menus fecham ao escolher uma opção, ao clicar fora ou com Esc, e abrem para o lado em que
+  cabem na tela.
+
+- [ ] No celular: abrir um contrato e registrar um pagamento pelo botão do topo.
+
+`testes/contrato.test.js` confere tudo isso no celular e no computador.
+
+---
+
 ## 7z5. Inadimplência com um número só (15/10)
 
 A % de inadimplência agora é a mesma em todo o sistema, com a definição que você escolheu:

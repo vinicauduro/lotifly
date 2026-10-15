@@ -162,6 +162,22 @@ function cuidarAcessibilidade() {
     e.preventDefault(); el.click();
   });
 }
+/* Menus de ações (<details class="menu">): um aberto por vez; fecham ao clicar fora, no Esc
+   ou ao escolher uma opção. */
+function fecharMenus(exceto) { document.querySelectorAll('details.menu[open]').forEach(d => { if (d !== exceto) d.open = false; }); }
+document.addEventListener('click', e => { const d = e.target.closest && e.target.closest('details.menu'); fecharMenus(d); });
+/* Ao abrir, a lista se alinha pela direita do botão; se assim ela sairia pela esquerda da tela,
+   alinha pela esquerda. O evento toggle não sobe, por isso a captura. */
+document.addEventListener('toggle', e => {
+  const d = e.target; if (!d.matches || !d.matches('details.menu') || !d.open) return;
+  d.classList.remove('para-direita');
+  const l = d.querySelector('.menu-lista'); if (l && l.getBoundingClientRect().left < 8) d.classList.add('para-direita');
+}, true);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const d = document.querySelector('details.menu[open]'); if (!d) return;
+  e.stopPropagation(); d.open = false; const s = d.querySelector('summary'); if (s) s.focus();
+}, true);
 /* "Pular para o conteúdo": leva o foco direto para a tela aberta, sem passar pelo menu */
 function pularParaConteudo(e) {
   e.preventDefault();

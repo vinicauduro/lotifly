@@ -94,16 +94,28 @@ function renderContrato() {
   const aba = ABAS_CONTRATO.some(a => a[0] === state.contratoAba) ? state.contratoAba : 'resumo';
   const de = state.contratoDe && state.contratoDe !== 'contrato' ? state.contratoDe : 'vendas';
   const voltarRot = { vendas: 'Todos os contratos', clientes: 'Clientes', recebiveis: 'A receber', cobranca: 'Cobrança', emp: 'Imóveis', painel: 'Início' }[de] || 'Voltar';
-  const acoes = [
-    pode('vendas.editar') ? `<button class="btn btn-secondary btn-sm" onclick="abrirVendaForm('${x.id}')">Editar</button>` : '',
-    x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="btn btn-success btn-sm" onclick="abrirAntecipacao('${x.id}')">Antecipar / quitar</button>` : '',
-    `<button class="btn btn-outline btn-sm" onclick="gerarContratoVenda('${x.id}')">Contrato</button>`,
-    `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">Extrato</button>`,
-    c.telefone ? `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">Enviar resumo</a>` : '',
-    pode('vendas.distrato') ? `<button class="btn btn-outline-danger btn-sm" onclick="excluirVenda('${x.id}')">Excluir</button>` : ''
+  /* Cabeçalho com uma ação principal: registrar o pagamento da próxima parcela em aberto, que
+     é o que mais se faz num contrato. Documentos (contrato, extrato, resumo pelo WhatsApp) e o
+     resto (editar, antecipar, excluir) ficam em dois menus; Excluir fica separado e em vermelho,
+     longe do que se usa todo dia. */
+  const proxima = x.status !== 'distrato' ? recebiveisDo('').filter(rc => rc.vendaId === x.id && recRestante(rc) > 0.005).sort((a, b) => a.vencimento.localeCompare(b.vencimento) || a.numero - b.numero)[0] : null;
+  const docs = [
+    `<button class="menu-item" role="menuitem" onclick="fecharMenus();gerarContratoVenda('${x.id}')"><i class=ico data-i=file-text></i>Contrato</button>`,
+    `<button class="menu-item" role="menuitem" onclick="fecharMenus();imprimirExtrato('${x.id}')"><i class=ico data-i=receipt></i>Extrato</button>`,
+    c.telefone ? `<a class="menu-item" role="menuitem" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}" onclick="fecharMenus()"><i class=ico data-i=whatsapp-logo></i>Enviar resumo pelo WhatsApp</a>` : ''
   ].filter(Boolean).join('');
+  const mais = [
+    pode('vendas.editar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirVendaForm('${x.id}')"><i class=ico data-i=pencil-simple></i>Editar contrato</button>` : '',
+    x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirAntecipacao('${x.id}')"><i class=ico data-i=coins></i>Antecipar / quitar</button>` : ''
+  ].filter(Boolean).join('');
+  const excluir = pode('vendas.distrato') ? `<button class="menu-item perigo" role="menuitem" onclick="fecharMenus();excluirVenda('${x.id}')"><i class=ico data-i=trash></i>Excluir contrato</button>` : '';
+  const menus = [
+    `<details class="menu"><summary class="btn btn-secondary btn-sm">Documentos <i class=ico data-i=caret-down></i></summary><div class="menu-lista" role="menu">${docs}</div></details>`,
+    mais || excluir ? `<details class="menu"><summary class="btn btn-secondary btn-sm">Mais <i class=ico data-i=caret-down></i></summary><div class="menu-lista" role="menu">${mais}${mais && excluir ? '<hr>' : ''}${excluir}</div></details>` : ''
+  ].filter(Boolean).join('');
+  const principal = proxima && pode('financeiro.baixar') ? `<button class="btn btn-success btn-sm ct-principal" onclick="abrirPagamento('${proxima.id}','${x.id}')" title="${esc(proxima.descricao)} · vence ${fmtDate(proxima.vencimento)}"><i class=ico data-i=money></i>Registrar pagamento</button>` : '';
   el.innerHTML = `
-    <div class="row-between mb" style="gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="voltarDoContrato()">‹ ${esc(voltarRot)}</button><div class="ct-acoes">${acoes}</div></div>
+    <div class="ct-topo"><button class="btn btn-secondary btn-sm" onclick="voltarDoContrato()">‹ ${esc(voltarRot)}</button><div class="ct-menus">${menus}</div>${principal}</div>
     <div class="card ct-cab">
       <div class="ct-num">${x.numeroContrato ? `Contrato <b>Nº ${esc(x.numeroContrato)}</b>` : '<span class="muted">Contrato sem número</span>'}
         ${pode('vendas.editar') ? `<button class="btn-icon" title="${x.numeroContrato ? 'Alterar o número' : 'Dar número'}" onclick="${x.numeroContrato ? `editarNumeroContrato('${x.id}')` : `numerarVenda('${x.id}')`}">${x.numeroContrato ? '<i class=ico data-i=pencil-simple></i>' : '<i class=ico data-i=hash></i>'}</button>` : ''}
