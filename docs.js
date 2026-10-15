@@ -48,8 +48,10 @@ function moedaExtenso(v) {
   const ext = extensoInt(i);
   // milhão/bilhão redondo pede "de reais"
   const de = /(milhão|milhões|bilhão|bilhões)$/.test(ext) ? 'de ' : '';
+  const cent = c === 1 ? 'um centavo' : extensoInt(c) + ' centavos';
+  if (i === 0 && c > 0) return cent;                      // R$ 0,50: "cinquenta centavos", não "zero reais e…"
   let t = i === 1 ? 'um real' : `${ext} ${de}reais`;
-  if (c > 0) t += ` e ${c === 1 ? 'um centavo' : extensoInt(c) + ' centavos'}`;
+  if (c > 0) t += ` e ${cent}`;
   return t;
 }
 function numeroExtenso(v, sing, plur) {
@@ -59,7 +61,7 @@ function numeroExtenso(v, sing, plur) {
 const MESES_EXT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 function dataExtenso(ymdStr) {
   const [y, m, d] = String(ymdStr || todayStr()).split('-').map(Number);
-  return `${d} de ${MESES_EXT[(m || 1) - 1]} de ${y}`;
+  return `${d === 1 ? '1º' : d} de ${MESES_EXT[(m || 1) - 1]} de ${y}`;   // dia 1 é ordinal: 1º de outubro
 }
 
 // ---------------------------------------------------------------- contexto
@@ -238,8 +240,7 @@ O preço certo e ajustado é de {{pagamento.valorTotal}} ({{pagamento.valorTotal
 
 {{pagamento.tabela}}
 
-{{#se pagamento.indice}}## CLÁUSULA TERCEIRA — DA CORREÇÃO MONETÁRIA
-As parcelas são corrigidas mensalmente pela variação do {{pagamento.indice}}, a partir do mês base de {{pagamento.indiceBase}}. A variação apurada em cada mês incide sobre as parcelas vencíveis no mês subsequente ao de sua divulgação, qualquer que seja o dia do vencimento. Apurada variação negativa em determinado mês, esta será considerada igual a zero, não havendo redução do valor das parcelas. A parcela não paga no vencimento deixa de sofrer correção e passa a responder apenas pelos encargos de mora previstos neste instrumento.
+{{#se pagamento.indice}}**Parágrafo único — da correção monetária.** As parcelas são corrigidas mensalmente pela variação do {{pagamento.indice}}, a partir do mês base de {{pagamento.indiceBase}}. A variação apurada em cada mês incide sobre as parcelas vencíveis no mês subsequente ao de sua divulgação, qualquer que seja o dia do vencimento. Apurada variação negativa em determinado mês, esta será considerada igual a zero, não havendo redução do valor das parcelas. A parcela não paga no vencimento deixa de sofrer correção e passa a responder apenas pelos encargos de mora previstos neste instrumento.
 
 {{/se}}## CLÁUSULA TERCEIRA — DO ATRASO
 O atraso no pagamento de qualquer parcela sujeita o promitente comprador a multa e juros de mora previstos neste instrumento, sem prejuízo da correção monetária do saldo devedor.

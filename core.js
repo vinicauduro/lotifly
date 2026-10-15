@@ -1192,7 +1192,7 @@ function pessoaFormHtml(pre, p, opc) {
       <div class="frow3">${inp('Num', 'Número', p.numeroEnd)}${inp('Compl', 'Complemento', p.complemento)}${inp('Bairro', 'Bairro', p.bairro)}</div>
       <div class="frow"><div class="fg"><label>Cidade${ob}</label><input type="text" id="${idt('Cidade')}" value="${esc(p.cidade || '')}"></div>
         <div class="fg"><label>UF</label><select id="${idt('Uf')}"><option value="">—</option>${UFS.map(u => `<option value="${u}" ${p.uf === u ? 'selected' : ''}>${u}</option>`).join('')}</select></div></div></div>`}`;
-  if (!opc.recolher) return cabeca + resto;
+  if (!opc.recolher) return cabeca + resto + (opc.conjuge ? conjugeFormHtml(pre, p) : '');
   /* O resumo é recalculado a cada tecla: um aviso do que falta que não some quando você
      preenche é pior que aviso nenhum. */
   return `<div oninput="qualifResumo('${pre}')" onchange="qualifResumo('${pre}')">${cabeca}
@@ -1311,6 +1311,9 @@ function pessoaConjugeEnd(pre) {
 }
 function conjugeDoForm(pre, p, antigo) {
   if (!temConjuge(p)) return null;
+  /* Formulário sem o bloco do cônjuge não sabe nada dele: mantém o que já estava gravado
+     em vez de apagar (gerar o contrato salvava a venda sem o cônjuge). */
+  if (!document.getElementById(pre + 'CjNome')) return antigo || null;
   const cj = pessoaDoForm(pre + 'Cj', antigo || {});
   if (!cj.nome) return null;
   const ck = document.getElementById(pre + 'CjMesmoEnd');

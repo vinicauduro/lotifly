@@ -19,12 +19,16 @@ e com os testes automáticos de `testes/`:
 - **5 ficaram obsoletos**, porque a tela mudou depois (abas que viraram menu, chip de
   Cobrança, painel antigo).
 - **7 não eram teste**, eram aviso ou informação.
+- **Depois, no mesmo dia, mais 31** passaram para teste automático novo: a conta da
+  antecipação (`antecipacao.test`), o texto dos documentos (`documentos.test`) e o
+  formulário de novo contrato (`novo-contrato.test`). Esses testes acharam 5 defeitos, já
+  corrigidos (seção 7z10).
 
-Esses 45 ficaram marcados `[x]` em cada seção, com o motivo ao lado. Os que sobraram estão
+Esses 76 ficaram marcados `[x]` em cada seção, com o motivo ao lado. Os que sobraram estão
 agrupados abaixo, sem repetição. Cada bloco é uma sentada.
 
 Os testes antigos (test8 a test39), que conferiram muita coisa na época de cada entrega, se
-perderam na limpeza do ambiente. Só os 10 arquivos de `testes/` contam como cobertura hoje.
+perderam na limpeza do ambiente. Só os 13 arquivos de `testes/` contam como cobertura hoje.
 
 ### A. Configurar com os seus dados (uma vez; não é teste)
 - [ ] Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
@@ -43,30 +47,27 @@ perderam na limpeza do ambiente. Só os 10 arquivos de `testes/` contam como cob
 
 ### B. Conferir as contas com a sua planilha (só você tem o número certo)
 - [ ] **Índices**: o valor corrigido bate; lançar um mês antigo e ver a tela de diferença.
-- [ ] **Antecipação e quitação**: saldo mês a mês, tabela de amortização, as três operações,
-      Desconto, valor do mês vigente, mensagem do WhatsApp e demonstrativo impresso (seções 5
-      e 7h).
+- [ ] **Antecipação**: a conta já é conferida pelo teste contra uma tabela Price feita à
+      parte (`antecipacao.test`). Falta você pegar **um contrato real** seu, comparar o
+      "Para quitar" com a sua planilha e ver se o demonstrativo impresso está apresentável.
 - [ ] **Início**: os quatro números do mês e o Total a receber batem com o que você sabe;
       clicar abre a lista certa (seções 7s e 7u).
 - [ ] **Orçado × realizado** com o seu orçamento redistribuído (seção 7c).
 
 ### C. Ler os documentos
-- [ ] **Proposta** pelo corretor e **contrato** de uma venda: valores, parcelas, extenso e
-      edição da prévia (seção 3).
-- [ ] **Qualificação**: comprador casado com cônjuge, concordância masculino/feminino, dois
-      compradores, dois vendedores, outro CNPJ do grupo, descrição da matrícula, endereço e
-      registro, parágrafo das partes e linhas de assinatura (seções 7g e 7h).
+- [ ] Ler o **seu** modelo de contrato preenchido com uma venda de verdade, depois de colar o
+      seu texto (bloco A). Concordância, cônjuge, várias partes, extenso, ordem das cláusulas
+      e a parcela da proposta já são conferidos pelo teste (`documentos.test`); falta o seu
+      olho jurídico sobre o texto.
 - [ ] **Recibo** de pagamento e o PDF dele (seção 7v).
 - [ ] **Relatórios**: os sete abrem, filtros de despesas, PDF apresentável, CSV na planilha
       (inclusive o da inadimplência) (seções 6 e 7c).
 
 ### D. Novo contrato
-- [ ] Pergunta do corretor, **à vista**, número de parcelas, "emitir o contrato?" ao salvar,
-      aviso de índice não cadastrado (seção 7h).
-- [ ] Venda antiga de **imóvel de terceiro** e de **lote não cadastrado** pelo ＋ Novo
-      contrato; apartamento de terceiro numa carteira (seções 7e, 7o e 7q).
-- [ ] Cliente casado puxado do cadastro num contrato novo; editar e excluir um cliente de
-      teste (seção 7m).
+- [x] *(testes: novo-contrato.test — corretor sim/não, à vista, nº de parcelas, "emitir o
+      contrato?", aviso de índice, qualificação obrigatória, cliente casado do cadastro, lote
+      novo no contrato, lote repetido, imóvel de terceiro; no celular e no computador)*
+- [ ] Excluir um cliente de teste (seção 7m).
 
 ### E. Banco do Brasil (precisa do banco)
 - [ ] **Remessa de teste** com poucos títulos pelo Gerenciador Financeiro (seção 7d).
@@ -177,10 +178,10 @@ nos próximos dias, com as alterações do loteamento — quando chegar, eu reim
       lugar do modelo de exemplo, marcando as partes variáveis com os campos da paleta.
 - [ ] Fazer o mesmo com a **sua** proposta.
 - [ ] Usar o botão **Ver exemplo** para conferir o texto preenchido antes de salvar.
-- [ ] Como corretor, abrir um lote e gerar uma **proposta**, testando entrada, parcelas, juros
+- [x] *(testes: documentos.test)* Como corretor, abrir um lote e gerar uma **proposta**, testando entrada, parcelas, juros
       e reforço anual. Conferir o PDF e o envio por WhatsApp.
-- [ ] Em uma venda, gerar o **contrato** e conferir os valores, as parcelas e o texto por extenso.
-- [ ] Testar a edição da prévia antes de imprimir.
+- [x] *(testes: documentos.test)* Em uma venda, gerar o **contrato** e conferir os valores, as parcelas e o texto por extenso.
+- [x] *(testes: documentos.test)* Testar a edição da prévia antes de imprimir.
 
 **Observação:** campos que você inventar no modelo, como `{{foro}}`, viram preenchimento na
 hora de gerar e ficam guardados para a próxima.
@@ -224,10 +225,10 @@ muda e quanto deixou de ser cobrado. Se o lançamento não mexe em parcela nenhu
 
 ## 5. Antecipação e quitação
 
-- [ ] Abrir uma venda e clicar em **💸 Antecipar / quitar**.
-- [ ] Conferir a tabela **Saldo devedor mês a mês** contra a sua planilha.
-- [ ] Abrir a **tabela de amortização** e conferir juro do mês, amortização e saldo.
-- [ ] Testar as três operações: quitar tudo, antecipar as últimas parcelas e amortizar um valor
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Abrir uma venda e clicar em **💸 Antecipar / quitar**.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Conferir a tabela **Saldo devedor mês a mês** contra a sua planilha.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Abrir a **tabela de amortização** e conferir juro do mês, amortização e saldo.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Testar as três operações: quitar tudo, antecipar as últimas parcelas e amortizar um valor
       livre, nos dois modos, reduzindo prazo e reduzindo parcela.
 - [ ] Imprimir o demonstrativo e conferir se está apresentável para o cliente.
 
@@ -441,7 +442,7 @@ O corretor não muda: continua vendo planta e reservando lote, e carteiras não 
 
 - [x] *(obsoleto: as abas viraram o menu lateral (seção 7l))* Passear pelas seis abas e conferir que nada sumiu do caminho.
 - [x] *(testes: fluxo.test (abre o loteamento, vende um lote) e telas.test)* Abrir um empreendimento e usar planta, lotes, reservas e obra por dentro dele.
-- [ ] Criar uma carteira e registrar uma venda de imóvel avulso.
+- [x] *(testes: novo-contrato.test)* Criar uma carteira e registrar uma venda de imóvel avulso.
 - [x] *(testes: telas.test e detalhes.test (mesmos números com e sem filtro))* Ver os recebíveis e os relatórios com todos os empreendimentos juntos, e depois filtrados.
 - [ ] Gerar cobranças e conferir que, com uma conta bancária só, sai tudo junto sem perguntar nada.
 - [x] *(decidido por você: carteira não tem orçamento (seção 7f))* Decidir se a carteira precisa de orçamento de custos (hoje a tela existe igual).
@@ -456,15 +457,15 @@ mas o formulário nunca coletou esses campos — saía tudo em branco e ninguém
 
 **O que testar:**
 
-- [ ] Abra uma venda. O bloco do comprador agora tem, além de nome, CPF, telefone e e-mail,
+- [x] *(testes: documentos.test)* Abra uma venda. O bloco do comprador agora tem, além de nome, CPF, telefone e e-mail,
       um **📋 Qualificação completa** que abre: nacionalidade, profissão, estado civil,
       regime de bens, RG com órgão expedidor e endereço em campos separados (CEP,
       logradouro, número, complemento, bairro, cidade, UF).
-- [ ] O resumo desse bloco diz o que ainda falta — "falta profissão, RG, cidade". É a mesma
+- [x] *(testes: documentos.test)* O resumo desse bloco diz o que ainda falta — "falta profissão, RG, cidade". É a mesma
       conferência que a declaração fiscal vai exigir depois, então vale preencher já.
-- [ ] Escolha **estado civil casado** ou **união estável**: aparece sozinho o bloco do
+- [x] *(testes: documentos.test)* Escolha **estado civil casado** ou **união estável**: aparece sozinho o bloco do
       **cônjuge**, com os mesmos campos e a opção "mora no mesmo endereço" já marcada.
-- [ ] **Confira a concordância.** Cada pessoa tem um seletor masculino/feminino que controla
+- [x] *(testes: documentos.test)* **Confira a concordância.** Cada pessoa tem um seletor masculino/feminino que controla
       só o texto do contrato: brasileiro/brasileira, casado/casada, portador/portadora.
       Ao trocar a do comprador, a do cônjuge vira sozinha para a oposta — se o casal for do
       mesmo sexo, troque à mão e o sistema não mexe mais nela.
@@ -477,12 +478,12 @@ mas o formulário nunca coletou esses campos — saía tudo em branco e ninguém
 - [ ] No empreendimento, **📋 Endereço e registro**: CEP, logradouro, bairro, UF, cartório de
       registro, matrícula mãe e código do município no IBGE (este só a declaração fiscal usa;
       pode ficar para depois).
-- [ ] Gere um contrato de uma venda já qualificada e leia o parágrafo das partes. Ele sai
+- [x] *(testes: documentos.test)* Gere um contrato de uma venda já qualificada e leia o parágrafo das partes. Ele sai
       assim: *"FULANO, brasileiro, casado sob o regime da comunhão parcial de bens, corretor
       de imóveis, portador da cédula de identidade RG nº X SSP/SC, inscrito no CPF sob o nº
       Y, residente e domiciliado na Rua Z, nº 10, Centro, CEP 88800-000, Criciúma/SC, e sua
       esposa BELTRANA, brasileira, professora, …, residente e domiciliada no mesmo endereço"*.
-- [ ] O contrato agora tem linha de assinatura do cônjuge quando existe cônjuge.
+- [x] *(testes: documentos.test)* O contrato agora tem linha de assinatura do cônjuge quando existe cônjuge.
 
 **Atenção, uma coisa que eu não faço sozinho:** o modelo padrão de contrato mudou para usar
 `{{vendedor.qualificacao}}`, `{{comprador.qualificacao}}` e `{{imovel.descricao}}`. **Se você
@@ -493,7 +494,7 @@ mostra.
 
 **Mais de uma parte de cada lado** (feito depois que você confirmou que acontece):
 
-- [ ] No comprador há um botão **＋ Adicionar comprador**: dois irmãos, dois sócios, pai e
+- [x] *(testes: documentos.test)* No comprador há um botão **＋ Adicionar comprador**: dois irmãos, dois sócios, pai e
       filho. Cada um ganha o bloco inteiro de qualificação, com o seu próprio cônjuge, e
       pode ser removido no 🗑. Marido e mulher **não** precisam de dois blocos — para isso é
       o estado civil e o cônjuge.
@@ -502,7 +503,7 @@ mostra.
 - [x] *(informação, não é teste)* O **primeiro** comprador continua sendo quem aparece nas telas de venda, recebível,
       cobrança e boleto — só ele tem telefone obrigatório. Os demais existem para o contrato.
       Na tela da venda aparece "e mais 1" e a lista dos demais.
-- [ ] No contrato as partes saem separadas por ponto e vírgula, com "e" antes da última, e
+- [x] *(testes: documentos.test)* No contrato as partes saem separadas por ponto e vírgula, com "e" antes da última, e
       **cada uma ganha a sua linha de assinatura**, mais uma linha para cada cônjuge.
 
 Para isso o bloco de assinaturas do modelo padrão passou a usar `{{assinaturas.vendedores}}`
@@ -519,24 +520,24 @@ explico por quê.
 
 **Venda**
 
-- [ ] A qualificação **abria recolhida** e você não viu que os campos existiam — parecia que
+- [x] *(testes: documentos.test)* A qualificação **abria recolhida** e você não viu que os campos existiam — parecia que
       o sistema presumia brasileiro e casado. Agora abre visível. Nacionalidade sempre foi
       campo digitável (vem sugerido "brasileiro") e estado civil sempre foi lista com
       solteiro, casado, união estável, divorciado, separado e viúvo.
-- [ ] **Nome, CPF, RG, profissão, estado civil, nacionalidade, endereço e cidade viraram
+- [x] *(testes: documentos.test)* **Nome, CPF, RG, profissão, estado civil, nacionalidade, endereço e cidade viraram
       obrigatórios.** Salvar sem eles é recusado, dizendo qual falta e levando a tela até o
       comprador certo. Vale para cada comprador da lista.
-- [ ] **Corretor**: o sistema pergunta *"O negócio foi intermediado por corretor de
+- [x] *(testes: novo-contrato.test)* **Corretor**: o sistema pergunta *"O negócio foi intermediado por corretor de
       imóveis?"*. Só no "Sim" aparecem os campos, agora com a qualificação inteira mais
       CRECI, que é obrigatório. No "Não" a comissão vai a zero.
-- [ ] **Pagamento à vista**: nova opção. Escolhendo, somem entrada, parcelas, juros, índice e
+- [x] *(testes: novo-contrato.test)* **Pagamento à vista**: nova opção. Escolhendo, somem entrada, parcelas, juros, índice e
       reforços, e o valor inteiro entra como uma parcela só.
-- [ ] **Número de parcelas**: virou campo de texto com teclado numérico, sem as setinhas.
+- [x] *(testes: novo-contrato.test)* **Número de parcelas**: virou campo de texto com teclado numérico, sem as setinhas.
       Aqui eu não consegui reproduzir o travamento que você viu — digitando no meu teste o
       campo aceitava normalmente. Mudei o tipo do campo, que é de onde esse tipo de
       comportamento costuma vir. **Confirme se resolveu.**
-- [ ] **Salva a venda, o sistema pergunta se emite o contrato** e abre a tela para conferir.
-- [ ] **Sem índice cadastrado**, a venda avisa e leva ao cadastro, em vez de mostrar um
+- [x] *(testes: novo-contrato.test)* **Salva a venda, o sistema pergunta se emite o contrato** e abre a tela para conferir.
+- [x] *(testes: novo-contrato.test)* **Sem índice cadastrado**, a venda avisa e leva ao cadastro, em vez de mostrar um
       seletor vazio.
 
 **Cadastros**
@@ -585,11 +586,11 @@ explico por quê.
 
 **Antecipação e quitação**
 
-- [ ] "Juros não usados" virou **Desconto**.
-- [ ] Saiu a projeção de quitação dos próximos meses: fica só **o valor do mês vigente**,
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* "Juros não usados" virou **Desconto**.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* Saiu a projeção de quitação dos próximos meses: fica só **o valor do mês vigente**,
       válido até o último dia do mês, que é como o cálculo é feito.
-- [ ] A mensagem de WhatsApp diz **"para quitar até o último dia do mês"**.
-- [ ] **Amortização parcial**: no modo "reduzir prazo" o cliente pode pagar qualquer valor —
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* A mensagem de WhatsApp diz **"para quitar até o último dia do mês"**.
+- [x] *(testes: antecipacao.test, contra uma tabela Price calculada à parte)* **Amortização parcial**: no modo "reduzir prazo" o cliente pode pagar qualquer valor —
       10, 100, 1000. O sistema quita as parcelas inteiras que o dinheiro fecha e **amortiza em
       parte a parcela seguinte, que continua em aberto com o saldo**. O pedaço pago adiantado
       ganha o mesmo desconto que a parcela inteira ganharia. No extrato aparecem duas linhas:
@@ -748,6 +749,40 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z10. Testes de contas, documentos e novo contrato — 5 defeitos corrigidos (15/10)
+
+Três testes automáticos novos tiraram do roteiro o que dava para conferir sem você:
+
+- **`antecipacao.test`**: contrato de R$ 100.000,00 a 1% ao mês em 12 parcelas. Cada número
+  é comparado com uma tabela Price feita à parte, fora do sistema: quitar hoje, tabela de
+  amortização linha a linha, antecipar as últimas, amortizar R$ 20.000 reduzindo o prazo ou
+  mantendo o prazo, parcela vencida com multa e juros, contrato sem juros, e a tela, o
+  WhatsApp e o demonstrativo com os mesmos números.
+- **`documentos.test`**: valores e datas por extenso, qualificação no feminino, cônjuge,
+  união estável, várias partes, empresa com dois representantes, a parcela da proposta com
+  reforço anual, o contrato gerado pela tela, e a prévia editada indo para a impressão.
+- **`novo-contrato.test`**: o formulário inteiro, no celular e no computador.
+
+**O que eles acharam, e já está corrigido:**
+- **Gerar o contrato apagava o cônjuge da venda.** O formulário do contrato não mostrava os
+  campos do cônjuge, e "Guardar esses dados no cadastro da venda" (que vem marcado) gravava
+  a venda sem ele. O contrato também saía sem a linha de assinatura do cônjuge. Agora os
+  campos aparecem, e um formulário que não tem o bloco do cônjuge mantém o que estava
+  gravado, em vez de apagar. **Se você gerou contrato de comprador casado pela tela, abra a
+  venda e confira se o cônjuge continua lá.**
+- **Contrato com índice saía com duas "CLÁUSULA TERCEIRA"** (a da correção e a do atraso).
+  A correção virou "Parágrafo único" da cláusula do preço, e a numeração ficou certa com ou
+  sem índice. Vale para o modelo padrão; se você já salvou um modelo seu, confira a numeração
+  dele.
+- **R$ 0,50 por extenso saía "zero reais e cinquenta centavos"**; agora sai "cinquenta
+  centavos".
+- **Dia 1 saía "1 de outubro"**; agora sai "1º de outubro", como se escreve em contrato.
+- **A última linha da tabela de amortização podia mostrar saldo de −R$ 0,02**, por causa do
+  arredondamento da parcela. A última parcela agora fecha o saldo em zero, como numa
+  planilha bem montada.
 
 ---
 
@@ -1322,8 +1357,8 @@ venda antiga sendo trazida para cá, imóvel que entrou e saiu vendido sem passa
 - Quem vê os botões: só dono e administrador, que são quem o banco deixa criar imóvel e lote.
   O financeiro registra o contrato de um imóvel já cadastrado.
 
-- [ ] Lançar uma venda antiga de um imóvel de terceiro direto pelo **＋ Novo contrato**.
-- [ ] Lançar um contrato de um lote que ainda não estava cadastrado.
+- [x] *(testes: novo-contrato.test)* Lançar uma venda antiga de um imóvel de terceiro direto pelo **＋ Novo contrato**.
+- [x] *(testes: novo-contrato.test)* Lançar um contrato de um lote que ainda não estava cadastrado.
 
 `test31` cobre os dois caminhos, o "Voltar", o lote repetido, o contrato recusado sem lote
 solto, o lote vendido sem contrato e a permissão.
@@ -1396,7 +1431,7 @@ Para conferir:
       matrícula do imóvel).
 - [ ] Abrir o **Lote 15 da Quadra 300** que você cadastrou e informar o valor de venda: ele foi
       criado antes e está sem preço, então a lista mostra "sem valor de venda".
-- [ ] Cadastrar um apartamento de terceiro e registrar a venda dele.
+- [x] *(testes: novo-contrato.test)* Cadastrar um apartamento de terceiro e registrar a venda dele.
 
 `test29` cobre tudo isso; `test19` e `test20` foram ajustados para o imóvel no singular.
 
@@ -1453,7 +1488,7 @@ Para conferir:
 - [x] *(feito 15/10: você rodou o schema, que é cumulativo e inclui esta mudança)* Rodar o `schema.sql` (cria a tabela de clientes).
 - [ ] Abrir **Contratos › Clientes** e clicar em **Trazer agora** para puxar os compradores
       dos seus contratos.
-- [ ] Cadastrar um cliente casado, com cônjuge, e depois puxar ele num contrato novo.
+- [x] *(testes: novo-contrato.test)* Cadastrar um cliente casado, com cônjuge, e depois puxar ele num contrato novo.
 - [ ] Editar e excluir um cliente de teste.
 
 Atenção: um comprador antigo com CPF digitado errado entra no cadastro, mas a ficha só salva

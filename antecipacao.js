@@ -34,10 +34,13 @@ function tabelaAmortizacao(v, dataRef) {
   const i = taxaVenda(v);
   const futuras = recebiveisDe(v.id).filter(r => recStatus(r) !== 'pago' && r.vencimento > dataRef);
   let saldo = futuras.reduce((a, r) => a + vpParcela(r, v, dataRef), 0);
-  return futuras.map(r => {
+  /* A parcela é arredondada no centavo, então sobra uma diferença de centavos no fim. A
+     última linha fecha o saldo em zero: amortiza o que resta e o juro dela absorve a sobra. */
+  return futuras.map((r, k) => {
     const parcela = recRestante(r);
-    const juros = Math.round(saldo * i * 100) / 100;
-    const amortizacao = Math.round((parcela - juros) * 100) / 100;
+    let juros = Math.round(saldo * i * 100) / 100;
+    let amortizacao = Math.round((parcela - juros) * 100) / 100;
+    if (k === futuras.length - 1) { amortizacao = saldo; juros = Math.round((parcela - amortizacao) * 100) / 100; }
     saldo = Math.round((saldo - amortizacao) * 100) / 100;
     return { rec: r, parcela, juros, amortizacao, saldo: Math.abs(saldo) < 0.02 ? 0 : saldo };
   });

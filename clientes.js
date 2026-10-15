@@ -121,7 +121,6 @@ function abrirClienteForm(id) {
   const contratos = c ? contratosDoCliente(c) : [];
   const body = `<p class="help mb">Estes dados entram na qualificação do comprador no contrato. Um contrato já emitido guarda os dados como estavam no dia da assinatura; o que você mudar aqui vale para os próximos.</p>
     ${pessoaFormHtml('cl', c || {}, { conjuge: true })}
-    ${conjugeFormHtml('cl', c || {})}
     <div class="fg"><label>Observações</label><textarea id="clObs" rows="2">${esc(c ? c.obs || '' : '')}</textarea></div>
     ${contratos.length ? `<div class="fieldset"><span class="lg">Contratos deste cliente</span>
       ${contratos.map(v => `<div class="item" onclick="setCurLotSilencioso('${esc(v.loteamentoId)}');abrirVendaAdmin('${esc(v.id)}')"><div class="info"><div class="title">${esc(imovelLabel(v))} <span class="tiny muted">· ${esc((getLoteamento(v.loteamentoId) || {}).nome || '')}</span></div>
