@@ -774,8 +774,7 @@ Nenhum defeito encontrado. **Um efeito para você saber**, que segue a cláusula
 volta a subir no seguinte, a queda não desconta, mas a alta conta inteira. No teste, o CUB
 caiu em março (2.550 → 2.540) e subiu em abril (2.600): a parcela de maio ficou **4,41%**
 corrigida, enquanto o CUB subiu **4,0%** de dezembro a abril. É o "efeito catraca", comum nos
-contratos. Se preferir que a correção nunca passe da variação real do período, me diga que eu
-troco a regra (e o texto da cláusula).
+contratos. **Decidido por você em 16/10: fica assim**, seguindo a cláusula.
 
 ---
 
