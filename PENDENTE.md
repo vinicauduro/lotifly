@@ -33,8 +33,8 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 ### A. Configurar com os seus dados (uma vez; não é teste)
 - [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
 - [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` de novo para fechar as plantas (seção 7z11).
-- [ ] **Rodar o `supabase/schema.sql` de novo** para a cessão de direitos (seção 7z12).
-- [ ] **Rodar o `supabase/schema.sql` de novo** para o distrato (seção 7z15).
+- [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para a cessão de direitos (seção 7z12).
+- [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para o distrato (seção 7z15).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -798,12 +798,35 @@ formulário traz esse lembrete.
 **⚠ Rode o `supabase/schema.sql` de novo no Supabase.** Ele cria no contrato o lugar do
 distrato e aceita o modelo novo. Enquanto não rodar, a nuvem recusa salvar o distrato.
 
-- [ ] Rodar o `supabase/schema.sql`.
+- [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql`.
 - [ ] Fazer um distrato num contrato de teste, conferir o termo e ver a devolução em A pagar.
 - [ ] Colar o seu modelo de distrato em Configurações › Modelos de documento.
 
 `testes/distrato.test.js` cobre tudo isso no celular e no computador; o teste do banco confere
 que só quem tem "Fazer distrato" grava o distrato.
+## 7z14. Trocar o tipo do imóvel, com confirmação (16/10)
+
+No cadastro do imóvel (**Editar**), o **Tipo** deixou de ficar travado: um empreendimento
+pode virar imóvel avulso (lote, casa, apartamento…) e o contrário, e dá para trocar entre os
+tipos de avulso. Como é uma característica importante, **ao trocar sobe um aviso** para
+confirmar, dizendo o que muda:
+
+- **Empreendimento → imóvel avulso:** a planta e os lotes deixam de aparecer (ficam guardados
+  e voltam se o tipo voltar); o imóvel passa a ter valor de venda, matrícula e descrição
+  próprios, que você preenche; deixa de aparecer para os corretores.
+- **Imóvel avulso → empreendimento:** o valor de venda, a matrícula e a descrição deixam de ser
+  usados (ficam guardados); passa a ter planta, lotes e reservas.
+- **Entre tipos de avulso** (ex.: Lote → Sítio): muda como o imóvel é chamado nas telas e nos
+  documentos.
+- O contrato que já existe continua o mesmo.
+
+Desistindo, o tipo volta ao que era. Confirmando, o formulário mostra o aviso "Tipo trocado" e
+a troca só vale ao salvar; fica registrada no histórico. **Não deixa trocar** um empreendimento
+com mais de um contrato (o imóvel avulso tem um contrato só) nem com reserva em andamento.
+
+- [ ] Editar um imóvel de teste, trocar o tipo, desistir e depois confirmar.
+
+`testes/tipo-imovel.test.js` cobre tudo isso no celular e no computador.
 
 ---
 
@@ -856,7 +879,7 @@ o seu jurídico.
 **⚠ Rode o `supabase/schema.sql` de novo no Supabase.** Ele cria no contrato o lugar das
 cessões e aceita o tipo de modelo novo. Enquanto não rodar, a nuvem recusa salvar a cessão.
 
-- [ ] Rodar o `supabase/schema.sql`.
+- [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql`.
 - [ ] Registrar uma cessão num contrato de teste e conferir o termo.
 - [ ] Colar o seu modelo de cessão em Configurações › Modelos de documento.
 
