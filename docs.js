@@ -14,7 +14,8 @@ const DOC_CAMPOS = [
   ['Imóvel', [['imovel.descricao', 'Descrição da matrícula'], ['imovel.identificacao', 'Identificação curta'], ['imovel.matricula', 'Matrícula'], ['imovel.cartorio', 'Cartório de registro'], ['imovel.endereco', 'Endereço do imóvel'], ['imovel.medidas', 'Medidas']]],
   ['Corretor', [['corretor.nome', 'Nome'], ['corretor.creci', 'CRECI'], ['corretor.telefone', 'Telefone'], ['corretor.imobiliaria', 'Imobiliária']]],
   ['Pagamento', [['pagamento.valorTotal', 'Valor total'], ['pagamento.valorTotalExtenso', 'Valor por extenso'], ['pagamento.entrada', 'Entrada'], ['pagamento.entradaExtenso', 'Entrada por extenso'], ['pagamento.dataEntrada', 'Data da entrada'], ['pagamento.nParcelas', 'Nº de parcelas'], ['pagamento.valorParcela', 'Valor da parcela'], ['pagamento.valorParcelaExtenso', 'Parcela por extenso'], ['pagamento.juros', 'Juros (% a.m.)'], ['pagamento.primeiroVencimento', '1º vencimento'], ['pagamento.saldo', 'Saldo financiado'], ['pagamento.reforcos', 'Reforços'], ['pagamento.indice', 'Índice de correção'], ['pagamento.indiceBase', 'Mês base do índice'], ['pagamento.resumo', 'Resumo em uma linha'], ['pagamento.tabela', 'Tabela de parcelas']]],
-  ['Assinaturas', [['assinaturas.vendedores', 'Linhas dos vendedores'], ['assinaturas.compradores', 'Linhas dos compradores e cônjuges']]],
+  ['Cessão de direitos', [['cedente.qualificacao', 'Cedentes (qualificação)'], ['cedente.nomes', 'Nomes dos cedentes'], ['cessionario.qualificacao', 'Cessionários (qualificação)'], ['cessionario.nomes', 'Nomes dos cessionários'], ['cessao.data', 'Data da cessão'], ['cessao.valor', 'Valor entre as partes'], ['cessao.valorExtenso', 'Valor por extenso'], ['cessao.taxa', 'Taxa de cessão'], ['cessao.parcelasEmAberto', 'Parcelas em aberto'], ['cessao.saldo', 'Saldo em aberto'], ['cessao.saldoExtenso', 'Saldo por extenso'], ['contrato.data', 'Data do contrato original']]],
+  ['Assinaturas', [['assinaturas.vendedores', 'Linhas dos vendedores'], ['assinaturas.compradores', 'Linhas dos compradores e cônjuges'], ['assinaturas.cedentes', 'Linhas dos cedentes e cônjuges'], ['assinaturas.cessionarios', 'Linhas dos cessionários e cônjuges']]],
   ['Documento', [['contrato.numero', 'Número do contrato'], ['doc.data', 'Data'], ['doc.dataExtenso', 'Data por extenso'], ['doc.cidadeData', 'Cidade e data'], ['doc.validade', 'Validade da proposta']]]
 ];
 
@@ -264,10 +265,56 @@ E por estarem assim justas e contratadas, as partes assinam o presente instrumen
 _______________________________            _______________________________
 Testemunha                                  Testemunha`;
 
+const MODELO_CESSAO = `# INSTRUMENTO PARTICULAR DE CESSÃO DE DIREITOS
+
+**CEDENTE:** {{cedente.qualificacao}}.
+
+**CESSIONÁRIO:** {{cessionario.qualificacao}}.
+
+**ANUENTE (PROMITENTE VENDEDORA):** {{vendedor.qualificacao}}.
+
+As partes têm entre si justo e contratado o seguinte:
+
+## CLÁUSULA PRIMEIRA — DO OBJETO
+O cedente é titular dos direitos decorrentes do instrumento particular de promessa de compra e venda{{#se contrato.numero}} nº {{contrato.numero}}{{/se}}, firmado em {{contrato.data}} com a anuente, que tem por objeto o imóvel assim descrito: {{imovel.descricao}}{{#se imovel.matricula}}, objeto da matrícula nº {{imovel.matricula}}{{#se imovel.cartorio}} do {{imovel.cartorio}}{{/se}}{{/se}}.
+
+## CLÁUSULA SEGUNDA — DA CESSÃO
+Pelo presente instrumento, o cedente cede e transfere ao cessionário todos os direitos e obrigações decorrentes do referido contrato{{#se cessao.valor}}, pelo preço de {{cessao.valor}} ({{cessao.valorExtenso}}), que o cedente declara ter recebido, dando plena e geral quitação{{/se}}.
+
+## CLÁUSULA TERCEIRA — DO SALDO DEVEDOR
+O cessionário assume o pagamento do saldo devedor do contrato, composto de {{cessao.parcelasEmAberto}} parcela(s) em aberto que somam {{cessao.saldo}} ({{cessao.saldoExtenso}}) pelos valores de vencimento em {{cessao.data}}, nas mesmas condições, prazos, encargos e correção previstos no contrato original.
+
+## CLÁUSULA QUARTA — DA ANUÊNCIA
+A promitente vendedora comparece neste ato e declara sua anuência com a presente cessão{{#se cessao.taxa}}, mediante o pagamento da taxa de cessão de {{cessao.taxa}}{{/se}}, e passa a reconhecer o cessionário como promitente comprador para todos os fins.
+
+## CLÁUSULA QUINTA — DAS DECLARAÇÕES
+O cedente declara que os direitos ora cedidos estão livres e desembaraçados de quaisquer ônus. Permanecem em vigor todas as demais cláusulas do contrato original, que o cessionário declara conhecer e aceitar.
+
+## CLÁUSULA SEXTA — DO FORO
+Fica eleito o foro da comarca de {{empresa.cidade}} para dirimir as questões oriundas deste instrumento.
+
+E por estarem assim justas e contratadas, as partes assinam o presente instrumento em três vias de igual teor.
+
+{{doc.cidadeData}}
+
+---
+
+{{assinaturas.cedentes}}
+
+{{assinaturas.cessionarios}}
+
+{{assinaturas.vendedores}}
+
+_______________________________            _______________________________
+Testemunha                                  Testemunha`;
+
+const TIPOS_MODELO = { proposta: 'Proposta', contrato: 'Contrato', cessao: 'Cessão de direitos' };
+
 function modelosPadrao() {
   return [
     { id: 'mod-proposta', nome: 'Proposta de compra', tipo: 'proposta', corpo: MODELO_PROPOSTA, criadoEm: new Date().toISOString() },
-    { id: 'mod-contrato', nome: 'Promessa de compra e venda', tipo: 'contrato', corpo: MODELO_CONTRATO, criadoEm: new Date().toISOString() }
+    { id: 'mod-contrato', nome: 'Promessa de compra e venda', tipo: 'contrato', corpo: MODELO_CONTRATO, criadoEm: new Date().toISOString() },
+    { id: 'mod-cessao', nome: 'Cessão de direitos', tipo: 'cessao', corpo: MODELO_CESSAO, criadoEm: new Date().toISOString() }
   ];
 }
 function modelosDo(tipo) {
@@ -449,13 +496,14 @@ function gerarContratoConfirma(vendaId) {
 // ================================================================ CADASTRO DE MODELOS
 function cadDocumentosHtml() {
   const mods = db.modelos.slice().sort((a, b) => (a.tipo + a.nome).localeCompare(b.tipo + b.nome));
-  const lista = mods.length ? mods : modelosPadrao();
+  /* Os da empresa e, para cada tipo que ela ainda não cadastrou, o exemplo pronto */
+  const lista = mods.concat(modelosPadrao().filter(m => !mods.some(x => x.tipo === m.tipo)));
   return `<div class="card"><h3>Modelos de documento</h3>
     <p class="help">O texto é seu. Cole aqui a proposta e o contrato que a sua empresa já usa e marque as partes que mudam a cada negócio com os campos do sistema. Na hora de gerar, tudo é preenchido sozinho e você ainda pode editar antes de imprimir.</p>
     ${mods.length ? '' : '<p class="help mt">Você ainda não cadastrou modelos. Os dois abaixo são exemplos prontos: abra, ajuste ao seu texto e salve.</p>'}
-    <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirModeloForm('','proposta')"><i class=ico data-i=plus></i>Modelo de proposta</button><button class="btn btn-secondary" onclick="abrirModeloForm('','contrato')"><i class=ico data-i=plus></i>Modelo de contrato</button></div></div>
+    <div class="btn-row mt"><button class="btn btn-primary" onclick="abrirModeloForm('','proposta')"><i class=ico data-i=plus></i>Modelo de proposta</button><button class="btn btn-secondary" onclick="abrirModeloForm('','cessao')"><i class=ico data-i=plus></i>Modelo de cessão</button><button class="btn btn-secondary" onclick="abrirModeloForm('','contrato')"><i class=ico data-i=plus></i>Modelo de contrato</button></div></div>
     ${lista.map(m => `<div class="card"><div class="row-between">
-      <div><b>${esc(m.nome)}</b> <span class="badge ${m.tipo === 'proposta' ? 'pendente' : 'neutral'}">${m.tipo === 'proposta' ? 'Proposta' : 'Contrato'}</span>${db.modelos.find(x => x.id === m.id) ? '' : ' <span class="tiny muted">exemplo</span>'}</div>
+      <div><b>${esc(m.nome)}</b> <span class="badge ${m.tipo === 'proposta' ? 'pendente' : 'neutral'}">${TIPOS_MODELO[m.tipo] || 'Contrato'}</span>${db.modelos.find(x => x.id === m.id) ? '' : ' <span class="tiny muted">exemplo</span>'}</div>
       <div class="btn-row" style="margin:0"><button class="btn btn-secondary btn-sm" onclick="abrirModeloForm('${esc(m.id)}')">Editar</button>${db.modelos.find(x => x.id === m.id) ? `<button class="btn btn-outline-danger btn-sm" onclick="excluirModelo('${esc(m.id)}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button>` : ''}</div></div>
       <div class="small muted mt">${esc(docPreencher(m.corpo, {}).replace(/[#*_]/g, '').slice(0, 160))}…</div></div>`).join('')}`;
 }
@@ -466,13 +514,13 @@ function abrirModeloForm(id, tipo) {
   const t = rasc ? rasc.tipo : (m ? m.tipo : (tipo || 'contrato'));
   const paleta = DOC_CAMPOS.map(([grupo, itens]) => `<div class="doc-grupo"><b>${esc(grupo)}</b> ${itens.map(([k, rot]) => `<button type="button" class="doc-chip" onclick="modInserir('${k}')" title="${esc(k)}">${esc(rot)}</button>`).join('')}</div>`).join('');
   openModal({
-    title: m ? 'Editar modelo' : (t === 'proposta' ? 'Modelo de proposta' : 'Modelo de contrato'),
+    title: m ? 'Editar modelo' : (t === 'proposta' ? 'Modelo de proposta' : t === 'cessao' ? 'Modelo de cessão de direitos' : 'Modelo de contrato'),
     full: true,
-    body: `<div class="frow"><div class="fg"><label>Nome do modelo *</label><input type="text" id="mdNome" value="${esc(rasc ? rasc.nome : (m ? m.nome : ''))}" placeholder="${t === 'proposta' ? 'Proposta de compra' : 'Promessa de compra e venda'}"></div>
-      <div class="fg"><label>Tipo</label><select id="mdTipo"><option value="proposta" ${t === 'proposta' ? 'selected' : ''}>Proposta (corretor)</option><option value="contrato" ${t === 'contrato' ? 'selected' : ''}>Contrato (venda)</option></select></div></div>
+    body: `<div class="frow"><div class="fg"><label>Nome do modelo *</label><input type="text" id="mdNome" value="${esc(rasc ? rasc.nome : (m ? m.nome : ''))}" placeholder="${t === 'proposta' ? 'Proposta de compra' : t === 'cessao' ? 'Cessão de direitos' : 'Promessa de compra e venda'}"></div>
+      <div class="fg"><label>Tipo</label><select id="mdTipo"><option value="proposta" ${t === 'proposta' ? 'selected' : ''}>Proposta (corretor)</option><option value="contrato" ${t === 'contrato' ? 'selected' : ''}>Contrato (venda)</option><option value="cessao" ${t === 'cessao' ? 'selected' : ''}>Cessão de direitos</option></select></div></div>
       <div class="doc-editor-grid">
         <div class="fg"><label>Texto do documento</label>
-          <textarea id="mdCorpo" class="doc-editor" spellcheck="false">${esc(rasc ? rasc.corpo : (m ? m.corpo : (t === 'proposta' ? MODELO_PROPOSTA : MODELO_CONTRATO)))}</textarea>
+          <textarea id="mdCorpo" class="doc-editor" spellcheck="false">${esc(rasc ? rasc.corpo : (m ? m.corpo : (t === 'proposta' ? MODELO_PROPOSTA : t === 'cessao' ? MODELO_CESSAO : MODELO_CONTRATO)))}</textarea>
           <div class="hint">Clique num campo ao lado para inserir no lugar do cursor. Use <b># </b> no começo da linha para título, <b>## </b> para subtítulo e <b>**texto**</b> para negrito. Qualquer campo que você inventar, por exemplo <b>{{foro}}</b>, vira um preenchimento na hora de gerar.</div></div>
         <div class="doc-paleta">${paleta}</div>
       </div>`,
@@ -504,6 +552,7 @@ function modTestar() {
     validade: fmtDate(addDays(todayStr(), 5)),
     extras: {}
   });
+  if (typeof contextoCessaoExemplo === 'function') Object.assign(ctx, contextoCessaoExemplo());
   const html = docHtml(corpo, ctx);
   openModal({ title: 'Exemplo preenchido', wide: true, body: `<p class="help mb">Dados fictícios só para conferir o texto. Os espaços em branco são campos sem valor no cadastro.</p><div class="doc-folha">${html}</div>`, footer: `<button class="btn btn-primary" onclick="abrirModeloForm('${esc(window.__modEditId || '')}')">Voltar ao editor</button>` });
 }

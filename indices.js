@@ -76,7 +76,7 @@ function acumuladoIndice(ind, nMeses, aplicado) { // aplicado = como entra nos c
 function recValor(r) {
   if (r.valorCorrigido != null && num(r.valorCorrigido) > 0) return num(r.valorCorrigido);
   const base = num(r.valor);
-  if (r.tipo === 'entrada') return base;
+  if (r.tipo === 'entrada' || r.tipo === 'taxa') return base;   // taxa de cessão não é corrigida
   const v = getVenda(r.vendaId);
   if (!v || !v.indiceId || !getIndice(v.indiceId)) return base;
   const f = fatorIndice(v.indiceId, v.indiceBase || monthKey(v.dataVenda), monthKey(r.vencimento));
@@ -95,7 +95,7 @@ function recCorrecao(r) { return Math.round((recValor(r) - num(r.valor)) * 100) 
      o que o sistema mandou pagar —, mas você precisa saber que existem. */
 function _valorSemCongelar(r) {
   const v = getVenda(r.vendaId);
-  if (!v || !v.indiceId || !getIndice(v.indiceId) || r.tipo === 'entrada') return num(r.valor);
+  if (!v || !v.indiceId || !getIndice(v.indiceId) || r.tipo === 'entrada' || r.tipo === 'taxa') return num(r.valor);
   const f = fatorIndice(v.indiceId, v.indiceBase || monthKey(v.dataVenda), monthKey(r.vencimento));
   return Math.round(num(r.valor) * f * 100) / 100;
 }
