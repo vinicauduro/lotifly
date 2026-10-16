@@ -137,7 +137,7 @@ function reciboDados(id, pg) {
   const v = getVenda(r.vendaId); if (!v) return null;
   pg = pg || { valor: num(r.valorPago), data: r.dataPagamento || todayStr(), forma: r.forma || '', obs: r.obsPagamento || '' };
   const lot = getLoteamento(v.loteamentoId) || {};
-  return { r, v, pg, valor: num(pg.valor), resta: recRestante(r), compradores: todosCompradores(v), vendedores: todosVendedores(v),
+  return { r, v, pg, valor: num(pg.valor), resta: recRestante(r), compradores: compradoresNaData(v, pg.data), vendedores: todosVendedores(v),
     cidade: db.config.cidade || lot.cidade || '' };
 }
 function reciboHtml(d) {
@@ -212,6 +212,7 @@ function imprimirExtrato(vendaId) {
     <table><thead><tr><th>Parcela</th><th>Vencimento</th><th class="num">Valor</th><th class="num">Pago</th><th>Data pgto</th><th>Forma</th><th>Situação</th></tr></thead>
     <tbody>${recs.map(x => `<tr><td>${esc(x.descricao)}</td><td>${fmtDate(x.vencimento)}</td><td class="num">${fmtMoney(recValor(x))}</td><td class="num">${x.valorPago ? fmtMoney(x.valorPago) : ''}</td><td>${x.dataPagamento ? fmtDate(x.dataPagamento) : ''}</td><td>${esc(x.forma || '')}</td><td>${statusLabel(recStatus(x))}</td></tr>`).join('')}</tbody>
     <tfoot><tr><th colspan="2">Total</th><th class="num">${fmtMoney(r.total)}</th><th class="num">${fmtMoney(r.pago)}</th><th colspan="3"></th></tr></tfoot></table>
+    ${(v.cessoes || []).length ? `<p style="margin-top:10px"><b>Cessão de direitos:</b> ${(v.cessoes || []).map(c => `em ${fmtDate(c.data)}, de ${esc(nomesDasPartes(c.cedentes))} para ${esc(nomesDasPartes(c.cessionarios))}`).join('; ')}. Os pagamentos anteriores a cada cessão foram feitos pelos cedentes.</p>` : ''}
     ${v.obs ? `<p style="margin-top:10px"><b>Observações:</b> ${esc(v.obs)}</p>` : ''}`;
   window.print();
 }

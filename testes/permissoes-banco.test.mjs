@@ -137,6 +137,19 @@ await passo('restaurar backup: pede "fazer backup" e, com ela, a limpeza não é
   const n = (await db.query(`select (select count(*) from public.vendas) + (select count(*) from public.recebiveis) + (select count(*) from public.custos) as n`)).rows[0].n;
   if (Number(n) !== 0) throw new Error('sobraram ' + n + ' linhas');
 });
+await passo('cessão de direitos: o banco aceita o histórico no contrato e o modelo de cessão; sem "editar contratos", recusa', async () => {
+  await db.exec(`insert into public.vendas (org_id, id, loteamento_id, lote_id, valor_total) values ('${ORG}','v20','lot1','l20',80000)`);
+  const cessoes = JSON.stringify([{ id: 'c1', data: '2026-10-15', cedentes: [{ nome: 'A' }], cessionarios: [{ nome: 'B' }] }]);
+  await ajustar({ permissoesPessoas: { [U.admin]: { 'vendas.editar': false } } });
+  await recusa('admin', `update public.vendas set cliente = '{"nome":"B"}'::jsonb, cessoes = '${cessoes}'::jsonb where id = 'v20'`, 'editar contratos');
+  await ajustar({ permissoesPessoas: {} });
+  await como('admin', `update public.vendas set cliente = '{"nome":"B"}'::jsonb, cessoes = '${cessoes}'::jsonb where id = 'v20'`);
+  const r = (await db.query(`select cliente->>'nome' as n, jsonb_array_length(cessoes) as c from public.vendas where id = 'v20'`)).rows[0];
+  if (r.n !== 'B' || Number(r.c) !== 1) throw new Error(JSON.stringify(r));
+  await como('admin', `insert into public.modelos (org_id, id, nome, tipo, corpo) values ('${ORG}','mc1','Cessão','cessao','texto do modelo de cessão')`);
+  let recusou = false; try { await db.exec(`insert into public.modelos (org_id, id, nome, tipo, corpo) values ('${ORG}','mx1','X','outro','x')`); } catch (e) { recusou = /modelos_tipo_check/.test(e.message); }
+  if (!recusou) throw new Error('aceitou um tipo de modelo desconhecido');
+});
 await passo('plantas fechadas: só quem é da empresa (entrou pelo convite) abre o arquivo', async () => {
   const ORG2 = '22222222-2222-2222-2222-222222222222', FORA = 'aaaaaaaa-0000-0000-0000-000000000009';
   await db.exec(`

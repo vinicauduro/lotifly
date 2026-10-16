@@ -442,7 +442,7 @@ const TABLE_COLS = {
   reservas: ['id', 'loteamentoId', 'loteId', 'corretor', 'corretorUserId', 'cliente', 'dataReserva', 'validade', 'status', 'proposta', 'obs', 'motivo', 'aprovadaEm', 'encerradaEm', 'criadoEm'],
   vendedores: ['id', 'tipo', 'nome', 'cpf', 'inscricaoEstadual', 'representante', 'telefone', 'email', 'cep', 'logradouro', 'numeroEnd', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'obs', 'criadoEm'],
   clientes: ['id', 'tipo', 'genero', 'nome', 'cpf', 'rg', 'rgOrgao', 'nacionalidade', 'profissao', 'estadoCivil', 'regimeBens', 'conjuge', 'inscricaoEstadual', 'representante', 'telefone', 'email', 'cep', 'logradouro', 'numeroEnd', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'obs', 'criadoEm'],
-  vendas: ['id', 'numeroContrato', 'loteamentoId', 'loteId', 'imovel', 'vendedorId', 'vendedor', 'vendedoresExtras', 'reservaId', 'cliente', 'compradoresExtras', 'corretor', 'corretorUserId', 'dataVenda', 'valorTotal', 'entrada', 'dataEntrada', 'nParcelas', 'jurosMes', 'valorParcela', 'primeiroVencimento', 'baloes', 'indiceId', 'indiceBase', 'comissaoPct', 'comissaoValor', 'comissaoPaga', 'comissaoData', 'status', 'obs', 'motivo', 'distratoEm', 'criadoEm'],
+  vendas: ['id', 'numeroContrato', 'loteamentoId', 'loteId', 'imovel', 'vendedorId', 'vendedor', 'vendedoresExtras', 'reservaId', 'cliente', 'compradoresExtras', 'corretor', 'corretorUserId', 'dataVenda', 'valorTotal', 'entrada', 'dataEntrada', 'nParcelas', 'jurosMes', 'valorParcela', 'primeiroVencimento', 'baloes', 'indiceId', 'indiceBase', 'comissaoPct', 'comissaoValor', 'comissaoPaga', 'comissaoData', 'status', 'obs', 'motivo', 'distratoEm', 'cessoes', 'criadoEm'],
   recebiveis: ['id', 'loteamentoId', 'vendaId', 'tipo', 'numero', 'descricao', 'vencimento', 'valor', 'valorPago', 'valorCorrigido', 'nossoNumero', 'contaId', 'remessaEm', 'bancoValor', 'bancoVenc', 'dataPagamento', 'forma', 'obsPagamento'],
   custos: ['id', 'loteamentoId', 'loteId', 'vendaId', 'descricao', 'categoriaId', 'fornecedor', 'valor', 'formaPagamento', 'dataCompetencia', 'vencimento', 'status', 'dataPagamento', 'obs', 'criadoEm'],
   modelos: ['id', 'nome', 'tipo', 'corpo', 'criadoEm'],
@@ -1040,6 +1040,13 @@ function qualificacaoParte(p) {
 function todosCompradores(v) {
   if (!v) return [];
   return [v.cliente].concat(v.compradoresExtras || []).filter(p => p && p.nome);
+}
+/* Quem era o comprador numa data: antes de uma cessão de direitos, quem pagava eram os
+   cedentes daquela cessão. O recibo de um pagamento antigo sai no nome de quem pagou. */
+function compradoresNaData(v, data) {
+  const cs = ((v && v.cessoes) || []).slice().sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  const depois = cs.find(c => data && String(c.data) > String(data));
+  return depois ? (depois.cedentes || []).filter(p => p && p.nome) : todosCompradores(v);
 }
 function todosVendedores(v) {
   if (!v) return [];

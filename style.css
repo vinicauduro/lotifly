@@ -835,3 +835,9 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
   #screen-admin .aside { touch-action: pan-y; overscroll-behavior: contain; }
   body.aside-aberto .aside-scrim { opacity: var(--scrim, 1); }
 }
+
+/* Cessão de direitos: no celular os botões (Termo, Desfazer) descem para baixo do texto */
+@media (max-width: 640px) {
+  .item.ct-cessao { flex-direction: column; align-items: stretch; }
+  .item.ct-cessao .side { margin-top: 10px; align-items: flex-start; }
+}

@@ -1,5 +1,5 @@
 const CACHE = 'lotifly-v61';
-const FILES = ['./', './index.html', './style.css', './icones.css', './fonts/Geist-Variable.woff2', './config.js', './vendor/supabase.js', './core.js', './gestos.js', './permissoes.js', './planta.js', './planta-pdf.js', './planta-dxf.js', './admin-pdf.js', './corretor.js', './admin.js', './indices.js', './antecipacao.js', './cobranca.js', './financeiro.js', './banco.js', './cnab.js', './relatorios.js', './docs.js', './clientes.js', './contrato.js', './auth.js', './manifest.json', './icon-192.png', './icon-512.png'];
+const FILES = ['./', './index.html', './style.css', './icones.css', './fonts/Geist-Variable.woff2', './config.js', './vendor/supabase.js', './core.js', './gestos.js', './permissoes.js', './planta.js', './planta-pdf.js', './planta-dxf.js', './admin-pdf.js', './corretor.js', './admin.js', './indices.js', './antecipacao.js', './cobranca.js', './financeiro.js', './banco.js', './cnab.js', './relatorios.js', './docs.js', './clientes.js', './contrato.js', './cessao.js', './auth.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

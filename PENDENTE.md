@@ -32,7 +32,8 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 
 ### A. Configurar com os seus dados (uma vez; não é teste)
 - [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
-- [ ] **Rodar o `supabase/schema.sql` de novo** para fechar as plantas (seção 7z11).
+- [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` de novo para fechar as plantas (seção 7z11).
+- [ ] **Rodar o `supabase/schema.sql` de novo** para a cessão de direitos (seção 7z12).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -763,6 +764,51 @@ casado/casada, portador/portadora, "seu marido"/"sua esposa"), e os cadastros qu
 não mudam.
 
 - [ ] Abrir um contrato novo e ver a pergunta **Sexo** no comprador e no cônjuge.
+## 7z12. Cessão de direitos (15/10)
+
+Quando o comprador passa o contrato para outra pessoa, a empresa dá a anuência e o contrato
+continua o mesmo: mesmo número, mesmo lote, mesmas parcelas, mesmo índice. Muda só quem é o
+comprador.
+
+**Onde fica:** no contrato, **Mais › Cessão de direitos**.
+
+- O formulário mostra quem cede e **o que fica para o novo comprador**: quantas parcelas em
+  aberto e quanto somam.
+- Avisa quando há **parcela em atraso** (normalmente a cessão só sai com o contrato em dia) e
+  quando há **boleto já registrado no banco** em nome de quem cedeu (é preciso gerar boletos
+  novos dessas parcelas depois).
+- O **cessionário** tem a qualificação completa, como na venda: estado civil, cônjuge, mais de
+  um cessionário e a opção de puxar do cadastro de clientes. Ele entra no cadastro de clientes.
+- **Valor entre as partes** (opcional): o que o cessionário paga ao cedente. Vai só para o
+  termo; não entra no caixa da empresa.
+- **Taxa de cessão** (opcional): o que a empresa cobra para anuir. Entra no contrato como
+  **recebida** na data da cessão, aparece no caixa e no extrato e não é corrigida pelo índice.
+
+**Depois de registrar:**
+- Cobranças, WhatsApp, boletos novos e a escritura passam a ser do cessionário.
+- As parcelas já pagas continuam no contrato. O **recibo de um pagamento anterior** à cessão
+  sai no nome de quem pagou (o cedente), e o extrato traz uma nota com as cessões.
+- A aba **Partes** mostra o histórico das cessões, com o **termo** de cada uma. Só a última
+  pode ser **desfeita**, para corrigir um registro feito por engano: o contrato volta para o
+  cedente e a taxa lançada junto sai.
+- O **Histórico** registra a cessão, e **Documentos** oferece o termo.
+
+**Termo de cessão:** "Instrumento particular de cessão de direitos", com cedente, cessionário
+e a empresa como **anuente**, o objeto, o saldo devedor por extenso, a anuência com a taxa e as
+assinaturas (cônjuges juntos). É um modelo editável como os outros: em **Configurações ›
+Modelos de documento** aparece o exemplo **Cessão de direitos**, e os campos novos estão no
+grupo "Cessão de direitos". O ideal é colar o seu texto de cessão e conferir as cláusulas com
+o seu jurídico.
+
+**⚠ Rode o `supabase/schema.sql` de novo no Supabase.** Ele cria no contrato o lugar das
+cessões e aceita o tipo de modelo novo. Enquanto não rodar, a nuvem recusa salvar a cessão.
+
+- [ ] Rodar o `supabase/schema.sql`.
+- [ ] Registrar uma cessão num contrato de teste e conferir o termo.
+- [ ] Colar o seu modelo de cessão em Configurações › Modelos de documento.
+
+`testes/cessao.test.js` cobre tudo isso no celular e no computador; o teste do banco confere a
+cessão gravada e o tipo de modelo novo.
 
 ---
 
@@ -786,7 +832,7 @@ conta. Agora a planta só abre para quem é **membro da empresa**, ou seja, quem
 **⚠ Rode o `supabase/schema.sql` de novo no Supabase.** É ele que fecha a pasta das plantas.
 Enquanto não rodar, a planta continua abrindo como antes.
 
-- [ ] Rodar o `supabase/schema.sql`.
+- [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql`.
 - [ ] Abrir a planta como administrador e como corretor convidado: ela aparece.
 - [ ] Copiar o endereço da imagem da planta (botão direito › copiar endereço da imagem) e abrir
       numa janela anônima depois de uma hora: não abre.
@@ -1575,7 +1621,7 @@ Em ordem de prioridade acordada:
    no ano do contrato? Você é obrigado pela loteadora, pela imobiliária, ou pelas duas?
    Decidido: locação fica fora, não é o que você busca.
 3. **Portal do comprador** — segunda via e extrato para o cliente final.
-4. **Distrato e transferência de lote.**
+4. **Distrato e transferência de lote.** A transferência foi feita como **cessão de direitos** (seção 7z12).
 5. **Planos do SaaS** — definir o que entra em cada plano e travar por plano no sistema.
 
 Descartado por decisão sua: assinatura digital, que é serviço contratado à parte. Sem
