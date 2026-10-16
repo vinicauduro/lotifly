@@ -753,6 +753,19 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z13. "Sexo" no lugar de "Concordância no contrato" (16/10)
+
+Nos cadastros de pessoa (comprador, cônjuge, cessionário, cliente, corretor, quem assina pela
+empresa), o campo **"Concordância no contrato — Masculino, brasileiro, casado"** virou
+**Sexo: Masculino / Feminino**. É a mesma informação, perguntada do jeito natural. O contrato
+continua escrevendo no masculino ou no feminino a partir dela (brasileiro/brasileira,
+casado/casada, portador/portadora, "seu marido"/"sua esposa"), e os cadastros que já existem
+não mudam.
+
+- [ ] Abrir um contrato novo e ver a pergunta **Sexo** no comprador e no cônjuge.
+
+---
+
 ## 7z11. Plantas fechadas: só quem é da empresa abre (15/10)
 
 Antes, a imagem da planta ficava num endereço público: quem tivesse o link abria, mesmo sem
