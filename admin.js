@@ -1099,16 +1099,17 @@ function abrirLoteamentoForm(id, opc) {
   const terc = !!l && ehCarteira(l);
   const cat = categoriaImovel(l);
   /* Imóvel novo começa sem tipo escolhido: um apartamento cadastrado como casa por descuido
-     sai errado no contrato. Empreendimento e imóvel avulso não se trocam depois de criados;
-     entre os avulsos dá para corrigir (casa → sobrado não existe, mas casa → sítio sim). */
+     sai errado no contrato. Depois de criado, o tipo pode ser trocado — inclusive entre
+     empreendimento e imóvel avulso —, mas a troca pede confirmação com o que muda (lmTrocarTipo). */
   const semTipo = !l || (terc && !cat);
+  window.__lmTipoOrig = l ? (terc ? (cat ? 'carteira:' + cat[0] : '') : 'loteamento') : ''; window.__lmTipoConfirmado = '';
   const c = (l && l.cond) || { entradaMinPct: 10, maxParcelas: 120, jurosMes: 0, descontoVistaPct: 5 };
   const mostra = ok => ok ? '' : 'display:none';
-  const body = `${opc.paraContrato ? '<input type="hidden" id="lmParaContrato" value="1"><div class="alert info" style="cursor:default"><span>Depois de salvar, o contrato abre com este imóvel.</span></div>' : ''}<div class="fg"><label>Tipo *</label><select id="lmTipo" ${l && !terc ? 'disabled' : ''} onchange="lmTipoChange()">
+  const body = `${opc.paraContrato ? '<input type="hidden" id="lmParaContrato" value="1"><div class="alert info" style="cursor:default"><span>Depois de salvar, o contrato abre com este imóvel.</span></div>' : ''}<div class="fg"><label>Tipo *</label><select id="lmTipo" onchange="${l ? `lmTrocarTipo('${l.id}')` : 'lmTipoChange()'}">
       ${semTipo ? '<option value="" selected disabled>— Escolha o tipo —</option>' : ''}
-      ${!terc ? `<option value="loteamento" ${l ? 'selected' : ''}>Empreendimento — com planta e lotes</option>` : ''}
-      ${!l || terc ? `<optgroup label="Imóvel avulso">${CATEGORIAS_IMOVEL.map(c => `<option value="carteira:${c[0]}" ${cat && cat[0] === c[0] ? 'selected' : ''}>${c[1]}</option>`).join('')}</optgroup>` : ''}</select>
-      <div class="hint" id="lmHint"></div></div>
+      <option value="loteamento" ${l && !terc ? 'selected' : ''}>Empreendimento — com planta e lotes</option>
+      <optgroup label="Imóvel avulso">${CATEGORIAS_IMOVEL.map(c => `<option value="carteira:${c[0]}" ${cat && cat[0] === c[0] ? 'selected' : ''}>${c[1]}</option>`).join('')}</optgroup></select>
+      <div class="hint" id="lmHint"></div><div id="lmTrocaAviso"></div></div>
     <div class="fg"><label id="lmNomeLbl">${terc ? 'Qual é o imóvel *' : 'Nome do loteamento *'}</label><input type="text" id="lmNome" value="${esc(l ? l.nome : '')}" placeholder="${terc ? 'Ex.: Lote 15 da Quadra 300 · Apartamento 302 do Ed. Aurora' : 'Ex.: Residencial Vista Verde'}"></div>
     <div id="lmBoxTerceiro" style="${mostra(terc)}">
       <div class="frow3"><div class="fg"><label>Valor de venda (R$) *</label><input type="number" id="lmPreco" step="0.01" value="${l && num(l.preco) ? l.preco : ''}" placeholder="0,00"></div>
@@ -1140,9 +1141,55 @@ function lmTipoSel() {
   const v = val('lmTipo');
   return { vazio: !v, terc: v.startsWith('carteira'), cat: CATEGORIAS_IMOVEL.find(c => 'carteira:' + c[0] === v) || null };
 }
+/* Nome do tipo para os avisos: 'loteamento' → Empreendimento; 'carteira:casa' → Casa. */
+function nomeTipoImovel(v) {
+  if (v === 'loteamento') return 'Empreendimento';
+  const c = CATEGORIAS_IMOVEL.find(x => 'carteira:' + x[0] === v);
+  return c ? c[1] : 'Imóvel avulso';
+}
+/* O que acontece ao trocar o tipo de um imóvel já cadastrado. Devolve o motivo de bloqueio,
+   quando a troca não faz sentido, ou a lista do que muda, para a pessoa confirmar. */
+function efeitosTrocaTipo(l, de, para) {
+  const virAvulso = de === 'loteamento' && para !== 'loteamento';
+  const virEmp = de !== 'loteamento' && para === 'loteamento';
+  const contratos = db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato');
+  const reservas = db.reservas.filter(r => r.loteamentoId === l.id && (r.status === 'pendente' || r.status === 'aprovada'));
+  if (virAvulso && contratos.length > 1) return { bloqueio: `Este empreendimento tem ${contratos.length} contratos. Um imóvel avulso tem um contrato só, então não dá para trocar.` };
+  if (virAvulso && reservas.length) return { bloqueio: `Há ${reservas.length} reserva(s) em andamento neste empreendimento. Aprove, converta ou recuse antes de trocar o tipo: imóvel avulso não tem reserva.` };
+  const nLotes = lotesDo(l.id).length, temPlanta = !!(l.planta && l.planta.img) || nLotes > 0;
+  const muda = [];
+  if (virAvulso) {
+    if (temPlanta) muda.push(`A planta${nLotes ? ` e os ${nLotes} lote(s)` : ''} deixam de aparecer. Ficam guardados e voltam se o tipo voltar a ser empreendimento.`);
+    muda.push('O imóvel passa a ter valor de venda, matrícula e descrição próprios, que você precisa preencher.');
+    muda.push('Deixa de aparecer para os corretores (imóvel avulso não tem reserva).');
+  } else if (virEmp) {
+    muda.push('O valor de venda, a matrícula e a descrição do imóvel deixam de ser usados. Ficam guardados e voltam se o tipo voltar a ser imóvel avulso.');
+    muda.push('Passa a ter planta, lotes e reservas, e aparece para os corretores.');
+  } else {
+    muda.push(`Muda como o imóvel é chamado nas telas e nos documentos (${nomeTipoImovel(de)} → ${nomeTipoImovel(para)}). Confira a descrição e a matrícula.`);
+  }
+  if (contratos.length) muda.push(`O contrato que já existe (${contratos[0].cliente.nome}) continua o mesmo, com a descrição de imóvel que tem hoje.`);
+  return { muda };
+}
+/* Trocar o tipo de um imóvel já cadastrado é mudar uma característica importante: pede
+   confirmação com o que muda e, se a pessoa desistir, o seletor volta ao tipo de antes. */
+function lmTrocarTipo(id) {
+  const l = getLoteamento(id); if (!l) return;
+  const de = window.__lmTipoOrig || '', para = val('lmTipo');
+  const aviso = $('#lmTrocaAviso');
+  const volta = () => { setVal('lmTipo', de); if (aviso) aviso.innerHTML = ''; lmTipoChange(true); };
+  if (!de || para === de) { if (aviso) aviso.innerHTML = ''; lmTipoChange(); return; }
+  const ef = efeitosTrocaTipo(l, de, para);
+  if (ef.bloqueio) { alert(`Não dá para trocar o tipo.\n\n${ef.bloqueio}`); volta(); return; }
+  const ok = confirm(`Você está mudando uma característica importante do imóvel, e isso pode alterar os dados dele.\n\nDe: ${nomeTipoImovel(de)}\nPara: ${nomeTipoImovel(para)}\n\nO que muda:\n${ef.muda.map(m => '• ' + m).join('\n')}\n\nConfirma a troca?`);
+  if (!ok) { volta(); return; }
+  window.__lmTipoConfirmado = para;
+  if (aviso) aviso.innerHTML = `<div class="alert warn" style="cursor:default;margin-top:8px"><span><b>Tipo trocado: ${esc(nomeTipoImovel(de))} → ${esc(nomeTipoImovel(para))}.</b> Confira os dados abaixo antes de salvar; a troca só vale quando você salvar.</span></div>`;
+  lmTipoChange();
+}
 function lmTipoChange(abrindo) {
   const { vazio, terc, cat } = lmTipoSel();
-  const editando = !!$('#lmTipo').disabled || (abrindo && !vazio);
+  const editando = !!window.__lmTipoOrig;
   const mostra = (id, ok) => { const el = document.getElementById(id); if (el) el.style.display = ok ? '' : 'none'; };
   mostra('lmBoxTerceiro', terc); mostra('lmDescMatBox', terc); mostra('lmMatMaeBox', !terc && !vazio);
   $('#lmNomeLbl').textContent = terc ? 'Qual é o imóvel *' : vazio ? 'Nome *' : 'Nome do empreendimento *';
@@ -1150,8 +1197,8 @@ function lmTipoChange(abrindo) {
   $('#lmDescLbl').textContent = terc ? 'Observações' : 'Descrição para os corretores';
   $('#lmDesc').placeholder = terc ? 'Quem é o proprietário, chaves, o que for útil…' : 'Infraestrutura, diferenciais, área de lazer…';
   $('#lmHint').textContent = vazio ? 'Empreendimento tem planta e lotes; os outros são um imóvel só, com valor de venda, matrícula e endereço.'
-    : terc ? `Um imóvel só: valor de venda, matrícula e endereço, e o contrato já sai com esses dados.${editando ? ' Dá para trocar entre os tipos de imóvel avulso.' : ''}`
-    : editando ? 'O tipo não muda depois de criado.' : 'Tem planta, lotes numerados com preço cada um e reservas pelos corretores.';
+    : terc ? 'Um imóvel só: valor de venda, matrícula e endereço, e o contrato já sai com esses dados.'
+    : 'Tem planta, lotes numerados com preço cada um e reservas pelos corretores.';
   $('#lmCondOpc').textContent = terc ? '— opcional' : '';
   if (!abrindo || !editando) $('#lmCondBox').open = !terc && !vazio;
 }
@@ -1159,12 +1206,20 @@ function salvarLoteamento(id) {
   const prev = id ? getLoteamento(id) : null;
   const sel = lmTipoSel();
   if (!prev && sel.vazio) { toast('⚠️', 'Escolha o tipo do imóvel', 'Empreendimento, apartamento, casa, lote…', true); return; }
-  const terc = prev ? ehCarteira(prev) : sel.terc;
+  const terc = sel.vazio && prev ? ehCarteira(prev) : sel.terc;
+  /* Troca de tipo: confirmada no seletor; se chegou aqui sem confirmar, pergunta de novo. */
+  const de = window.__lmTipoOrig || '', para = val('lmTipo');
+  const trocou = !!prev && !!de && !!para && para !== de;
+  if (trocou) {
+    const ef = efeitosTrocaTipo(prev, de, para);
+    if (ef.bloqueio) { toast('⚠️', 'Não dá para trocar o tipo', ef.bloqueio, true); return; }
+    if (window.__lmTipoConfirmado !== para && !confirm(`Confirma a troca do tipo do imóvel de ${nomeTipoImovel(de)} para ${nomeTipoImovel(para)}?\n\n${ef.muda.map(m => '• ' + m).join('\n')}`)) return;
+  }
   if (terc && !sel.cat) { toast('⚠️', 'Escolha o tipo do imóvel', 'Apartamento, casa, galpão, lote, sala comercial ou sítio.', true); return; }
   const nome = val('lmNome'); if (!nome) { toast('⚠️', terc ? 'Informe qual é o imóvel' : 'Informe o nome', terc ? 'Ex.: Lote 15 da Quadra 300' : '', true); return; }
   /* Sem preço não há o que vender: as condições de pagamento dependem dele. */
   if (terc && !(num(val('lmPreco')) > 0)) { toast('⚠️', 'Informe o valor de venda', 'É por ele que a venda e as condições começam.', true); const p = $('#lmPreco'); if (p) p.focus(); return; }
-  const rec = Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString(), orcamento: {}, tipo: terc ? 'carteira' : 'loteamento' }, { nome, cidade: val('lmCidade'), endereco: val('lmEnd'), descricao: val('lmDesc'),
+  const rec = Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString(), orcamento: {} }, { tipo: terc ? 'carteira' : 'loteamento', nome, cidade: val('lmCidade'), endereco: val('lmEnd'), descricao: val('lmDesc'),
     cep: val('lmCep'), logradouro: val('lmLogr'), numeroEnd: val('lmNum'), bairro: val('lmBairro'), uf: val('lmUf'),
     cartorio: val('lmCartorio'), matriculaMae: val('lmMatMae'), codigoIbge: onlyDigits(val('lmIbge')),
     ...(terc ? { categoria: sel.cat[0], preco: num(val('lmPreco')), matricula: val('lmMat'), area: num(val('lmArea')) || null, descricaoMatricula: val('lmDescMat') } : {}), cond: terc && !$('#lmCondBox').open ? ((prev && prev.cond) || {}) : { entradaMinPct: num(val('lmEntrada')), maxParcelas: Math.round(num(val('lmMaxP'))) || 120, jurosMes: num(val('lmJuros')), descontoVistaPct: num(val('lmDesc2')) } });
@@ -1176,6 +1231,8 @@ function salvarLoteamento(id) {
     toast('✅', 'Imóvel cadastrado', 'Agora preencha o contrato.');
     return;
   }
+  if (trocou) { logAct(`Tipo do imóvel trocado: ${nome} — ${nomeTipoImovel(de)} → ${nomeTipoImovel(para)}`); state.plantaAdmin = null; state.plantaCorretor = null; }
+  window.__lmTipoOrig = ''; window.__lmTipoConfirmado = '';
   if (!prev) { logAct(`Imóvel cadastrado: ${empLabel(rec)} — ${nome}`); state.empAberto = rec.id; state.empSub = 'resumo'; setCurLotSilencioso(rec.id); state.tab = 'emp'; }
   closeModal(); renderCurrent(); toast('✅', prev ? 'Alterações salvas' : 'Imóvel cadastrado', `${empLabel(rec)} · ${nome}`);
 }

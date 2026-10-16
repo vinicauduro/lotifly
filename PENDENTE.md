@@ -754,6 +754,32 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z14. Trocar o tipo do imóvel, com confirmação (16/10)
+
+No cadastro do imóvel (**Editar**), o **Tipo** deixou de ficar travado: um empreendimento
+pode virar imóvel avulso (lote, casa, apartamento…) e o contrário, e dá para trocar entre os
+tipos de avulso. Como é uma característica importante, **ao trocar sobe um aviso** para
+confirmar, dizendo o que muda:
+
+- **Empreendimento → imóvel avulso:** a planta e os lotes deixam de aparecer (ficam guardados
+  e voltam se o tipo voltar); o imóvel passa a ter valor de venda, matrícula e descrição
+  próprios, que você preenche; deixa de aparecer para os corretores.
+- **Imóvel avulso → empreendimento:** o valor de venda, a matrícula e a descrição deixam de ser
+  usados (ficam guardados); passa a ter planta, lotes e reservas.
+- **Entre tipos de avulso** (ex.: Lote → Sítio): muda como o imóvel é chamado nas telas e nos
+  documentos.
+- O contrato que já existe continua o mesmo.
+
+Desistindo, o tipo volta ao que era. Confirmando, o formulário mostra o aviso "Tipo trocado" e
+a troca só vale ao salvar; fica registrada no histórico. **Não deixa trocar** um empreendimento
+com mais de um contrato (o imóvel avulso tem um contrato só) nem com reserva em andamento.
+
+- [ ] Editar um imóvel de teste, trocar o tipo, desistir e depois confirmar.
+
+`testes/tipo-imovel.test.js` cobre tudo isso no celular e no computador.
+
+---
+
 ## 7z13. "Sexo" no lugar de "Concordância no contrato" (16/10)
 
 Nos cadastros de pessoa (comprador, cônjuge, cessionário, cliente, corretor, quem assina pela
