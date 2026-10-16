@@ -49,7 +49,8 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 - [ ] Quem instalou o app: reinstalar pelo endereço novo (seção 00).
 
 ### B. Conferir as contas com a sua planilha (só você tem o número certo)
-- [ ] **Índices**: o valor corrigido bate; lançar um mês antigo e ver a tela de diferença.
+- [ ] **Índices**: a conta e a tela de diferença já são conferidas pelo teste contra uma planilha
+      feita à parte (`indices.test`). Falta comparar **um contrato real** seu com a sua planilha.
 - [ ] **Antecipação**: a conta já é conferida pelo teste contra uma tabela Price feita à
       parte (`antecipacao.test`). Falta você pegar **um contrato real** seu, comparar o
       "Para quitar" com a sua planilha e ver se o demonstrativo impresso está apresentável.
@@ -196,7 +197,7 @@ hora de gerar e ficam guardados para a próxima.
 - [ ] Em **Financeiro › Índices**, criar IGP-M, INPC, IPCA e CUB.
 - [ ] Lançar alguns meses de histórico, de preferência colando a lista de uma planilha.
 - [ ] Escolher o índice e o mês base em uma venda.
-- [ ] Conferir nos recebíveis se o valor corrigido bate com a sua planilha.
+- [x] *(testes: indices.test, contra uma planilha calculada à parte)* Conferir nos recebíveis se o valor corrigido bate com a sua planilha.
 
 **Regras aplicadas, confirmar se estão certas:**
 
@@ -221,7 +222,7 @@ sistema mostra antes de salvar **o que muda, de quanto para quanto**, contrato p
 com o total da diferença. Quem já pagou aparece numa lista à parte, com o aviso de que não
 muda e quanto deixou de ser cobrado. Se o lançamento não mexe em parcela nenhuma, salva direto.
 
-- [ ] Testar: lance um mês antigo de propósito e confira a tela de diferença.
+- [x] *(testes: indices.test, contra uma planilha calculada à parte)* Testar: lance um mês antigo de propósito e confira a tela de diferença.
 - [x] *(lembrete, não é teste)* Lembrar que, se a parcela já virou boleto, o boleto precisa ser refeito.
 
 ---
@@ -752,6 +753,28 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z16. Teste da correção por índice (16/10)
+
+`testes/indices.test.js` confere a correção das parcelas contra uma planilha calculada à parte,
+com um contrato pelo **IPCA** e outro pelo **CUB**:
+
+- cada parcela usa o índice **do mês anterior ao vencimento** (o de um mês só sai no seguinte);
+- mês com **deflação** entra como 0%;
+- **mês sem lançamento**: a parcela fica sem aquele mês, o sistema mostra o que falta e a
+  remessa ao banco espera o lançamento;
+- **entrada** não é corrigida; **parcela paga** congela e não muda com índice lançado depois;
+- na tela de índices, **lançar um mês antigo** mostra antes de salvar o que muda (de quanto
+  para quanto) e separa as parcelas já pagas; o mês novo, que não mexe em nada, salva direto.
+
+Nenhum defeito encontrado. **Um efeito para você saber**, que segue a cláusula do contrato
+("variação negativa em determinado mês é considerada zero"): quando o índice cai num mês e
+volta a subir no seguinte, a queda não desconta, mas a alta conta inteira. No teste, o CUB
+caiu em março (2.550 → 2.540) e subiu em abril (2.600): a parcela de maio ficou **4,41%**
+corrigida, enquanto o CUB subiu **4,0%** de dezembro a abril. É o "efeito catraca", comum nos
+contratos. **Decidido por você em 16/10: fica assim**, seguindo a cláusula.
 
 ---
 
