@@ -601,6 +601,8 @@ alter table public.custos alter column loteamento_id drop not null;
 alter table public.custos add column if not exists venda_id text;
 -- Cessão de direitos: o histórico de quem cedeu para quem fica no próprio contrato.
 alter table public.vendas add column if not exists cessoes jsonb not null default '[]'::jsonb;
+-- Distrato (16/10): retenção, devolução e as parcelas da devolução ficam no próprio contrato.
+alter table public.vendas add column if not exists distrato jsonb;
 
 -- ---------------------------------------------------------------------
 -- 4c. Cobranças registradas (régua de inadimplência)
@@ -667,7 +669,7 @@ create table if not exists public.modelos (
 );
 -- Modelo de cessão de direitos (15/10): o tipo novo entra na lista aceita.
 alter table public.modelos drop constraint if exists modelos_tipo_check;
-alter table public.modelos add constraint modelos_tipo_check check (tipo in ('proposta','contrato','cessao'));
+alter table public.modelos add constraint modelos_tipo_check check (tipo in ('proposta','contrato','cessao','distrato'));
 alter table public.modelos enable row level security;
 drop policy if exists modelos_select on public.modelos;
 drop policy if exists modelos_write on public.modelos;
@@ -1009,7 +1011,7 @@ begin
     return old;
   end if;
   m := public.colunas_mudadas(to_jsonb(new), to_jsonb(old));
-  if new.status = 'distrato' and old.status is distinct from 'distrato' or m && array['distrato_em','motivo'] then
+  if new.status = 'distrato' and old.status is distinct from 'distrato' or m && array['distrato_em','motivo','distrato'] then
     perform public.exigir_permissao(v_org, array['vendas.distrato'], 'fazer distrato');
   elsif 'status' = any(m) then
     -- ativa <-> quitada acontece sozinho ao registrar pagamento ou antecipar
@@ -1018,7 +1020,7 @@ begin
   if m && array['comissao_paga','comissao_data'] then
     perform public.exigir_permissao(v_org, array['comissao.gerenciar'], 'marcar comissões');
   end if;
-  resto := array(select unnest(m) except select unnest(array['status','distrato_em','motivo','comissao_paga','comissao_data']));
+  resto := array(select unnest(m) except select unnest(array['status','distrato_em','motivo','distrato','comissao_paga','comissao_data']));
   if cardinality(resto) > 0 then
     if resto <@ array['valor_parcela','indice_base'] then
       perform public.exigir_permissao(v_org, array['financeiro.antecipar','vendas.editar'], 'recalcular o contrato');

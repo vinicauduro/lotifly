@@ -34,6 +34,7 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 - [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` da Fase 4 (seção 7z9).
 - [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` de novo para fechar as plantas (seção 7z11).
 - [ ] **Rodar o `supabase/schema.sql` de novo** para a cessão de direitos (seção 7z12).
+- [ ] **Rodar o `supabase/schema.sql` de novo** para o distrato (seção 7z15).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -751,6 +752,58 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z15. Distrato (16/10)
+
+O distrato desfaz a venda **guardando a história**: o contrato continua no sistema, como
+**Distrato**, com o que foi pago, o que a empresa reteve e o que devolve. (O "Excluir contrato"
+continua existindo, mas só para contrato lançado por engano.)
+
+**Onde fica:** no contrato, **Mais › Fazer distrato** (permissão "Fazer distrato").
+
+- O formulário mostra o comprador, **quanto ele pagou** (entrada, parcelas e reforços; a taxa
+  de cessão não entra) e quantas parcelas em aberto serão canceladas. Avisa se há **boleto
+  registrado no banco** (ele entra na próxima remessa para baixa) e se a **comissão** ainda não
+  foi paga (o distrato não mexe nela).
+- **Motivo:** inadimplência, desistência, acordo ou outro, com um detalhe.
+- **Retenção:** padrão de **25% do valor pago, editável** em cada distrato. Acima de 25%
+  aparece um aviso.
+- **Outros descontos** (opcional): fruição, comissão integrada ao preço, IPTU… com a
+  descrição, que vai para o termo.
+- **Devolução:** **à vista** (com a data) ou **parcelada de 1 a 12 vezes** (com o 1º
+  vencimento). As parcelas são iguais e a última acerta os centavos.
+
+**Depois de registrar:**
+- O contrato vira **Distrato**: os números do topo passam a ser pago, retido, a devolver e a
+  data do distrato; as parcelas em aberto aparecem como **Cancelada** e saem do a receber, da
+  cobrança e dos relatórios.
+- O **lote volta a ficar disponível** (e o imóvel avulso volta a poder ser vendido).
+- A devolução entra em **A pagar**, uma conta por parcela, na categoria "Devolução de
+  distrato". Ela não conta no orçado × realizado da obra.
+- O resumo do contrato mostra o cartão do **Distrato** com a tabela da devolução e a situação
+  de cada parcela, o botão **Termo** e, enquanto nenhuma devolução foi paga, **Desfazer**.
+- **Termo de distrato**: "Instrumento particular de distrato" com as partes, o motivo, o valor
+  pago, a retenção, os outros descontos, a devolução por extenso e a forma de pagamento, e a
+  quitação. Modelo editável em Configurações › Modelos de documento.
+
+**Sobre a lei (para conferir com o seu jurídico):** em **loteamento**, a Lei 13.786/2018
+(art. 32-A da Lei 6.766) limita a multa e as despesas administrativas a **10% do valor
+atualizado do contrato** e permite descontar à parte a fruição (até 0,75% ao mês), a comissão
+integrada ao preço, os encargos de atraso e o IPTU. Os **25% do valor pago** são o teto da
+**incorporação** (50% com patrimônio de afetação). Por isso a retenção é editável e o
+formulário traz esse lembrete.
+
+**⚠ Rode o `supabase/schema.sql` de novo no Supabase.** Ele cria no contrato o lugar do
+distrato e aceita o modelo novo. Enquanto não rodar, a nuvem recusa salvar o distrato.
+
+- [ ] Rodar o `supabase/schema.sql`.
+- [ ] Fazer um distrato num contrato de teste, conferir o termo e ver a devolução em A pagar.
+- [ ] Colar o seu modelo de distrato em Configurações › Modelos de documento.
+
+`testes/distrato.test.js` cobre tudo isso no celular e no computador; o teste do banco confere
+que só quem tem "Fazer distrato" grava o distrato.
 
 ---
 
@@ -1621,7 +1674,7 @@ Em ordem de prioridade acordada:
    no ano do contrato? Você é obrigado pela loteadora, pela imobiliária, ou pelas duas?
    Decidido: locação fica fora, não é o que você busca.
 3. **Portal do comprador** — segunda via e extrato para o cliente final.
-4. **Distrato e transferência de lote.** A transferência foi feita como **cessão de direitos** (seção 7z12).
+4. ~~**Distrato e transferência de lote.**~~ Feitos: **cessão de direitos** (seção 7z12) e **distrato** (seção 7z15).
 5. **Planos do SaaS** — definir o que entra em cada plano e travar por plano no sistema.
 
 Descartado por decisão sua: assinatura digital, que é serviço contratado à parte. Sem

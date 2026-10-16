@@ -150,6 +150,17 @@ await passo('cessão de direitos: o banco aceita o histórico no contrato e o mo
   let recusou = false; try { await db.exec(`insert into public.modelos (org_id, id, nome, tipo, corpo) values ('${ORG}','mx1','X','outro','x')`); } catch (e) { recusou = /modelos_tipo_check/.test(e.message); }
   if (!recusou) throw new Error('aceitou um tipo de modelo desconhecido');
 });
+await passo('distrato: grava retenção e devolução no contrato; o financeiro (sem "fazer distrato") é recusado', async () => {
+  await db.exec(`insert into public.vendas (org_id, id, loteamento_id, lote_id, valor_total) values ('${ORG}','v30','lot1','l30',90000)`);
+  const d = JSON.stringify({ data: '2026-10-16', pago: 30000, retencaoPct: 25, retencao: 7500, devolucao: 22500, forma: 'parcelado', parcelas: [] });
+  const sql = `update public.vendas set status = 'distrato', distrato_em = '2026-10-16', motivo = 'teste', distrato = '${d}'::jsonb where id = 'v30'`;
+  await recusa('fin', sql, 'fazer distrato');
+  await como('admin', sql);
+  const r = (await db.query(`select status, distrato->>'retencao' as ret from public.vendas where id = 'v30'`)).rows[0];
+  if (r.status !== 'distrato' || r.ret !== '7500') throw new Error(JSON.stringify(r));
+  await recusa('fin', `update public.vendas set distrato = null, status = 'ativa' where id = 'v30'`, 'fazer distrato');
+  await como('admin', `insert into public.modelos (org_id, id, nome, tipo, corpo) values ('${ORG}','md1','Distrato','distrato','texto do modelo de distrato')`);
+});
 await passo('plantas fechadas: só quem é da empresa (entrou pelo convite) abre o arquivo', async () => {
   const ORG2 = '22222222-2222-2222-2222-222222222222', FORA = 'aaaaaaaa-0000-0000-0000-000000000009';
   await db.exec(`
