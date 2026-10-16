@@ -46,6 +46,12 @@ const r2 = x => Math.round(x * 100) / 100;
       if (await page.evaluate(() => db.vendas.length) !== antes || !/corretor/i.test(await page.evaluate(() => ultimoAviso()))) throw new Error('salvou sem CRECI');
       await page.selectOption('#vfTemCorretor', 'nao');
     });
+    await passo('pergunta o sexo (Masculino / Feminino) do comprador e do cônjuge', async () => {
+      await page.selectOption('#vcEstCivil', 'casado'); await page.waitForTimeout(80);
+      const r = await page.evaluate(() => ['vcGenero', 'vcCjGenero'].map(id => { const s = document.getElementById(id); return [document.querySelector(`label[for="${id}"]`)?.textContent, [...s.options].map(o => o.textContent).join('/')].join(':'); }));
+      if (r.join(' | ') !== 'Sexo:Masculino/Feminino | Sexo:Masculino/Feminino') throw new Error(r.join(' | '));
+      await page.selectOption('#vcEstCivil', 'solteiro');
+    });
     await passo('nº de parcelas é texto com teclado numérico, sem setinhas', async () => {
       const r = await page.evaluate(() => { const e = document.getElementById('vfN'); return [e.type, e.inputMode]; });
       if (r.join() !== 'text,numeric') throw new Error(r.join());

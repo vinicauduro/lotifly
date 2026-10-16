@@ -1200,7 +1200,9 @@ function pessoaFormHtml(pre, p, opc) {
      cônjuge junto, que é o caso comum. O cônjuge marca que foi mexido à mão e a partir daí
      não é mais virado sozinho. */
   const generoOnchange = opc.conjuge ? ` onchange="pessoaGeneroChange('${pre}')"` : opc.soGenero ? ` onchange="this.dataset.tocado='1'"` : '';
-  const generoSel = `<div class="fg" id="${idt('GeneroBox')}" style="${pj ? 'display:none' : ''}"><label>Concordância no contrato</label><select id="${idt('Genero')}"${generoOnchange}><option value="m" ${p.genero === 'f' ? '' : 'selected'}>Masculino — brasileiro, casado</option><option value="f" ${p.genero === 'f' ? 'selected' : ''}>Feminino — brasileira, casada</option></select></div>`;
+  /* A pergunta é o sexo da pessoa; é ele que decide a concordância do contrato (brasileiro ou
+     brasileira, casado ou casada, portador ou portadora). */
+  const generoSel = `<div class="fg" id="${idt('GeneroBox')}" style="${pj ? 'display:none' : ''}"><label for="${idt('Genero')}">Sexo</label><select id="${idt('Genero')}"${generoOnchange}><option value="m" ${p.genero === 'f' ? '' : 'selected'}>Masculino</option><option value="f" ${p.genero === 'f' ? 'selected' : ''}>Feminino</option></select></div>`;
   const cabeca = `${opc.soGenero ? `<div class="frow">${generoSel}<div class="fg"></div></div>`
     : opc.semTipo ? '' : `<div class="frow"><div class="fg"><label>Tipo</label><select id="${idt('Tipo')}" onchange="pessoaTipoChange('${pre}')"><option value="pf" ${pj ? '' : 'selected'}>Pessoa física</option><option value="pj" ${pj ? 'selected' : ''}>Pessoa jurídica</option></select></div>
     ${generoSel}</div>`}
