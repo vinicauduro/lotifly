@@ -107,7 +107,8 @@ function renderContrato() {
   const mais = [
     pode('vendas.editar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirVendaForm('${x.id}')"><i class=ico data-i=pencil-simple></i>Editar contrato</button>` : '',
     x.status !== 'distrato' && r.restante > 0.005 && pode('financeiro.antecipar') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirAntecipacao('${x.id}')"><i class=ico data-i=coins></i>Antecipar / quitar</button>` : '',
-    podeCeder(x) ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirCessao('${x.id}')"><i class=ico data-i=users></i>Cessão de direitos</button>` : ''
+    podeCeder(x) ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirCessao('${x.id}')"><i class=ico data-i=users></i>Cessão de direitos</button>` : '',
+    x.status !== 'distrato' && pode('vendas.distrato') ? `<button class="menu-item" role="menuitem" onclick="fecharMenus();abrirDistrato('${x.id}')"><i class=ico data-i=arrow-u-up-left></i>Fazer distrato</button>` : ''
   ].filter(Boolean).join('');
   const excluir = pode('vendas.distrato') ? `<button class="menu-item perigo" role="menuitem" onclick="fecharMenus();excluirVenda('${x.id}')"><i class=ico data-i=trash></i>Excluir contrato</button>` : '';
   const menus = [
@@ -123,17 +124,28 @@ function renderContrato() {
         <span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${statusLabel(x.status)}</span></div>
       <h2 class="ct-titulo">${esc(imovelLabel(x))}${lot ? ` <span class="muted">· ${esc(lot.nome)}</span>` : ''}</h2>
       <div class="meta"><span>${esc(c.nome || '')}${extras ? ` e mais ${extras}` : ''}</span><span>· ${fmtDate(x.dataVenda)}</span><span>· ${x.nParcelas ? `${x.nParcelas}× ${fmtMoney(x.valorParcela)}` : 'à vista'}</span></div>
-      <div class="kpi-grid ct-kpis">
+      ${x.status === 'distrato' && x.distrato ? kpisDistratoHtml(x) : `<div class="kpi-grid ct-kpis">
         <div class="kpi c-primary"><div class="lbl">Valor do contrato</div><div class="val">${fmtMoney(x.valorTotal)}</div><div class="sub">${r.n} parcela(s) com a entrada</div></div>
         <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoney(r.pago)}</div><div class="sub">${pct}% · ${r.nPagas}/${r.n} pagas</div></div>
         <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(Math.max(0, r.restante))}</div><div class="sub">${proximaParcelaTxt(x)}</div></div>
         <div class="kpi ${r.atrasado ? 'c-red' : 'c-green'}"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(r.atrasado)}</div><div class="sub">${r.atrasado ? 'veja em Parcelas' : 'em dia'}</div></div>
-      </div>
+      </div>`}
       <div class="progress"><div style="width:${pct}%"></div></div>
     </div>
     <div class="subtabs">${ABAS_CONTRATO.map(([k, rot]) => `<div class="chip ${aba === k ? 'active' : ''}" onclick="state.contratoAba='${k}';renderContrato()">${rot}${k === 'parcelas' ? `<span class="n">${r.n}</span>` : ''}</div>`).join('')}</div>
     <div id="ctConteudo">${({ resumo: ctResumoHtml, partes: ctPartesHtml, parcelas: ctParcelasHtml, documentos: ctDocumentosHtml, historico: ctHistoricoHtml })[aba](x)}</div>`;
   $('#fab').classList.remove('show');
+}
+/* Contrato distratado: o que interessa é o que foi pago, retido e devolvido, não o a receber. */
+function kpisDistratoHtml(x) {
+  const d = x.distrato;
+  const devolvido = (d.custoIds || []).map(id => db.custos.find(c => c.id === id)).filter(c => c && c.status === 'pago').reduce((s, c) => s + num(c.valor), 0);
+  return `<div class="kpi-grid ct-kpis">
+        <div class="kpi c-primary"><div class="lbl">Pago pelo comprador</div><div class="val">${fmtMoney(d.pago)}</div><div class="sub">até o distrato</div></div>
+        <div class="kpi c-green"><div class="lbl">Retido</div><div class="val">${fmtMoney(d.retencao + num(d.outrosDescontos))}</div><div class="sub">${pctTxt(d.retencaoPct)} de retenção${d.outrosDescontos ? ' + descontos' : ''}</div></div>
+        <div class="kpi c-amber"><div class="lbl">A devolver</div><div class="val">${fmtMoney(Math.max(0, d.devolucao - devolvido))}</div><div class="sub">de ${fmtMoney(d.devolucao)}</div></div>
+        <div class="kpi c-red"><div class="lbl">Distrato</div><div class="val">${fmtDate(d.data)}</div><div class="sub">${esc(d.motivo || '')}</div></div>
+      </div>`;
 }
 function proximaParcelaTxt(x) {
   const prox = recebiveisDe(x.id).filter(rc => recRestante(rc) > 0.005).sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0];
@@ -143,7 +155,7 @@ function proximaParcelaTxt(x) {
 // ---------------------------------------------------------------- abas
 function ctResumoHtml(x) {
   const c = x.cliente || {};
-  return `<div class="card"><div class="detail-grid">
+  return `${distratoHtml(x)}<div class="card"><div class="detail-grid">
       <div><div class="k">Imóvel</div><div class="v">${esc(imovelLabel(x))}</div></div><div><div class="k">Data da venda</div><div class="v">${fmtDate(x.dataVenda)}</div></div>
       <div><div class="k">Comprador</div><div class="v">${esc(c.nome || '')}${(x.compradoresExtras || []).length ? ` <span class="tiny muted">e mais ${(x.compradoresExtras || []).length}</span>` : ''}</div></div><div><div class="k">CPF/CNPJ</div><div class="v">${esc(fmtCPF(c.cpf)) || '—'}</div></div>
       <div><div class="k">Telefone</div><div class="v">${c.telefone ? `<a href="${waLink(c.telefone, '')}" target="_blank">${esc(fmtPhone(c.telefone))}</a>` : '—'}</div></div><div><div class="k">E-mail</div><div class="v">${esc(c.email) || '—'}</div></div>
@@ -160,7 +172,7 @@ function ctResumoHtml(x) {
    IPTU de imóvel avulso, conserto, taxa de transferência… Com o atalho para lançar outra. */
 function despesasDoImovelHtml(x) {
   if (!pode('custos.ver')) return '';
-  const lista = db.custos.filter(c => c.vendaId === x.id || (x.loteId && c.loteId === x.loteId)).sort((a, b) => (b.dataCompetencia || '').localeCompare(a.dataCompetencia || ''));
+  const lista = db.custos.filter(c => c.categoriaId !== CAT_DEVOLUCAO && (c.vendaId === x.id || (x.loteId && c.loteId === x.loteId))).sort((a, b) => (b.dataCompetencia || '').localeCompare(a.dataCompetencia || ''));
   const imovel = x.loteId ? 'l:' + x.loteId : 'v:' + x.id;
   const lancar = pode('custos.editar') ? `<button class="btn btn-secondary btn-sm" onclick="abrirCustoForm(null, { emp: '${x.loteamentoId}', imovel: '${imovel}' })"><i class=ico data-i=plus></i>Despesa</button>` : '';
   const tot = lista.reduce((s, c) => s + num(c.valor), 0), aPagar = lista.filter(c => c.status !== 'pago').reduce((s, c) => s + num(c.valor), 0);
@@ -186,7 +198,7 @@ function ctPartesHtml(x) {
 function ctParcelasHtml(x) {
   const recs = recebiveisDe(x.id); const r = vendaResumo(x);
   return `<div class="card"><div class="table-wrap"><table class="tbl tbl-parcelas"><thead><tr><th>Parcela</th><th>Venc.</th><th class="num">Valor</th><th class="num">Pago</th><th>Status</th><th><span class="sr-only">Ações</span></th></tr></thead>
-    <tbody>${recs.map(rc => { const st = recStatus(rc); return `<tr data-st="p:${rc.id}"><td>${esc(rc.descricao)}</td><td>${fmtDate(rc.vencimento)}</td><td class="num">${fmtMoney(recValor(rc))}${recCorrecao(rc) > 0.005 ? `<br><span class="tiny muted">base ${fmtMoney(rc.valor)}</span>` : ''}</td><td class="num">${rc.valorPago ? fmtMoney(rc.valorPago) + (rc.dataPagamento ? `<br><span class="tiny muted">${fmtDate(rc.dataPagamento)}</span>` : '') : '—'}</td><td><span class="badge ${st}">${statusLabel(st)}</span>${st === 'atrasado' ? `<br><span class="tiny" style="color:var(--danger)">atual. ${fmtMoney(recAtualizado(rc))}</span>` : ''}</td><td class="ct-acoes-linha">${x.status !== 'distrato' ? (!pode('financeiro.baixar') ? '' : st === 'pago' ? `<button class="btn-icon" title="Estornar" onclick="estornarPagamento('${rc.id}','${x.id}')"><i class=ico data-i=arrow-u-up-left></i></button>` : `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${rc.id}','${x.id}')"><i class=ico data-i=money></i></button>`) : ''} ${num(rc.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${rc.id}')"><i class=ico data-i=receipt></i></button> ` : ''}<button class="btn-icon" title="Boleto" onclick="abrirBoleto('${rc.id}')"><i class=ico data-i=bank></i></button> <button class="btn-icon" title="Editar parcela" onclick="editarRecebivel('${rc.id}','${x.id}')"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
+    <tbody>${recs.map(rc => { const st = x.status === 'distrato' && recStatus(rc) !== 'pago' ? 'cancelada' : recStatus(rc); return `<tr data-st="p:${rc.id}"><td>${esc(rc.descricao)}</td><td>${fmtDate(rc.vencimento)}</td><td class="num">${fmtMoney(recValor(rc))}${recCorrecao(rc) > 0.005 ? `<br><span class="tiny muted">base ${fmtMoney(rc.valor)}</span>` : ''}</td><td class="num">${rc.valorPago ? fmtMoney(rc.valorPago) + (rc.dataPagamento ? `<br><span class="tiny muted">${fmtDate(rc.dataPagamento)}</span>` : '') : '—'}</td><td><span class="badge ${st}">${statusLabel(st)}</span>${st === 'atrasado' ? `<br><span class="tiny" style="color:var(--danger)">atual. ${fmtMoney(recAtualizado(rc))}</span>` : ''}</td><td class="ct-acoes-linha">${x.status !== 'distrato' ? (!pode('financeiro.baixar') ? '' : st === 'pago' ? `<button class="btn-icon" title="Estornar" onclick="estornarPagamento('${rc.id}','${x.id}')"><i class=ico data-i=arrow-u-up-left></i></button>` : `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${rc.id}','${x.id}')"><i class=ico data-i=money></i></button>`) : ''} ${num(rc.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${rc.id}')"><i class=ico data-i=receipt></i></button> ` : ''}<button class="btn-icon" title="Boleto" onclick="abrirBoleto('${rc.id}')"><i class=ico data-i=bank></i></button> <button class="btn-icon" title="Editar parcela" onclick="editarRecebivel('${rc.id}','${x.id}')"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
     <tfoot><tr><td colspan="2">Total</td><td class="num">${fmtMoney(r.total)}</td><td class="num">${fmtMoney(r.pago)}</td><td colspan="2"></td></tr></tfoot></table></div></div>`;
 }
 function ctDocumentosHtml(x) {
@@ -194,6 +206,7 @@ function ctDocumentosHtml(x) {
   const linha = (ic, titulo, desc, botao) => `<div class="item" style="cursor:default"><div class="info"><div class="title">${ic} ${titulo}</div><div class="meta"><span>${desc}</span></div></div><div class="side">${botao}</div></div>`;
   return `<div class="card">
     ${linha('<i class=ico data-i=file-text></i>', 'Contrato de compra e venda', `Pelo modelo da empresa, com a qualificação das partes${x.numeroContrato ? ` e o número ${esc(x.numeroContrato)}` : ''}. Dá para conferir e corrigir antes de imprimir.`, `<button class="btn btn-primary btn-sm" onclick="gerarContratoVenda('${x.id}')">Gerar</button>`)}
+    ${x.status === 'distrato' && x.distrato ? linha('<i class=ico data-i=arrow-u-up-left></i>', 'Termo de distrato', `Distrato de ${fmtDate(x.distrato.data)}: retenção, devolução e quitação.`, `<button class="btn btn-outline btn-sm" onclick="gerarTermoDistrato('${x.id}')">Gerar</button>`) : ''}
     ${(x.cessoes || []).length ? linha('<i class=ico data-i=users></i>', 'Termo de cessão de direitos', `A última cessão, de ${fmtDate(cessoesDe(x).slice(-1)[0].data)}: cedente, cessionário e a empresa como anuente.`, `<button class="btn btn-outline btn-sm" onclick="gerarTermoCessao('${x.id}')">Gerar</button>`) : ''}
     ${linha('<i class=ico data-i=printer></i>', 'Extrato do contrato', 'Todas as parcelas, o que foi pago e o que falta.', `<button class="btn btn-outline btn-sm" onclick="imprimirExtrato('${x.id}')">Imprimir</button>`)}
     ${c.telefone ? linha('<i class=ico data-i=whatsapp-logo></i>', 'Resumo por WhatsApp', `Para ${esc(c.nome || '')}, com o saldo e a próxima parcela.`, `<a class="btn btn-wa btn-sm" target="_blank" href="${waLink(c.telefone, extratoTexto(x))}">Enviar</a>`) : ''}
@@ -213,10 +226,10 @@ function eventosDoContrato(x) {
   });
   db.cobrancas.filter(cb => cb.vendaId === x.id).forEach(cb => add(cb.data || cb.criadoEm, '<i class=ico data-i=bell></i>', `Cobrança por ${cb.canal || 'contato'}${cb.dias ? ` com ${cb.dias} dia(s) de atraso` : ''}${cb.obs ? ': ' + cb.obs : ''}`));
   if (x.comissaoPaga && x.comissaoData) add(x.comissaoData, '<i class=ico data-i=handshake></i>', `Comissão paga a ${x.corretor.nome}: ${fmtMoney(x.comissaoValor)}`);
-  if (x.distratoEm) add(x.distratoEm, '<i class=ico data-i=arrow-u-up-left></i>', 'Distrato');
+  if (x.distratoEm) add(x.distratoEm, '<i class=ico data-i=arrow-u-up-left></i>', x.distrato ? `Distrato: ${x.distrato.motivo || ''} · retenção ${fmtMoney(x.distrato.retencao)} · devolução ${fmtMoney(x.distrato.devolucao)}` : 'Distrato');
   (x.cessoes || []).forEach(c => add(c.data, '<i class=ico data-i=users></i>', `Cessão de direitos: de ${nomesDasPartes(c.cedentes)} para ${nomesDasPartes(c.cessionarios)}${c.taxa ? ` · taxa ${fmtMoney(c.taxa)}` : ''}`));
   const marcas = [imovelLabel(x), x.numeroContrato].filter(Boolean);
-  db.log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^(Venda registrada|Cessão de direitos:)/.test(l.msg || ''))
+  db.log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^(Venda registrada|Cessão de direitos:|Distrato:)/.test(l.msg || ''))
     .forEach(l => add(l.ts, '<i class=ico data-i=clock-counter-clockwise></i>', `${l.msg}${l.who ? ' — ' + l.who : ''}`));
   return ev.sort((a, b) => b.data.localeCompare(a.data));
 }

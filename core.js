@@ -442,7 +442,7 @@ const TABLE_COLS = {
   reservas: ['id', 'loteamentoId', 'loteId', 'corretor', 'corretorUserId', 'cliente', 'dataReserva', 'validade', 'status', 'proposta', 'obs', 'motivo', 'aprovadaEm', 'encerradaEm', 'criadoEm'],
   vendedores: ['id', 'tipo', 'nome', 'cpf', 'inscricaoEstadual', 'representante', 'telefone', 'email', 'cep', 'logradouro', 'numeroEnd', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'obs', 'criadoEm'],
   clientes: ['id', 'tipo', 'genero', 'nome', 'cpf', 'rg', 'rgOrgao', 'nacionalidade', 'profissao', 'estadoCivil', 'regimeBens', 'conjuge', 'inscricaoEstadual', 'representante', 'telefone', 'email', 'cep', 'logradouro', 'numeroEnd', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'obs', 'criadoEm'],
-  vendas: ['id', 'numeroContrato', 'loteamentoId', 'loteId', 'imovel', 'vendedorId', 'vendedor', 'vendedoresExtras', 'reservaId', 'cliente', 'compradoresExtras', 'corretor', 'corretorUserId', 'dataVenda', 'valorTotal', 'entrada', 'dataEntrada', 'nParcelas', 'jurosMes', 'valorParcela', 'primeiroVencimento', 'baloes', 'indiceId', 'indiceBase', 'comissaoPct', 'comissaoValor', 'comissaoPaga', 'comissaoData', 'status', 'obs', 'motivo', 'distratoEm', 'cessoes', 'criadoEm'],
+  vendas: ['id', 'numeroContrato', 'loteamentoId', 'loteId', 'imovel', 'vendedorId', 'vendedor', 'vendedoresExtras', 'reservaId', 'cliente', 'compradoresExtras', 'corretor', 'corretorUserId', 'dataVenda', 'valorTotal', 'entrada', 'dataEntrada', 'nParcelas', 'jurosMes', 'valorParcela', 'primeiroVencimento', 'baloes', 'indiceId', 'indiceBase', 'comissaoPct', 'comissaoValor', 'comissaoPaga', 'comissaoData', 'status', 'obs', 'motivo', 'distratoEm', 'cessoes', 'distrato', 'criadoEm'],
   recebiveis: ['id', 'loteamentoId', 'vendaId', 'tipo', 'numero', 'descricao', 'vencimento', 'valor', 'valorPago', 'valorCorrigido', 'nossoNumero', 'contaId', 'remessaEm', 'bancoValor', 'bancoVenc', 'dataPagamento', 'forma', 'obsPagamento'],
   custos: ['id', 'loteamentoId', 'loteId', 'vendaId', 'descricao', 'categoriaId', 'fornecedor', 'valor', 'formaPagamento', 'dataCompetencia', 'vencimento', 'status', 'dataPagamento', 'obs', 'criadoEm'],
   modelos: ['id', 'nome', 'tipo', 'corpo', 'criadoEm'],
@@ -1413,6 +1413,10 @@ function recebiveisDo(escopo) {
   return db.recebiveis.filter(r => vendasOk.has(r.vendaId));
 }
 function custoStatus(c) { if (c.status === 'pago') return 'pago'; if (c.vencimento && c.vencimento < todayStr()) return 'atrasado'; return 'pendente'; }
+/* A devolução de um distrato é saída de dinheiro (fica em A pagar), mas não é custo da obra:
+   não entra no orçado × realizado nem nas despesas do imóvel. */
+const CAT_DEVOLUCAO = 'devolucao-distrato';
+function custoDeObra(c) { return !!c.loteamentoId && c.categoriaId !== CAT_DEVOLUCAO; }
 function custosDo(escopo) { return db.custos.filter(c => noEscopo(c, escopo)); }
 /* De quem é a despesa (Fase 4): da empresa (sem empreendimento), de um empreendimento ou de um
    imóvel — um lote do loteamento ou o imóvel avulso de um contrato da carteira. */

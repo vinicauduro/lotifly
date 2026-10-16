@@ -347,7 +347,7 @@ function relDespesas(escopo) {
       { lbl: 'Despesas', val: fmtMoneyShort(total), sub: `${lista.length} lançamento(s)`, cor: 'c-amber' },
       { lbl: 'Pagas', val: fmtMoneyShort(pago), sub: '', cor: 'c-green' },
       { lbl: 'Em atraso', val: fmtMoneyShort(atrasado), sub: '', cor: 'c-red' },
-      { lbl: 'Orçado no projeto', val: fmtMoneyShort(orcTotal), sub: orcTotal ? `realizado ${fmtNum(custosDo(escopo).filter(c => c.loteamentoId).reduce((s, c) => s + num(c.valor), 0) / orcTotal * 100, 0)}%` : 'sem orçamento', cor: 'c-blue' }
+      { lbl: 'Orçado no projeto', val: fmtMoneyShort(orcTotal), sub: orcTotal ? `realizado ${fmtNum(custosDo(escopo).filter(custoDeObra).reduce((s, c) => s + num(c.valor), 0) / orcTotal * 100, 0)}%` : 'sem orçamento', cor: 'c-blue' }
     ]),
     html: relTabela(cols, linhas, ['Total', '', '', '', '', fmtMoney(total), '']) + orcamentoHtml(escopo, lista),
     cols, csv, csvHead: ['Competência', 'Vencimento', 'Pagamento', 'Descrição', 'Categoria', 'Fornecedor', 'De quem', 'Valor', 'Situação', 'Forma', 'Observação']
@@ -356,12 +356,12 @@ function relDespesas(escopo) {
 
 function orcamentoHtml(escopo, lista) {
   /* Orçamento é da obra: despesa da empresa (sem empreendimento) não entra no realizado */
-  lista = lista.filter(c => c.loteamentoId);
+  lista = lista.filter(custoDeObra);
   const orc = {};
   empsDo(escopo).forEach(e => Object.entries(e.orcamento || {}).forEach(([k, v]) => { orc[k] = num(orc[k]) + num(v); }));
   const cats = db.categorias.filter(c => num(orc[c.id]) > 0 || lista.some(x => x.categoriaId === c.id));
   if (!cats.length) return '';
-  const todos = custosDo(escopo).filter(c => c.loteamentoId);
+  const todos = custosDo(escopo).filter(custoDeObra);
   return `<div class="card"><h2>Orçado × realizado por categoria</h2>
     <div class="table-wrap"><table class="tbl"><thead><tr><th>Categoria</th><th class="num">Orçado</th><th class="num">Realizado (total)</th><th class="num">No período</th><th class="num">Saldo</th></tr></thead>
     <tbody>${cats.map(c => {

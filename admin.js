@@ -991,8 +991,8 @@ function perguntarContrato(vendaId) {
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Agora não</button><button class="btn btn-primary" onclick="closeModal();gerarContratoVenda('${v.id}')">Gerar contrato</button>`
   });
 }
-/* Exclusão do contrato, no lugar do distrato — que ficou mal resolvido e a gente ainda não
-   sabe como quer. Apagar é destrutivo e leva junto o histórico de pagamentos, então são duas
+/* Exclusão do contrato: para contrato lançado por engano. O desfazimento de uma venda de
+   verdade é o distrato (distrato.js), que guarda o histórico. Apagar é destrutivo e leva junto o histórico de pagamentos, então são duas
    etapas: primeiro o que vai embora, depois escrever EXCLUIR. */
 function excluirVenda(id) {
   const x = getVenda(id); if (!x) return;
@@ -1067,7 +1067,7 @@ function cadLoteamentoHtml() {
     ${orcamentoCardHtml(lot)}`;
 }
 function orcamentoCardHtml(lot) {
-  const orc = lot.orcamento || {}; const cs = custosDo(lot.id);
+  const orc = lot.orcamento || {}; const cs = custosDo(lot.id).filter(custoDeObra);
   return `<div class="card"><h2>Orçamento de custos por categoria <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirOrcamentoForm()">Editar</button></span></h2>
       ${db.categorias.filter(cat => num(orc[cat.id]) > 0).map(cat => { const real = cs.filter(x => x.categoriaId === cat.id).reduce((s, x) => s + num(x.valor), 0); const pct = Math.round(real / orc[cat.id] * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${cat.cor}"></span> ${esc(cat.nome)}</span><span class="muted">${fmtMoney(real)} de ${fmtMoney(orc[cat.id])} (${pct}%)</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Nenhum orçamento definido. Defina o valor planejado por categoria para acompanhar orçado × realizado.</p>'}
       ${Object.values(orc).some(x => num(x) > 0) ? `<p class="small mt"><b>Total orçado: ${fmtMoney(Object.values(orc).reduce((s, x) => s + num(x), 0))}</b> · realizado ${fmtMoney(cs.reduce((s, x) => s + num(x.valor), 0))}</p>` : ''}</div>`;
