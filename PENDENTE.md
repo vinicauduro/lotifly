@@ -756,6 +756,37 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z17. App e planta sem internet (16/10)
+
+Com a nuvem ligada, o app **abre sem internet** para quem já entrou antes naquele aparelho:
+mostra os dados salvos da última vez que carregou, inclusive **a planta**, com o aviso "Sem
+internet". Serve para o corretor no loteamento, sem sinal.
+
+- **A planta fica guardada no aparelho**: ao ser vista e, logo depois de entrar na empresa,
+  todas as plantas da empresa (mesmo as que a pessoa ainda não abriu). Uma cópia por arquivo;
+  quando a planta é trocada, a cópia nova substitui a antiga. Sem internet e com uma versão
+  nova ainda não baixada, aparece a última guardada.
+- **Continua fechada para quem é de fora**: só baixa quem é da empresa e está logado, e
+  **ao sair da conta as plantas guardadas são apagadas** do aparelho.
+- **Alteração feita sem internet** fica guardada no aparelho com o aviso "vai para a nuvem
+  quando a conexão voltar" (e aparece na lista de pendências).
+- **Quando a internet volta**, o app recarrega da nuvem sozinho e envia o que ficou pendente.
+- A atualização do app não apaga as plantas guardadas.
+
+**Precisa do seu teste no celular** (o teste automático simula a falta de internet no
+navegador, mas o celular de verdade é que manda): entre no app com internet, abra a planta,
+ponha o celular em **modo avião**, feche e abra o app de novo.
+
+- [ ] Entrar com internet, abrir a planta; modo avião; fechar e abrir o app: ele abre e a planta
+      aparece.
+- [ ] Ainda em modo avião, anotar algo num lote; tirar do modo avião e ver a anotação ir para a
+      nuvem.
+- [ ] Sair da conta e conferir que, sem internet, a planta não abre mais.
+
+`testes/planta-offline.test.js` cobre tudo isso com a nuvem simulada.
+
+---
+
 ## 7z16. Teste da correção por índice (16/10)
 
 `testes/indices.test.js` confere a correção das parcelas contra uma planilha calculada à parte,
