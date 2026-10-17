@@ -195,6 +195,24 @@ create table if not exists public.log (
 );
 create index if not exists log_ts_idx on public.log(org_id, ts);
 
+-- Erros que aconteceram no aparelho de alguém da equipe (mensagem, onde, quem, versão do app).
+-- Qualquer membro grava os seus; só dono e administrador leem e apagam. Antes de escolher a
+-- empresa (tela de entrada) o erro vai sem empresa e só aparece no painel do Supabase.
+create table if not exists public.erros (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid references public.organizacoes(id) on delete cascade,
+  user_id     uuid default auth.uid(),
+  quem        text not null default '' check (length(quem) <= 120),
+  ts          timestamptz not null default now(),
+  versao      text not null default '' check (length(versao) <= 40),
+  tela        text not null default '' check (length(tela) <= 120),
+  mensagem    text not null check (length(mensagem) between 1 and 1000),
+  pilha       text not null default '' check (length(pilha) <= 4000),
+  navegador   text not null default '' check (length(navegador) <= 300),
+  vezes       int  not null default 1 check (vezes between 1 and 100000)
+);
+create index if not exists erros_org_ts_idx on public.erros(org_id, ts desc);
+
 -- ---------------------------------------------------------------------
 -- 3. Funções de apoio (usadas nas políticas de acesso)
 -- ---------------------------------------------------------------------
@@ -253,6 +271,7 @@ alter table public.vendas       enable row level security;
 alter table public.recebiveis   enable row level security;
 alter table public.custos       enable row level security;
 alter table public.log          enable row level security;
+alter table public.erros        enable row level security;
 
 drop policy if exists org_select on public.organizacoes;
 drop policy if exists org_update on public.organizacoes;
@@ -351,6 +370,24 @@ drop policy if exists log_select on public.log;
 drop policy if exists log_insert on public.log;
 create policy log_select on public.log for select to authenticated using (public.eh_financeiro(org_id));
 create policy log_insert on public.log for insert to authenticated with check (public.eh_membro(org_id));
+
+drop policy if exists erros_insert on public.erros;
+drop policy if exists erros_select on public.erros;
+drop policy if exists erros_delete on public.erros;
+create policy erros_insert on public.erros for insert to authenticated
+  with check (user_id = auth.uid() and (org_id is null or public.eh_membro(org_id)));
+create policy erros_select on public.erros for select to authenticated using (public.eh_admin(org_id));
+create policy erros_delete on public.erros for delete to authenticated using (public.eh_admin(org_id));
+
+-- Guarda 90 dias: a cada erro novo, os da mesma empresa com mais de 90 dias saem.
+create or replace function public.erros_limpar_antigos()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.erros where org_id is not distinct from new.org_id and ts < now() - interval '90 days';
+  return new;
+end $$;
+drop trigger if exists erros_limpar on public.erros;
+create trigger erros_limpar after insert on public.erros for each row execute function public.erros_limpar_antigos();
 
 -- ---------------------------------------------------------------------
 -- 5. Funções chamadas pelo aplicativo (RPC)

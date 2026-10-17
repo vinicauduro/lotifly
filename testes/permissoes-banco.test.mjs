@@ -185,6 +185,29 @@ await passo('plantas fechadas: só quem é da empresa (entrou pelo convite) abre
   await recusa('cor', `insert into storage.objects (bucket_id, name) values ('plantas', '${ORG}/lot3.jpg')`, 'row-level security');
   await recusa('admin', `insert into storage.objects (bucket_id, name) values ('plantas', '${ORG2}/invasao.jpg')`, 'row-level security');
 });
+await passo('erros do app: todo membro grava os seus; só dono e admin leem e apagam; 90 dias', async () => {
+  const ORG2 = '22222222-2222-2222-2222-222222222222';
+  const ins = (org, extra = '') => `insert into public.erros (org_id, mensagem, tela${extra ? ', user_id' : ''}) values (${org ? `'${org}'` : 'null'}, 'x is not a function', 'admin › vendas'${extra})`;
+  await como('cor', ins(ORG));
+  await como('fin', ins(ORG));
+  await como('fora', ins(null));                                       // na tela de entrada, antes de escolher a empresa
+  await recusa('cor', ins(ORG2), 'row-level security');                // empresa que não é a dele
+  await recusa('cor', ins(ORG, `, '${U.dono}'`), 'row-level security'); // em nome de outra pessoa
+  const n = async quem => (await como(quem, `select count(*)::int as n from public.erros`)).rows[0].n;
+  if (await n('cor') !== 0 || await n('fin') !== 0) throw new Error('corretor ou financeiro lê os erros');
+  if (await n('admin') !== 2 || await n('dono') !== 2) throw new Error('admin/dono não leem os 2 da empresa');
+  const quem = (await como('admin', `select user_id from public.erros where org_id = '${ORG}' order by user_id`)).rows.map(r => r.user_id).join();
+  if (quem !== [U.fin, U.cor].sort().join()) throw new Error('user_id não ficou o de quem gravou: ' + quem);
+  let grande = false; try { await como('cor', `insert into public.erros (org_id, mensagem) values ('${ORG}', repeat('a', 1001))`); } catch (e) { grande = /check/.test(e.message); }
+  if (!grande) throw new Error('aceitou mensagem gigante');
+  await db.exec(`insert into public.erros (org_id, mensagem, ts) values ('${ORG}', 'velho', now() - interval '100 days')`);
+  await como('cor', ins(ORG));
+  if ((await db.query(`select count(*)::int as n from public.erros where mensagem = 'velho'`)).rows[0].n) throw new Error('erro de 100 dias não saiu');
+  await como('cor', `delete from public.erros where org_id = '${ORG}'`);
+  if (await n('admin') !== 3) throw new Error('corretor apagou');
+  await como('admin', `delete from public.erros where org_id = '${ORG}'`);
+  if (await n('admin') !== 0) throw new Error('admin não apagou');
+});
 await passo('corretor continua barrado pela função (nem chega às travas por pessoa)', async () => {
   await db.exec(`insert into public.vendas (org_id, id, loteamento_id, lote_id, valor_total) values ('${ORG}','v9','lot1','l9',1)`);
   const r = await como('cor', `update public.vendas set obs = 'x' where id = 'v9' returning id`);
