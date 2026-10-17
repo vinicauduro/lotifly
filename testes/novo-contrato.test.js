@@ -33,21 +33,35 @@ const r2 = x => Math.round(x * 100) / 100;
       await page.fill('#vcProf', 'comerciante'); await page.selectOption('#vcEstCivil', 'solteiro'); await page.fill('#vcRg', '1.234.567');
       await page.fill('#vcLogr', 'Rua XV de Novembro'); await page.fill('#vcCidade', 'Blumenau');
     };
-    const salvar = async () => { await foot.getByRole('button', { name: 'Salvar venda' }).click(); await page.waitForTimeout(400); };
+    /* O contrato novo anda em passos. Os casos daqui pulam direto ao passo do campo (ir) e,
+       para salvar, avançam pelo rodapé até o "Salvar venda", como o usuário faria. Se um passo
+       recusa, para ali: o aviso é o que o caso confere. */
+    const ir = p => page.evaluate(p => vfMostrarPasso(p), p);
+    const salvar = async () => {
+      for (let i = 0; i < 8; i++) {
+        const sv = foot.getByRole('button', { name: 'Salvar venda' });
+        if (await sv.count()) { await sv.click(); break; }
+        const antes = await page.evaluate(() => window.vfPasso && vfPasso.atual);
+        await foot.getByRole('button', { name: 'Avançar' }).click(); await page.waitForTimeout(120);
+        if (await page.evaluate(() => window.vfPasso && vfPasso.atual) === antes) break;
+      }
+      await page.waitForTimeout(400);
+    };
     const emp = await page.evaluate(() => db.loteamentos.find(l => l.tipo !== 'carteira').nome);
 
     await passo('venda direta é o padrão; "Sim" abre o corretor e exige nome e CRECI', async () => {
       await novo(emp);
-      if (await page.evaluate(() => val('vfTemCorretor')) !== 'nao' || await page.locator('#vkBox').isVisible()) throw new Error('corretor aberto por padrão');
+      if (await page.evaluate(() => val('vfTemCorretor')) !== 'nao') throw new Error('corretor aberto por padrão');
+      await ir(3); if (await page.locator('#vkBox').isVisible()) throw new Error('corretor aberto por padrão');
       await page.selectOption('#vfTemCorretor', 'sim'); await page.waitForTimeout(100);
       if (!await page.locator('#vkBox').isVisible()) throw new Error('não abriu os dados do corretor');
-      await comprador('Lucas Andrade', '52998224725');
+      await ir(2); await comprador('Lucas Andrade', '52998224725');
       const antes = await page.evaluate(() => db.vendas.length); await salvar();
       if (await page.evaluate(() => db.vendas.length) !== antes || !/corretor/i.test(await page.evaluate(() => ultimoAviso()))) throw new Error('salvou sem CRECI');
       await page.selectOption('#vfTemCorretor', 'nao');
     });
     await passo('pergunta o sexo (Masculino / Feminino) do comprador e do cônjuge', async () => {
-      await page.selectOption('#vcEstCivil', 'casado'); await page.waitForTimeout(80);
+      await ir(2); await page.selectOption('#vcEstCivil', 'casado'); await page.waitForTimeout(80);
       const r = await page.evaluate(() => ['vcGenero', 'vcCjGenero'].map(id => { const s = document.getElementById(id); return [document.querySelector(`label[for="${id}"]`)?.textContent, [...s.options].map(o => o.textContent).join('/')].join(':'); }));
       if (r.join(' | ') !== 'Sexo:Masculino/Feminino | Sexo:Masculino/Feminino') throw new Error(r.join(' | '));
       await page.selectOption('#vcEstCivil', 'solteiro');
@@ -57,7 +71,7 @@ const r2 = x => Math.round(x * 100) / 100;
       if (r.join() !== 'text,numeric') throw new Error(r.join());
     });
     await passo('à vista esconde entrada, parcelas, juros e índice e mostra "Pagamento único"', async () => {
-      await page.selectOption('#vfForma', 'vista'); await page.waitForTimeout(100);
+      await ir(4); await page.selectOption('#vfForma', 'vista'); await page.waitForTimeout(100);
       const r = await page.evaluate(() => ({ parc: getComputedStyle(vfParcBox).display, vista: getComputedStyle(vfVistaBox).display, res: vfResumo.textContent }));
       if (r.parc !== 'none' || r.vista === 'none' || !r.res.includes('Pagamento único')) throw new Error(JSON.stringify(r));
       for (const id of ['vfEntrada', 'vfN', 'vfJuros', 'vfParcela']) if (await page.locator('#' + id).isVisible()) throw new Error(id + ' visível');
@@ -73,7 +87,7 @@ const r2 = x => Math.round(x * 100) / 100;
       await page.evaluate(() => closeModal());
     });
     await passo('qualificação incompleta não deixa salvar e diz o que falta', async () => {
-      await novo(emp);
+      await novo(emp); await ir(2);
       await page.fill('#vcNome', 'Fulano Incompleto'); await page.fill('#vcTel', '47991234567');
       const antes = await page.evaluate(() => db.vendas.length); await salvar();
       const aviso = await page.evaluate(() => ultimoAviso());
@@ -82,7 +96,7 @@ const r2 = x => Math.round(x * 100) / 100;
     });
     await passo('sem índice cadastrado: o formulário avisa e leva à tela de Índices', async () => {
       const guardados = await page.evaluate(() => { const g = db.indices.slice(); db.indices = []; return g.length; });
-      await novo(emp);
+      await novo(emp); await ir(5);
       const alerta = page.locator('#modalBody .alert', { hasText: 'Nenhum índice cadastrado' });
       if (!await alerta.count()) throw new Error('sem aviso');
       await alerta.click(); await page.waitForTimeout(300);
@@ -91,12 +105,12 @@ const r2 = x => Math.round(x * 100) / 100;
     });
     await passo('cliente casado puxado do cadastro: cônjuge vem junto e fica na venda', async () => {
       await page.evaluate(() => upsert('clientes', { id: 'cl-bea', tipo: 'pf', genero: 'f', nome: 'Beatriz Ramos', cpf: '11144477735', telefone: '47988887777', nacionalidade: 'brasileiro', profissao: 'arquiteta', estadoCivil: 'casado', regimeBens: 'comunhão parcial de bens', rg: '7.654.321', logradouro: 'Rua Itajaí', numeroEnd: '50', cidade: 'Blumenau', uf: 'SC', conjuge: { tipo: 'pf', genero: 'm', nome: 'Rafael Ramos', nacionalidade: 'brasileiro', cpf: '52998224725', mesmoEndereco: true }, criadoEm: new Date().toISOString() }));
-      await novo(emp);
+      await novo(emp); await ir(2);
       const rot = await page.evaluate(() => clienteRotulo(db.clientes.find(c => c.id === 'cl-bea')));
       await page.fill('#vcBusca', rot); await page.locator('#vcBusca').dispatchEvent('change'); await page.waitForTimeout(300);
       const r = await page.evaluate(() => ({ nome: val('vcNome'), cj: val('vcCjNome'), ec: val('vcEstCivil') }));
       if (r.nome !== 'Beatriz Ramos' || r.cj !== 'Rafael Ramos' || r.ec !== 'casado') throw new Error(JSON.stringify(r));
-      await page.selectOption('#vfForma', 'vista'); await salvar();
+      await ir(4); await page.selectOption('#vfForma', 'vista'); await salvar();
       const v = await page.evaluate(() => { const v = db.vendas.filter(v => v.cliente.nome === 'Beatriz Ramos').pop(); return v && { cj: (v.cliente.conjuge || {}).nome, g: v.cliente.genero }; });
       if (!v || v.cj !== 'Rafael Ramos' || v.g !== 'f') throw new Error(JSON.stringify(v));
       await page.evaluate(() => closeModal());
@@ -105,8 +119,8 @@ const r2 = x => Math.round(x * 100) / 100;
       await novo(emp);
       await page.selectOption('#vfLote', '__novo'); await page.waitForTimeout(100);
       await page.fill('#vfNlQuadra', 'z'); await page.fill('#vfNlNumero', '77'); await page.fill('#vfNlArea', '360');
-      await comprador('Marcos Teixeira', '11144477735');
-      await page.fill('#vfTotal', '120000'); await page.fill('#vfEntrada', '20000'); await page.fill('#vfN', '48'); await page.fill('#vfJuros', '0.8');
+      await ir(2); await comprador('Marcos Teixeira', '11144477735');
+      await ir(4); await page.fill('#vfTotal', '120000'); await page.fill('#vfEntrada', '20000'); await ir(5); await page.fill('#vfN', '48'); await page.fill('#vfJuros', '0.8');
       await page.evaluate(() => { const p = document.getElementById('vfPrimeiro'); if (p && !p.value) p.value = addMonths(todayStr(), 1); vfCalc(); });
       await salvar();
       const r = await page.evaluate(() => { const l = db.lotes.find(l => l.quadra === 'Z' && l.numero === '77'); const v = l && db.vendas.find(v => v.loteId === l.id); const rs = v ? recebiveisDe(v.id) : []; return l && { st: l.status, venda: !!v, area: l.area, n: rs.filter(x => x.tipo === 'parcela').length, entrada: (rs.find(x => x.tipo === 'entrada') || {}).valor, parcela: v && v.valorParcela }; });
@@ -117,7 +131,7 @@ const r2 = x => Math.round(x * 100) / 100;
     await passo('lote repetido no contrato é recusado', async () => {
       await novo(emp);
       await page.selectOption('#vfLote', '__novo'); await page.fill('#vfNlQuadra', 'Z'); await page.fill('#vfNlNumero', '77');
-      await comprador('Outra Pessoa', '52998224725'); await page.selectOption('#vfForma', 'vista');
+      await ir(2); await comprador('Outra Pessoa', '52998224725'); await ir(4); await page.selectOption('#vfForma', 'vista');
       const antes = await page.evaluate(() => db.lotes.length); await salvar();
       if (await page.evaluate(() => db.lotes.length) !== antes || !/já existe/.test(await page.evaluate(() => ultimoAviso()))) throw new Error(await page.evaluate(() => ultimoAviso()));
       await page.evaluate(() => closeModal());
@@ -126,8 +140,8 @@ const r2 = x => Math.round(x * 100) / 100;
       await novo('Apartamento Ed. Aurora');
       if (await page.locator('#vfLote').count() || !await page.locator('#vfImDesc').count()) throw new Error('formulário de lote numa carteira');
       if (await page.evaluate(() => num(val('vfTotal'))) !== 480000) throw new Error('valor de venda não veio do imóvel');
-      await comprador('Helena Costa', '52998224725'); await page.selectOption('#vfForma', 'vista');
-      await page.fill('#vfImDesc', '');                                   // a descrição vem do cadastro do imóvel; apagada, o contrato não sai
+      await ir(2); await comprador('Helena Costa', '52998224725'); await ir(4); await page.selectOption('#vfForma', 'vista');
+      await ir(1); await page.fill('#vfImDesc', '');                                   // a descrição vem do cadastro do imóvel; apagada, o contrato não sai
       const antes = await page.evaluate(() => db.vendas.length); await salvar();
       if (await page.evaluate(() => db.vendas.length) !== antes) throw new Error('salvou sem descrição');
       await page.fill('#vfImDesc', 'Apartamento 302 do Edifício Aurora'); await salvar();

@@ -756,6 +756,43 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z18. Novo contrato em passos (17/10)
+
+O "Registrar venda" era uma folha só, comprida, com tudo de uma vez. Agora o **contrato novo
+anda em 6 passos**, um assunto por tela:
+
+1. **Imóvel** — o lote (ou o lote novo, ou o imóvel de terceiro);
+2. **Compradores** — qualificação completa, cônjuge, mais de um comprador;
+3. **Vendedor** — quem vende e se houve corretor (nome, CRECI, comissão);
+4. **Valores** — data, valor da venda, à vista ou parcelado, entrada;
+5. **Parcelas** — número, juros, 1º vencimento, índice de correção e reforços;
+6. **Conferência** — o contrato inteiro numa tela, do jeito que vai ser gravado, com
+   **Alterar** em cada parte, o total a receber e o aviso quando a conta não fecha.
+
+Como funciona:
+
+- **Avançar** confere o passo antes de sair dele (comprador sem CPF, corretor sem CRECI, lote
+  repetido…) e diz o que falta, ali mesmo. **Voltar** volta sem conferir nada.
+- **À vista**: o passo Parcelas some e a conta vira "de 5".
+- No computador a barra mostra os seis nomes (passo já visto é clicável). No celular aparece
+  "Passo 2 de 6 · Compradores" com uma barra de progresso, presa no alto enquanto a tela rola.
+- Vindo de um lote ("Vender") ou de uma reserva ("Converter em venda"), começa no
+  **comprador**, com o imóvel já marcado.
+- **Editar uma venda** continua numa folha só: quem edita sabe o que quer mudar.
+- As regras de salvar são as mesmas de antes (mesmos campos, mesmos avisos), só que
+  conferidas passo a passo.
+
+Para conferir:
+
+- [ ] Fazer um contrato parcelado do começo ao fim no celular e conferir a tela final.
+- [ ] Fazer um à vista e ver o passo Parcelas sumir.
+- [ ] Converter uma reserva e ver que começa no comprador, já preenchido.
+
+`testes/contrato-em-passos.test.js` (14 casos, no celular e no computador) cobre o caminho
+inteiro; `testes/novo-contrato.test.js` e `testes/fluxo.test.js` passaram a andar pelos passos.
+
+---
+
 ## 7z17. App e planta sem internet (16/10)
 
 Com a nuvem ligada, o app **abre sem internet** para quem já entrou antes naquele aparelho:
@@ -1486,8 +1523,8 @@ Para conferir:
 - [x] *(testes: contrato.test e fluxo.test)* Abrir um contrato e passar pelas cinco abas; registrar um pagamento pela aba Parcelas.
 - [ ] Se quiser o número impresso no contrato, pôr `{{contrato.numero}}` no seu modelo.
 
-Fica para a próxima rodada: o **novo contrato em passos** (imóvel, compradores, vendedor,
-valores, parcelas, conferência), no lugar do formulário único de hoje.
+~~Fica para a próxima rodada: o **novo contrato em passos** (imóvel, compradores, vendedor,
+valores, parcelas, conferência), no lugar do formulário único de hoje.~~ Feito (seção 7z18).
 
 `test35` cobre tudo isso, inclusive o número vindo do banco na nuvem; o teste de banco
 confere a sequência, o ano, o número à mão, o número repetido e a permissão.

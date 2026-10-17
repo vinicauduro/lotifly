@@ -59,6 +59,8 @@ const PRINTS = process.env.PRINTS; if (PRINTS) fs.mkdirSync(PRINTS, { recursive:
       await comprador('Estado civil').selectOption({ index: 1 });
       await comprador(/^RG/).fill('4.567.890');
       await comprador('Cidade').fill('Itajaí');
+      /* Novo contrato em passos: vindo do lote, começa no comprador; avança até a conferência */
+      for (let i = 0; i < 6 && !await j.getByRole('button', { name: 'Salvar venda' }).count(); i++) { await tocar(j.getByRole('button', { name: 'Avançar' })); await page.waitForTimeout(150); }
       await tocar(j.getByRole('button', { name: 'Salvar venda' }));
       await page.waitForTimeout(600);
       const r = await page.evaluate(id => { const l = getLote(id); const v = db.vendas.find(v => v.loteId === id && v.status !== 'distrato'); return { st: l.status, venda: v && v.id, cli: v && v.cliente.nome }; }, loteId);
