@@ -110,8 +110,9 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     // ---------------------------------------------------------------- troca de situação do lote
     await passo('lote que muda de situação: a planta passa da cor antiga para a nova', async () => {
       await page.evaluate(() => { startRole('corretor'); switchTab('planta'); }); await page.waitForTimeout(400);
-      const id = await page.evaluate(() => { const l = lotesDo(curLot().id).find(x => x.status === 'disponivel'); upsert('lotes', Object.assign({}, l, { status: 'bloqueado' })); renderCurrent(); return l.id; });
-      const logo = await page.evaluate(id => document.querySelector(`.lote-shape[data-id="${id}"]`).getAttribute('class'), id);
+      /* A cor do primeiro quadro é lida na mesma chamada que desenha: numa chamada separada,
+         com a máquina lenta, os dois quadros da troca às vezes já tinham passado. */
+      const { id, logo } = await page.evaluate(() => { const l = lotesDo(curLot().id).find(x => x.status === 'disponivel'); upsert('lotes', Object.assign({}, l, { status: 'bloqueado' })); renderCurrent(); return { id: l.id, logo: document.querySelector(`.lote-shape[data-id="${l.id}"]`).getAttribute('class') }; });
       if (!/disponivel/.test(logo)) throw new Error('primeiro quadro deveria ter a cor antiga: ' + logo);
       await page.waitForTimeout(120);
       const depois = await page.evaluate(id => document.querySelector(`.lote-shape[data-id="${id}"]`).getAttribute('class'), id);

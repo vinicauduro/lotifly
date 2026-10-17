@@ -92,8 +92,12 @@ const PRINTS = process.env.PRINTS; if (PRINTS) fs.mkdirSync(PRINTS, { recursive:
 
     if (!celular) await passo('teclado: Tab até um contrato e Enter abre', async () => {
       await page.evaluate(() => switchTab('vendas'));
-      const item = page.locator('#av-vendas .item').first();
-      await item.focus(); await page.keyboard.press('Enter');
+      /* A linha entra na ordem do Tab no quadro seguinte ao desenho (cuidarAcessibilidade);
+         focar antes disso, com a máquina lenta, não pegava e o Enter caía no vazio. */
+      const item = page.locator('#av-vendas .item[tabindex="0"]').first();
+      await item.waitFor(); await item.focus();
+      if (!await item.evaluate(el => el === document.activeElement)) throw new Error('a linha não recebeu o foco');
+      await page.keyboard.press('Enter');
       await page.locator('.ct-cab').waitFor();
     });
 
