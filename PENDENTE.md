@@ -756,6 +756,33 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z19. Nuvem trazendo tudo, sem o corte de 1.000 linhas (17/10)
+
+**Defeito encontrado na análise do projeto.** O Supabase entrega no máximo **1.000 linhas por
+pedido** (o padrão do painel, em Settings › API › Max rows) e **corta o resto sem avisar**. O
+app pedia cada tabela de uma vez, então, passando de 1.000 parcelas (20 contratos de 60 já
+passam), **parcelas sumiam** da tela, o contas a receber e os relatórios saíam menores e a
+cobrança deixava de ver atrasados. No teste com 2.500 parcelas, o app antigo mostrava
+**R$ 1.499.500** de um total de **R$ 5.623.750**. Os dados no banco estavam certos: o
+problema era só na hora de trazer.
+
+Agora cada tabela vem **em blocos de 1.000**, até chegar ao total que o próprio banco informa.
+Funciona mesmo que alguém mude o limite do painel para menos. Se um bloco falhar no meio, a
+carga inteira falha e avisa, em vez de abrir pela metade.
+
+Para conferir:
+
+- [ ] Abrir a empresa na nuvem e conferir se o total do **A receber** bate com o que você
+      espera (principalmente se já tiver mais de 1.000 parcelas lançadas).
+
+`testes/nuvem-carga.test.js` (8 casos) simula o banco com o corte. Rodado no código antigo,
+falha em 5 deles; no novo, passa em todos (`diagnostico/nuvem-sem-limite/`).
+
+Fica para a próxima: o histórico na nuvem ainda traz os 400 registros **mais antigos** em vez
+dos mais recentes (item 2 da análise).
+
+---
+
 ## 7z18. Novo contrato em passos (17/10)
 
 O "Registrar venda" era uma folha só, comprida, com tudo de uma vez. Agora o **contrato novo
