@@ -229,11 +229,15 @@ function eventosDoContrato(x) {
   if (x.distratoEm) add(x.distratoEm, '<i class=ico data-i=arrow-u-up-left></i>', x.distrato ? `Distrato: ${x.distrato.motivo || ''} · retenção ${fmtMoney(x.distrato.retencao)} · devolução ${fmtMoney(x.distrato.devolucao)}` : 'Distrato');
   (x.cessoes || []).forEach(c => add(c.data, '<i class=ico data-i=users></i>', `Cessão de direitos: de ${nomesDasPartes(c.cedentes)} para ${nomesDasPartes(c.cessionarios)}${c.taxa ? ` · taxa ${fmtMoney(c.taxa)}` : ''}`));
   const marcas = [imovelLabel(x), x.numeroContrato].filter(Boolean);
-  db.log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^(Venda registrada|Cessão de direitos:|Distrato:)/.test(l.msg || ''))
+  /* Os registros da memória mais os que a nuvem trouxe só deste contrato, sem repetir */
+  const doBanco = (Cloud.logContratos || {})[x.id] || [];
+  const log = db.log.concat(doBanco.filter(l => !db.log.some(d => d.id === l.id)));
+  log.filter(l => marcas.some(m => String(l.msg || '').includes(m)) && !/^(Venda registrada|Cessão de direitos:|Distrato:)/.test(l.msg || ''))
     .forEach(l => add(l.ts, '<i class=ico data-i=clock-counter-clockwise></i>', `${l.msg}${l.who ? ' — ' + l.who : ''}`));
   return ev.sort((a, b) => b.data.localeCompare(a.data));
 }
 function ctHistoricoHtml(x) {
+  if (Cloud.active) Cloud.historicoDoContrato(x);
   const ev = eventosDoContrato(x);
   return `<div class="card">${ev.length ? `<div class="ct-linha-tempo">${ev.map(e => `<div class="ct-ev"><span class="ct-ev-ic">${e.ic}</span><div><div>${esc(e.txt)}</div><div class="tiny muted">${fmtDate(e.data.slice(0, 10))}${e.data.length > 10 ? ' · ' + e.data.slice(11, 16) : ''}</div></div></div>`).join('')}</div>` : '<p class="help">Nada registrado ainda.</p>'}</div>`;
 }

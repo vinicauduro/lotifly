@@ -756,6 +756,30 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z20. Histórico com os registros mais recentes (17/10)
+
+**Defeito encontrado na análise do projeto.** Na nuvem, o app guarda na memória 400 registros
+do histórico da empresa, mas pedia ao banco os **400 mais antigos**. Passadas 400
+movimentações (parcela recebida, contrato editado, cobrança…), **nada de novo aparecia** na
+aba Histórico dos contratos. No teste, a "Venda editada" de hoje não aparecia, e apareciam as
+400 primeiras movimentações da empresa.
+
+Agora:
+
+- vêm os **400 mais recentes**;
+- a aba **Histórico de cada contrato** busca no banco os registros daquele contrato que já
+  saíram da memória (os de um contrato antigo, numa empresa com muito movimento). Busca uma
+  vez por contrato, sem repetir o que já está na tela. Sem internet, mostra o que tem.
+
+Para conferir:
+
+- [ ] Abrir um contrato antigo, aba **Histórico**, e ver as movimentações dele desde o início.
+
+`testes/historico-recente.test.js` (6 casos) simula o banco com 600 registros. Rodado no
+código antigo, falha em 5; no novo, passa em todos (`diagnostico/historico-recente/`).
+
+---
+
 ## 7z19. Nuvem trazendo tudo, sem o corte de 1.000 linhas (17/10)
 
 **Defeito encontrado na análise do projeto.** O Supabase entrega no máximo **1.000 linhas por
@@ -778,8 +802,8 @@ Para conferir:
 `testes/nuvem-carga.test.js` (8 casos) simula o banco com o corte. Rodado no código antigo,
 falha em 5 deles; no novo, passa em todos (`diagnostico/nuvem-sem-limite/`).
 
-Fica para a próxima: o histórico na nuvem ainda traz os 400 registros **mais antigos** em vez
-dos mais recentes (item 2 da análise).
+O histórico, que trazia os 400 registros mais antigos em vez dos mais recentes (item 2 da
+análise), foi corrigido em seguida (seção 7z20).
 
 ---
 
