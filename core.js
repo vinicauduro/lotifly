@@ -493,12 +493,34 @@ const Cloud = {
       if (event === 'SIGNED_IN' && session && !this.user) { this.user = session.user; this.aposLogin(); }
     });
   },
+  /* Voltou a internet com o app aberto no modo sem internet: recarrega da nuvem, o que manda
+     também as alterações que ficaram pendentes. */
+  aoVoltarInternet() {
+    if (!this.semInternet || !this.org) return;
+    this.abrirOrg(this.org.id).then(() => toast('✅', 'Conexão de volta', 'Os dados foram atualizados.')).catch(() => {});
+  },
   get admin() { return ['dono', 'admin', 'financeiro'].includes(this.papel); },
   async boot() {
     renderAuth('carregando');
-    const { data } = await this.client.auth.getSession();
-    if (data.session) { this.user = data.session.user; await this.aposLogin(); }
-    else renderAuth('login');
+    const { data, error } = await this.client.auth.getSession();
+    if (data.session) { this.user = data.session.user; await this.aposLogin(); return; }
+    /* Sem internet o login guardado não consegue ser renovado. Quem já entrou neste aparelho
+       abre com o que ficou salvo (aposLogin cai no modo sem internet). */
+    const guardado = semRede(error) ? this.usuarioGuardado() : null;
+    if (guardado) { this.user = guardado; await this.aposLogin(); return; }
+    renderAuth('login');
+  },
+  usuarioGuardado() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!/^sb-.*-auth-token$/.test(k)) continue;
+        const s = JSON.parse(localStorage.getItem(k) || 'null');
+        const u = s && (s.user || (s.currentSession || {}).user);
+        if (u && u.id) return u;
+      }
+    } catch (e) { /* sem acesso ao armazenamento */ }
+    return null;
   },
   async signIn(email, senha) { const { error } = await this.client.auth.signInWithPassword({ email, password: senha }); if (error) throw error; },
   async signUp(email, senha, nome) {
@@ -506,7 +528,7 @@ const Cloud = {
     if (error) throw error;
     return data; // data.session === null quando a confirmação de e-mail está ativada
   },
-  async signOut() { this.fecharOrg(); await this.client.auth.signOut(); },
+  async signOut() { if (this.user) { try { localStorage.removeItem('gl_orgs_' + this.user.id); } catch (e) { /* ignora */ } } this.fecharOrg(); await this.client.auth.signOut(); },
   async resetPassword(email) { const { error } = await this.client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) throw error; },
   async updatePassword(senha) { const { error } = await this.client.auth.updateUser({ password: senha }); if (error) throw error; },
   async rpc(fn, args) { const { data, error } = await this.client.rpc(fn, args); if (error) throw new Error(error.message || String(error)); return data; },
@@ -516,6 +538,8 @@ const Cloud = {
     const { data, error } = await this.client.from('membros').select('*, organizacoes(id, nome, config, plano)').eq('user_id', this.user.id).eq('ativo', true);
     if (error) throw new Error(error.message);
     this.minhasOrgs = (data || []).filter(m => m.organizacoes).map(m => ({ membro: m, org: m.organizacoes }));
+    /* Guardada para abrir sem internet (abrirSemInternet) */
+    try { localStorage.setItem('gl_orgs_' + this.user.id, JSON.stringify(this.minhasOrgs)); } catch (e) { /* armazenamento cheio */ }
     return this.minhasOrgs;
   },
   async aposLogin() {
@@ -529,7 +553,32 @@ const Cloud = {
       const lembrada = this.minhasOrgs.find(x => x.org.id === prefs.orgId);
       if (this.minhasOrgs.length === 1 || lembrada) await this.abrirOrg((lembrada || this.minhasOrgs[0]).org.id);
       else renderAuth('escolher');
-    } catch (e) { renderAuth('login', 'Falha ao carregar seus dados: ' + e.message); }
+    } catch (e) {
+      if (semRede(e) && this.abrirSemInternet()) return;
+      renderAuth('login', 'Falha ao carregar seus dados: ' + e.message);
+    }
+  },
+  /* Modo sem internet: abre a empresa com os dados salvos neste aparelho na última vez que
+     carregou. Dá para consultar tudo, inclusive a planta; o que for alterado fica pendente e
+     vai para a nuvem quando a conexão voltar. */
+  abrirSemInternet(orgId) {
+    const orgs = this.user ? loadLocalRaw('gl_orgs_' + this.user.id) : null;
+    if (!orgs || !orgs.length) return false;
+    const item = orgs.find(x => x.org.id === (orgId || prefs.orgId)) || orgs[0];
+    const cached = loadLocalRaw('gl_cache_' + item.org.id);
+    if (!cached) return false;
+    this.minhasOrgs = orgs;
+    this.org = item.org; this.membro = fromRow('membros', item.membro); this.papel = item.membro.papel;
+    db = normalizeDB(cached);
+    db.config = Object.assign(defaultConfig(), item.org.config || {});
+    this.entrarSemInternet();
+    return true;
+  },
+  entrarSemInternet() {
+    this.active = true; this.semInternet = true; this.status = 'offline'; this.msg = 'Sem internet — dados salvos neste aparelho';
+    renderSyncStatus();
+    startRole(this.admin ? 'admin' : 'corretor');
+    toast('📡', 'Sem internet', 'Mostrando o que estava salvo neste aparelho. Quando a conexão voltar, o app atualiza sozinho.');
   },
   async abrirOrg(orgId) {
     const item = this.minhasOrgs.find(x => x.org.id === orgId) || (await this.carregarMinhasOrgs(), this.minhasOrgs.find(x => x.org.id === orgId));
@@ -541,12 +590,17 @@ const Cloud = {
     db = normalizeDB(cached || {});
     db.config = Object.assign(defaultConfig(), item.org.config || {});
     this.active = true; this.status = 'loading'; this.msg = 'Carregando…'; renderSyncStatus();
-    await this.loadAll();
+    try { await this.loadAll(); }
+    catch (e) { if (semRede(e) && cached) { this.entrarSemInternet(); return; } throw e; }
+    this.semInternet = false;
     this.subscribe();
     this.status = 'on'; this.msg = 'Sincronizado'; renderSyncStatus();
     startRole(this.admin ? 'admin' : 'corretor');
+    /* As plantas da empresa ficam guardadas no aparelho para abrir sem internet */
+    setTimeout(() => PlantaOffline.guardarTodas(), 2500);
   },
   fecharOrg() {
+    PlantaOffline.limpar(); this.semInternet = false;
     if (this.channel) { try { this.client.removeChannel(this.channel); } catch (e) { /* ignora */ } this.channel = null; }
     this.org = null; this.membro = null; this.papel = null; this.active = false; this.status = 'off';
     db = normalizeDB(null);
@@ -609,7 +663,12 @@ const Cloud = {
     saveLocal(); this.agendarRender();
   },
   agendarRender() { clearTimeout(this._renderTimer); this._renderTimer = setTimeout(() => { if (!$('#modalOverlay').classList.contains('open')) renderCurrent(); else updateTopbars(); }, 250); },
-  erro(e, oque) { console.error(oque, e); toast('⚠️', 'Falha ao salvar na nuvem', motivoFalhaNuvem((e && e.message) || String(e)), true); },
+  erro(e, oque) {
+    console.error(oque, e);
+    /* Sem internet não é falha: a alteração fica guardada aqui e vai quando a conexão voltar. */
+    if (semRede(e)) { toast('📡', 'Sem internet', 'A alteração ficou guardada neste aparelho e vai para a nuvem quando a conexão voltar.'); return; }
+    toast('⚠️', 'Falha ao salvar na nuvem', motivoFalhaNuvem((e && e.message) || String(e)), true);
+  },
 
   // --- alterações que a nuvem recusou ---
   /* Antes, uma gravação recusada ficava só na memória do navegador e sumia ao recarregar,
@@ -1398,14 +1457,73 @@ function recebiveisDe(vendaId) { return db.recebiveis.filter(r => r.vendaId === 
 /* O endereço da imagem da planta para pôr na tela agora. Imagem do modo local (data:) vai
    direto; arquivo da nuvem precisa de link assinado: se ainda não tem, devolve vazio, pede o
    link e chama depois(url) quando chegar. */
+if (typeof window !== 'undefined') window.addEventListener('online', () => Cloud.aoVoltarInternet());
 function urlPlantaAgora(ref, depois) {
   if (!ref || /^(data|blob):/.test(ref)) return ref || '';
   if (!Cloud.caminhoPlanta(ref)) return ref;
+  const doAparelho = () => PlantaOffline.abrir(ref).then(b => { if (b && depois) depois(b); });
+  /* Sem internet: a cópia guardada no aparelho */
+  if (navigator.onLine === false) { doAparelho(); return ''; }
   const c = Cloud._assinadas[ref];
-  if (c && c.url && c.ate > Date.now()) return c.url;
-  Cloud.urlPlanta(ref).then(u => { if (u && depois) depois(u); });
+  if (c && c.url && c.ate > Date.now()) { PlantaOffline.guardar(ref); return c.url; }
+  Cloud.urlPlanta(ref).then(u => { if (u) { if (depois) depois(u); PlantaOffline.guardar(ref); } else doAparelho(); });
   return '';
 }
+/* Falha por falta de conexão (e não por permissão ou dado inválido). */
+function semRede(e) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  return /Failed to fetch|NetworkError|Load failed|network ?error|ERR_INTERNET|fetch failed/i.test(String((e && (e.message || e.name)) || e || ''));
+}
+
+/* ---- Planta sem internet ---------------------------------------------------------------
+   A imagem da planta (que na nuvem é fechada) fica guardada neste aparelho, no armazenamento
+   do navegador, para quem é da empresa abrir sem internet. Uma cópia por arquivo e versão;
+   ao sair da conta, tudo é apagado. */
+const PLANTAS_CACHE = 'lotifly-plantas';
+const PlantaOffline = {
+  _blobs: {}, _feitos: {},
+  chave(ref) {
+    const p = Cloud.caminhoPlanta(ref); if (!p) return '';
+    const v = (String(ref).match(/[?&]v=(\d+)/) || [])[1] || '';
+    return new URL(`./__plantas__/${p}${v ? '?v=' + v : ''}`, location.href).href;
+  },
+  ok() { return typeof caches !== 'undefined' && !!Cloud.user && !!Cloud.client; },
+  async guardar(ref) {
+    const k = this.chave(ref);
+    if (!k || this._feitos[k] || !this.ok()) return;
+    this._feitos[k] = true;
+    try {
+      const c = await caches.open(PLANTAS_CACHE);
+      if (await c.match(k)) return;
+      const { data, error } = await Cloud.client.storage.from('plantas').download(Cloud.caminhoPlanta(ref));
+      if (error || !data) { delete this._feitos[k]; return; }
+      const base = k.split('?')[0];
+      for (const q of await c.keys()) if (q.url.split('?')[0] === base && q.url !== k) await c.delete(q);   // versão antiga do mesmo arquivo
+      await c.put(k, new Response(data, { headers: { 'Content-Type': data.type || 'image/jpeg' } }));
+    } catch (e) { delete this._feitos[k]; }
+  },
+  async abrir(ref) {
+    try {
+      const k = this.chave(ref); if (!k || typeof caches === 'undefined') return '';
+      if (this._blobs[k]) return this._blobs[k];
+      if (!(await caches.has(PLANTAS_CACHE))) return '';
+      const c = await caches.open(PLANTAS_CACHE);
+      let r = await c.match(k);
+      if (!r) { const base = k.split('?')[0]; const q = (await c.keys()).filter(x => x.url.split('?')[0] === base).pop(); if (q) r = await c.match(q); }
+      if (!r) return '';
+      return (this._blobs[k] = URL.createObjectURL(await r.blob()));
+    } catch (e) { return ''; }
+  },
+  async guardarTodas() {
+    if (!this.ok()) return;
+    for (const l of db.loteamentos) { const ref = l.planta && l.planta.img; if (ref && Cloud.caminhoPlanta(ref)) await this.guardar(ref); }
+  },
+  async limpar() {
+    Object.values(this._blobs).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { /* ignora */ } });
+    this._blobs = {}; this._feitos = {};
+    try { if (typeof caches !== 'undefined') await caches.delete(PLANTAS_CACHE); } catch (e) { /* ignora */ }
+  }
+};
 function noEscopo(rec, escopo) { return !escopo || rec.loteamentoId === escopo; }
 function vendasDo(escopo) { return db.vendas.filter(v => noEscopo(v, escopo)); }
 function recebiveisDo(escopo) {

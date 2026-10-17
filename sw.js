@@ -8,10 +8,11 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys =>
-    /* Só apaga as versões antigas deste app. O endereço vinicauduro.github.io é dividido com
+    /* Só apaga as versões antigas deste app (as plantas guardadas para uso sem internet ficam;
+       quem apaga essas é o próprio app, quando a pessoa sai da conta). O endereço vinicauduro.github.io é dividido com
        outros apps (o CRM), e a memória offline é uma só para o endereço inteiro: apagar tudo
        que não fosse nosso levava junto a do vizinho. */
-    Promise.all(keys.filter(k => k !== CACHE && (k.startsWith('lotifly-') || k.startsWith('gestao-loteamento-'))).map(k => caches.delete(k)))
+    Promise.all(keys.filter(k => k !== CACHE && k !== 'lotifly-plantas' && (k.startsWith('lotifly-') || k.startsWith('gestao-loteamento-'))).map(k => caches.delete(k)))
   ));
   self.clients.claim();
 });
