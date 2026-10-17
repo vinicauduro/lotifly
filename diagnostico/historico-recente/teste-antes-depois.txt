@@ -1,0 +1,15 @@
+# Antes (main, sem a correção)
+✘ ao abrir a empresa vêm os 400 mais recentes, em ordem do mais antigo ao mais novo {"n":400,"primeiro":"g0000","ultimo":"g0399","ordem":true}
+✔ registro novo entra no fim e a memória continua com 400
+✘ aba Histórico de um contrato antigo traz do banco os registros que saíram da memória perdeu o registro que já estava na memória
+✘ sem repetir o que já estava na memória, e sem buscar de novo ao reabrir {"editada":0,"buscas":0}
+✘ caractere especial no nome do imóvel ( % e _ ) vai escapado na busca page.evaluate: TypeError: Cloud.historicoDoContrato is not a function
+✘ sem internet ou fora da nuvem: não busca nada e mostra o que tem {"buscas":0,"t":false}
+
+# Depois
+✔ ao abrir a empresa vêm os 400 mais recentes, em ordem do mais antigo ao mais novo
+✔ registro novo entra no fim e a memória continua com 400
+✔ aba Histórico de um contrato antigo traz do banco os registros que saíram da memória
+✔ sem repetir o que já estava na memória, e sem buscar de novo ao reabrir
+✔ caractere especial no nome do imóvel ( % e _ ) vai escapado na busca
+✔ sem internet ou fora da nuvem: não busca nada e mostra o que tem

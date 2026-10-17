@@ -1,0 +1,19 @@
+# Antes (main, sem a correção)
+✘ 2.500 parcelas com o corte padrão de 1.000: chegam todas, sem repetir {"e":null,"n":1000,"unicos":1000,"ultimo":"r01000","pedidos":1}
+✘ o resto do app enxerga as 2.500: soma do contas a receber bate com o banco {"soma":1499500,"banco":5623750}
+✔ tabela com exatamente 1.000 linhas e tabela vazia: um pedido só cada
+✘ corte menor configurado no painel (500): continua trazendo tudo {"e":null,"rec":{"n":500,"unicos":500,"ultimo":"r00500"},"lotes":{"n":500,"unicos":500,"ultimo":"l00500"}}
+✘ banco que não informa o total: vai até o bloco incompleto {"e":null,"n":1000,"unicos":1000,"ultimo":"r01000"}
+✔ linhas apagadas por outro usuário no meio da carga: termina, sem travar
+✘ erro num bloco do meio: a carga falha inteira, não fica pela metade {"e":null,"antes":1000,"depois":1000}
+✔ histórico continua com um pedido só, limitado a 400
+
+# Depois
+✔ 2.500 parcelas com o corte padrão de 1.000: chegam todas, sem repetir
+✔ o resto do app enxerga as 2.500: soma do contas a receber bate com o banco
+✔ tabela com exatamente 1.000 linhas e tabela vazia: um pedido só cada
+✔ corte menor configurado no painel (500): continua trazendo tudo
+✔ banco que não informa o total: vai até o bloco incompleto
+✔ linhas apagadas por outro usuário no meio da carga: termina, sem travar
+✔ erro num bloco do meio: a carga falha inteira, não fica pela metade
+✔ histórico continua com um pedido só, limitado a 400
