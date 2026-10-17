@@ -612,7 +612,9 @@ const Cloud = {
     /* Do histórico vêm os 400 registros mais recentes (pedidos do mais novo para o mais
        antigo e depois postos em ordem): pedindo do mais antigo, depois de 400 movimentações
        nada de novo aparecia. O histórico de cada contrato busca os seus à parte. */
-    const results = await Promise.all(tabs.map(t => this.client.from(tabelaDe(t)).select('*').eq('org_id', org).limit(t === 'log' ? 400 : 20000).order(t === 'log' ? 'ts' : 'id', { ascending: t !== 'log' })));
+    const results = await Promise.all(tabs.map(t => t === 'log'
+      ? this.client.from(tabelaDe(t)).select('*').eq('org_id', org).limit(400).order('ts', { ascending: false })
+      : this.buscarTudo(t, org)));
     /* Tabela nova que ainda não existe no banco (o schema.sql não foi rodado de novo) não
        derruba o aplicativo inteiro: aquela parte fica vazia e o resto funciona. */
     this.tabelasFaltando = [];
@@ -656,6 +658,24 @@ const Cloud = {
       this.logContratos[x.id] = lista;
       if (state.contratoId === x.id && state.contratoAba === 'historico' && lista.some(l => !db.log.some(d => d.id === l.id))) renderContrato();
     } catch (e) { delete this.logContratos[x.id]; console.warn('histórico do contrato', e); }
+  },
+  /* O Supabase entrega no máximo 1.000 linhas por pedido (Settings › API › Max rows) e corta
+     o resto sem avisar: 20 contratos de 60 parcelas já passam disso. Aqui a tabela vem em
+     blocos, pela ordem do id, até chegar ao total que o próprio banco informa. Um bloco
+     vazio encerra, para um total que mudou no meio do caminho não virar laço sem fim. */
+  async buscarTudo(t, org) {
+    const BLOCO = 1000, dados = [];
+    let total = null;
+    for (;;) {
+      const r = await this.client.from(tabelaDe(t)).select('*', total == null ? { count: 'exact' } : {})
+        .eq('org_id', org).order('id', { ascending: true }).range(dados.length, dados.length + BLOCO - 1);
+      if (r.error) return { data: null, error: r.error };
+      if (total == null) total = r.count == null ? Infinity : r.count;
+      const pg = r.data || [];
+      dados.push(...pg);
+      if (!pg.length || dados.length >= total || (total === Infinity && pg.length < BLOCO)) break;
+    }
+    return { data: dados, error: null };
   },
   async loadEquipe() {
     const org = this.org.id;
