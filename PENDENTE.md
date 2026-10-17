@@ -785,6 +785,57 @@ quem apaga, o tamanho máximo e a limpeza de 90 dias.
 
 ---
 
+## 7z20. Histórico com os registros mais recentes (17/10)
+
+**Defeito encontrado na análise do projeto.** Na nuvem, o app guarda na memória 400 registros
+do histórico da empresa, mas pedia ao banco os **400 mais antigos**. Passadas 400
+movimentações (parcela recebida, contrato editado, cobrança…), **nada de novo aparecia** na
+aba Histórico dos contratos. No teste, a "Venda editada" de hoje não aparecia, e apareciam as
+400 primeiras movimentações da empresa.
+
+Agora:
+
+- vêm os **400 mais recentes**;
+- a aba **Histórico de cada contrato** busca no banco os registros daquele contrato que já
+  saíram da memória (os de um contrato antigo, numa empresa com muito movimento). Busca uma
+  vez por contrato, sem repetir o que já está na tela. Sem internet, mostra o que tem.
+
+Para conferir:
+
+- [ ] Abrir um contrato antigo, aba **Histórico**, e ver as movimentações dele desde o início.
+
+`testes/historico-recente.test.js` (6 casos) simula o banco com 600 registros. Rodado no
+código antigo, falha em 5; no novo, passa em todos (`diagnostico/historico-recente/`).
+
+---
+
+## 7z19. Nuvem trazendo tudo, sem o corte de 1.000 linhas (17/10)
+
+**Defeito encontrado na análise do projeto.** O Supabase entrega no máximo **1.000 linhas por
+pedido** (o padrão do painel, em Settings › API › Max rows) e **corta o resto sem avisar**. O
+app pedia cada tabela de uma vez, então, passando de 1.000 parcelas (20 contratos de 60 já
+passam), **parcelas sumiam** da tela, o contas a receber e os relatórios saíam menores e a
+cobrança deixava de ver atrasados. No teste com 2.500 parcelas, o app antigo mostrava
+**R$ 1.499.500** de um total de **R$ 5.623.750**. Os dados no banco estavam certos: o
+problema era só na hora de trazer.
+
+Agora cada tabela vem **em blocos de 1.000**, até chegar ao total que o próprio banco informa.
+Funciona mesmo que alguém mude o limite do painel para menos. Se um bloco falhar no meio, a
+carga inteira falha e avisa, em vez de abrir pela metade.
+
+Para conferir:
+
+- [ ] Abrir a empresa na nuvem e conferir se o total do **A receber** bate com o que você
+      espera (principalmente se já tiver mais de 1.000 parcelas lançadas).
+
+`testes/nuvem-carga.test.js` (8 casos) simula o banco com o corte. Rodado no código antigo,
+falha em 5 deles; no novo, passa em todos (`diagnostico/nuvem-sem-limite/`).
+
+O histórico, que trazia os 400 registros mais antigos em vez dos mais recentes (item 2 da
+análise), foi corrigido em seguida (seção 7z20).
+
+---
+
 ## 7z18. Novo contrato em passos (17/10)
 
 O "Registrar venda" era uma folha só, comprida, com tudo de uma vez. Agora o **contrato novo

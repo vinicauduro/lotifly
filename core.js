@@ -605,12 +605,18 @@ const Cloud = {
     PlantaOffline.limpar(); this.semInternet = false;
     if (this.channel) { try { this.client.removeChannel(this.channel); } catch (e) { /* ignora */ } this.channel = null; }
     this.org = null; this.membro = null; this.papel = null; this.active = false; this.status = 'off';
+    this.logContratos = {};
     db = normalizeDB(null);
   },
   async loadAll() {
     const org = this.org.id;
     const tabs = Object.keys(TABLE_COLS);
-    const results = await Promise.all(tabs.map(t => this.client.from(tabelaDe(t)).select('*').eq('org_id', org).limit(t === 'log' ? 400 : 20000).order(t === 'log' ? 'ts' : 'id', { ascending: true })));
+    /* Do histórico vêm os 400 registros mais recentes (pedidos do mais novo para o mais
+       antigo e depois postos em ordem): pedindo do mais antigo, depois de 400 movimentações
+       nada de novo aparecia. O histórico de cada contrato busca os seus à parte. */
+    const results = await Promise.all(tabs.map(t => t === 'log'
+      ? this.client.from(tabelaDe(t)).select('*').eq('org_id', org).limit(400).order('ts', { ascending: false })
+      : this.buscarTudo(t, org)));
     /* Tabela nova que ainda não existe no banco (o schema.sql não foi rodado de novo) não
        derruba o aplicativo inteiro: aquela parte fica vazia e o resto funciona. */
     this.tabelasFaltando = [];
@@ -619,7 +625,9 @@ const Cloud = {
       if (e && TABELAS_NOVAS.includes(t) && /does not exist|schema cache|not find the table/i.test(e.message || '')) { this.tabelasFaltando.push(t); db[t] = []; return; }
       if (e) throw new Error(t + ': ' + e.message);
       db[t] = (results[i].data || []).map(r => fromRow(t, r));
+      if (t === 'log') db.log.reverse();
     });
+    this.logContratos = {};
     if (!db.categorias.length) db.categorias = defaultCategorias();
     migrarCategorias();
     /* O que a nuvem recusou antes continua valendo neste navegador: reaplica por cima do que
@@ -634,6 +642,42 @@ const Cloud = {
     saveLocal();
     renderPendentes();
     if (this.pendentes.length) setTimeout(() => this.reenviarPendentes(true), 0);
+  },
+  /* Histórico de um contrato: na memória ficam só os 400 registros mais recentes da empresa
+     inteira, então os de um contrato antigo saem dela com o tempo. Ao abrir a aba, busca no
+     banco os registros que citam o imóvel ou o número do contrato; uma vez por contrato. */
+  async historicoDoContrato(x) {
+    this.logContratos = this.logContratos || {};
+    if (!this.active || this.semInternet || !this.client || this.logContratos[x.id]) return;
+    const marcas = [imovelLabel(x), x.numeroContrato].filter(Boolean);
+    if (!marcas.length) return;
+    this.logContratos[x.id] = [];
+    try {
+      const rs = await Promise.all(marcas.map(m => this.client.from(tabelaDe('log')).select('*').eq('org_id', this.org.id)
+        .ilike('msg', '%' + String(m).replace(/[\\%_]/g, c => '\\' + c) + '%').order('ts', { ascending: false }).limit(500)));
+      const vistos = new Set(), lista = [];
+      rs.forEach(r => { if (r.error) throw r.error; (r.data || []).forEach(l => { if (!vistos.has(l.id)) { vistos.add(l.id); lista.push(fromRow('log', l)); } }); });
+      this.logContratos[x.id] = lista;
+      if (state.contratoId === x.id && state.contratoAba === 'historico' && lista.some(l => !db.log.some(d => d.id === l.id))) renderContrato();
+    } catch (e) { delete this.logContratos[x.id]; console.warn('histórico do contrato', e); }
+  },
+  /* O Supabase entrega no máximo 1.000 linhas por pedido (Settings › API › Max rows) e corta
+     o resto sem avisar: 20 contratos de 60 parcelas já passam disso. Aqui a tabela vem em
+     blocos, pela ordem do id, até chegar ao total que o próprio banco informa. Um bloco
+     vazio encerra, para um total que mudou no meio do caminho não virar laço sem fim. */
+  async buscarTudo(t, org) {
+    const BLOCO = 1000, dados = [];
+    let total = null;
+    for (;;) {
+      const r = await this.client.from(tabelaDe(t)).select('*', total == null ? { count: 'exact' } : {})
+        .eq('org_id', org).order('id', { ascending: true }).range(dados.length, dados.length + BLOCO - 1);
+      if (r.error) return { data: null, error: r.error };
+      if (total == null) total = r.count == null ? Infinity : r.count;
+      const pg = r.data || [];
+      dados.push(...pg);
+      if (!pg.length || dados.length >= total || (total === Infinity && pg.length < BLOCO)) break;
+    }
+    return { data: dados, error: null };
   },
   async loadEquipe() {
     const org = this.org.id;
