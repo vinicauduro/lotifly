@@ -19,6 +19,11 @@ await db.exec(`
   create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   do $$ begin create role authenticated; exception when duplicate_object then null; end $$;
   do $$ begin create role anon; exception when duplicate_object then null; end $$;
+  -- como no Supabase: tudo o que nasce no public já vem liberado para anon e authenticated
+  grant usage on schema public to anon, authenticated;
+  alter default privileges in schema public grant all on tables to anon, authenticated;
+  alter default privileges in schema public grant all on functions to anon, authenticated;
+  alter default privileges in schema public grant all on sequences to anon, authenticated;
   -- o pedaço do Storage do Supabase que as políticas das plantas usam
   create schema if not exists storage;
   create table storage.buckets (id text primary key, name text, public boolean not null default false);
@@ -207,6 +212,25 @@ await passo('erros do app: todo membro grava os seus; só dono e admin leem e ap
   if (await n('admin') !== 3) throw new Error('corretor apagou');
   await como('admin', `delete from public.erros where org_id = '${ORG}'`);
   if (await n('admin') !== 0) throw new Error('admin não apagou');
+});
+await passo('visitante sem login: nenhuma tabela, nenhuma função; quem está logado continua executando', async () => {
+  const anon = async sql => { await db.exec(`reset role; select set_config('request.jwt.claim.sub', '', false); set role anon;`); try { await db.query(sql); return 'passou'; } catch (e) { return e.message.split('\n')[0]; } finally { await db.exec('reset role;'); } };
+  const tabelas = (await db.query(`select tablename from pg_tables where schemaname = 'public' order by 1`)).rows.map(r => r.tablename);
+  const col1 = async t => (await db.query(`select column_name from information_schema.columns where table_schema = 'public' and table_name = '${t}' order by ordinal_position limit 1`)).rows[0].column_name;
+  if (tabelas.length < 20) throw new Error('poucas tabelas: ' + tabelas.length);
+  const furos = [];
+  for (const t of tabelas) for (const sql of [`select * from public.${t}`, `insert into public.${t} default values`, `update public.${t} set ${await col1(t)} = ${await col1(t)}`, `delete from public.${t}`]) {
+    const r = await anon(sql); if (!/permission denied/.test(r)) furos.push(`${sql}: ${r}`);
+  }
+  const funcs = (await db.query(`select p.oid, p.proname, has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('authenticated', p.oid, 'execute') logado
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prorettype <> 'trigger'::regtype order by 2`)).rows;
+  funcs.filter(f => f.anon).forEach(f => furos.push('anon executa ' + f.proname));
+  funcs.filter(f => !f.logado).forEach(f => furos.push('quem está logado não executa ' + f.proname));
+  for (const sql of [`select public.limpar_dados_org('${ORG}')`, `select public.criar_organizacao('Invasora')`, `select public.entrar_com_convite('X')`, `select public.eh_membro('${ORG}')`]) {
+    const r = await anon(sql); if (!/permission denied/.test(r)) furos.push(`${sql}: ${r}`);
+  }
+  if (furos.length) throw new Error(furos.length + ' furo(s): ' + furos.slice(0, 4).join(' | '));
+  if (funcs.length < 15) throw new Error('poucas funções conferidas: ' + funcs.length);
 });
 await passo('corretor continua barrado pela função (nem chega às travas por pessoa)', async () => {
   await db.exec(`insert into public.vendas (org_id, id, loteamento_id, lote_id, valor_total) values ('${ORG}','v9','lot1','l9',1)`);
