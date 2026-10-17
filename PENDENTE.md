@@ -785,6 +785,24 @@ quem apaga, o tamanho máximo e a limpeza de 90 dias.
 
 ---
 
+## 7z21. Testes rodando sozinhos no GitHub (17/10)
+
+Até aqui os testes só rodavam quando eu rodava. Agora o **GitHub roda todos sozinho** a cada
+pull request e a cada mudança na main (`.github/workflows/testes.yml`). No PR aparece
+**"Testes"** com um ✓ verde ou um ✗ vermelho; clicando, o log diz qual teste falhou e por quê.
+`testes/rodar-todos.sh` é o mesmo roteiro, que também roda no computador.
+
+Para você fazer (uma vez, opcional mas recomendado):
+
+- [ ] No GitHub: **Settings › Branches › Add rule** para a `main`, marcar **Require status
+      checks to pass** e escolher **testes**. Assim nenhum PR entra com teste falhando, nem
+      por engano.
+
+---
+
+
+---
+
 ## 7z20. Histórico com os registros mais recentes (17/10)
 
 **Defeito encontrado na análise do projeto.** Na nuvem, o app guarda na memória 400 registros

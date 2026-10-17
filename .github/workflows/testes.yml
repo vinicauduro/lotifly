@@ -1,0 +1,47 @@
+# Roda todos os testes de testes/ a cada pull request e a cada mudança na main.
+# Se algum falhar, o PR mostra um X vermelho em "Testes" e o log diz qual e por quê.
+name: Testes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # O app não tem dependências; só os testes têm. Ficam fora do repositório, em versões fixas.
+      - name: Ferramentas de teste
+        run: |
+          mkdir -p "$HOME/ferramentas" && cd "$HOME/ferramentas"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.56.1 axe-core@4.10.2 @electric-sql/pglite@0.2.17
+          npx playwright install --with-deps chromium
+
+      - name: Rodar os testes
+        run: |
+          F="$HOME/ferramentas/node_modules"
+          export NODE_PATH="$F"
+          export CHROMIUM="$(node -e "console.log(require('$F/playwright').chromium.executablePath())")"
+          export AXE="$F/axe-core/axe.min.js"
+          export PGLITE="$F/@electric-sql/pglite/dist/index.js"
+          export BASE="http://127.0.0.1:8765/"
+          python3 -m http.server 8765 --bind 127.0.0.1 > /dev/null 2>&1 &
+          for i in $(seq 1 20); do curl -fs "$BASE/index.html" > /dev/null && break; sleep 0.5; done
+          bash testes/rodar-todos.sh
