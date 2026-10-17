@@ -782,7 +782,14 @@ function abrirVendaForm(id, loteId, reservaId) {
   const temCorr = x
     ? !!(k.nome && k.nome !== 'Venda direta' && k.nome !== db.config.empresa)
     : !!res;
+  /* Venda nova anda em passos; a edição continua numa folha só, porque quem edita já sabe
+     o que quer mudar e não precisa atravessar seis telas para chegar lá. Os campos são os
+     mesmos nos dois casos: os passos só escondem o que não é da vez. */
+  const emPassos = !x;
   const body = `
+    ${emPassos ? '<nav class="vf-passos" id="vfPassos" aria-label="Passos do contrato"></nav>' : ''}
+    <div id="vfWiz" class="${emPassos ? 'em-passos' : ''}">
+    <section class="vf-passo" data-passo="1" aria-label="Imóvel">
     ${res ? `<div class="alert info" style="cursor:default"><span>Convertendo a reserva de <b>${esc(res.cliente.nome)}</b> (corretor ${esc(res.corretor.nome)}).</span></div>` : ''}
     ${carteira ? `<div class="fieldset"><span class="lg">Imóvel</span>
       <div class="fg"><label>Descrição *</label><input type="text" id="vfImDesc" value="${esc(im.descricao || '')}" placeholder="Ex.: Apartamento 302, Ed. Aurora"></div>
@@ -805,9 +812,13 @@ function abrirVendaForm(id, loteId, reservaId) {
           <div class="fg"><label>Matrícula</label><input type="text" id="vfNlMat"></div></div>
         <div class="fg"><label>Preço de tabela (R$)</label><input type="number" id="vfNlPreco" step="0.01" min="0" oninput="if(num(this.value)){setVal('vfTotal',this.value);window.vfManual=false;vfCalc();}"><div class="hint">Em branco, vale o valor da venda.</div></div>
         <div class="hint">O lote entra no loteamento já vendido para este contrato. A posição na planta você marca depois, em Imóveis › Planta.</div></div>` : ''}`}
+    </section>
+    <section class="vf-passo" data-passo="2" aria-label="Compradores">
     <div class="fieldset"><span class="lg">Comprador</span>
       ${pessoasListaHtml('vc', compradores, { recolher: true, conjuge: true, telObrigatorio: true, obrigatorio: true, cadastro: true, rotulo: 'Comprador', rotuloBotao: 'Adicionar comprador' })}
       <p class="help mt">O primeiro comprador é quem aparece nas telas de venda, recebível e cobrança. Os demais existem para o contrato. Marido e mulher não precisam de dois blocos: use o estado civil e o cônjuge.</p></div>
+    </section>
+    <section class="vf-passo" data-passo="3" aria-label="Vendedor e corretor">
     <div class="fieldset"><span class="lg">Vendedor</span>
       ${vendedoresListaHtml('vfVend', vsel)}
       <p class="help mt">Cadastre outros CNPJs do grupo em Configurações › Dados da empresa. O contrato sai com a qualificação de todos os escolhidos aqui.</p></div>
@@ -822,7 +833,9 @@ function abrirVendaForm(id, loteId, reservaId) {
         <div class="frow"><div class="fg"><label>CRECI *</label><input type="text" id="vkCreci" value="${esc(k.creci || '')}"></div><div class="fg"><label>Imobiliária</label><input type="text" id="vkImob" value="${esc(k.imobiliaria || '')}"></div></div>
         <div class="frow"><div class="fg"><label>Comissão (%)</label><input type="number" id="vkPct" step="0.1" value="${x ? x.comissaoPct : db.config.comissaoPct}" oninput="vfCalc()"></div><div class="fg"><label>Comissão (R$)</label><input type="number" id="vkVal" step="0.01" value="${x ? x.comissaoValor : ''}" oninput="vfCalcPct()"></div></div>
       </div></div>
-    <div class="fieldset"><span class="lg">Condições de pagamento</span>
+    </section>
+    <section class="vf-passo" data-passo="4" aria-label="Valores">
+    <div class="fieldset"><span class="lg">Valores</span>
       <div class="frow"><div class="fg"><label>Data da venda *</label><input type="date" id="vfData" value="${x ? x.dataVenda : hoje}"></div><div class="fg"><label>Valor da venda (R$) *</label><input type="number" id="vfTotal" step="0.01" value="${total}" oninput="vfCalc()"></div></div>
       <div class="fg"><label>Forma de pagamento</label><select id="vfForma" onchange="vfFormaChange()">
         <option value="parcelado" ${aVista ? '' : 'selected'}>Parcelado</option>
@@ -831,18 +844,175 @@ function abrirVendaForm(id, loteId, reservaId) {
         <div class="fg"><label>Data do pagamento</label><input type="date" id="vfDataVista" value="${x ? x.dataEntrada || x.dataVenda : hoje}"></div></div>
       <div id="vfParcBox" style="${aVista ? 'display:none' : ''}">
       <div class="frow"><div class="fg"><label>Entrada (R$)</label><input type="number" id="vfEntrada" step="0.01" value="${entrada}" oninput="vfCalc()"></div><div class="fg"><label>Data da entrada</label><input type="date" id="vfDataEntrada" value="${x ? x.dataEntrada || x.dataVenda : hoje}"></div></div>
+      </div></div>
+    </section>
+    <section class="vf-passo" data-passo="5" id="vfP5" aria-label="Parcelas" style="${aVista ? 'display:none' : ''}">
+    <div class="fieldset"><span class="lg">Parcelas</span>
       <div class="frow3"><div class="fg"><label>Nº parcelas</label><input type="text" inputmode="numeric" id="vfN" value="${n}" oninput="vfCalc()"></div><div class="fg"><label>Juros (% a.m.)</label><input type="number" id="vfJuros" step="0.01" value="${x ? (x.jurosMes || 0) : (cond.jurosMes || 0)}" oninput="vfCalc()"></div><div class="fg"><label>1º vencimento</label><input type="date" id="vfPrimeiro" value="${x ? x.primeiroVencimento : addMonths(hoje, 1)}"></div></div>
       <div class="fg"><label>Valor da parcela (R$) <span class="tiny muted">— calculado; pode ajustar</span></label><input type="number" id="vfParcela" step="0.01" value="${x ? x.valorParcela : ''}" oninput="vfManual=true;vfCalc()"></div>
       ${indiceSelectHtml(x ? x.indiceId : '', x ? x.indiceBase : '', x ? x.dataVenda : hoje)}
       <div class="fg"><label>Reforços / balões (opcional)</label><div id="vfBaloes"></div><button class="btn btn-secondary btn-sm" onclick="addBalao()"><i class=ico data-i=plus></i>Adicionar reforço</button></div>
       </div>
-      <div class="sim-result" id="vfResumo"></div>
-      ${temPagos ? '<p class="tiny muted mt">Esta venda já tem pagamentos registrados: as parcelas <b>não serão regeradas</b> ao salvar. Edite parcelas individualmente na tela da venda.</p>' : ''}
-    </div>
-    <div class="fg"><label>Observações / contrato</label><textarea id="vfObs">${esc(x ? x.obs || '' : (res && res.obs ? res.obs : ''))}</textarea></div>`;
-  openModal({ title: x ? 'Editar venda' : 'Registrar venda', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarVenda('${x ? x.id : ''}','${reservaId || ''}')">Salvar venda</button>`, wide: true });
+    </section>
+    <div class="sim-result" id="vfResumo" aria-live="polite"></div>
+    ${temPagos ? '<p class="tiny muted mt">Esta venda já tem pagamentos registrados: as parcelas <b>não serão regeradas</b> ao salvar. Edite parcelas individualmente na tela da venda.</p>' : ''}
+    <section class="vf-passo" data-passo="6" aria-label="Conferência">
+    ${emPassos ? '<div id="vfConf"></div>' : ''}
+    <div class="fg mt"><label for="vfObs">Observações / contrato</label><textarea id="vfObs">${esc(x ? x.obs || '' : (res && res.obs ? res.obs : ''))}</textarea></div>
+    </section>
+    </div>`;
+  window.vfCtx = { id: x ? x.id : '', reservaId: reservaId || '' };
+  openModal({ title: x ? 'Editar venda' : (res ? 'Novo contrato · reserva' : 'Novo contrato'), body, wide: true,
+    footer: emPassos ? '' : `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarVenda('${x.id}','')">Salvar venda</button>` });
   window.vfManual = !!x; window.vfBaloes = x ? (x.baloes || []).map(b => ({ ...b })) : [];
   renderBaloes(); vfCalc();
+  /* Vindo de um lote ou de uma reserva, o imóvel já está escolhido: começa no comprador. */
+  window.vfPasso = emPassos ? { atual: 0, visto: 0 } : null;
+  if (emPassos) vfMostrarPasso(loteId || reservaId ? 2 : 1);
+}
+
+/* ---------------------------------------------------------------- novo contrato em passos */
+const VF_PASSOS = { 1: 'Imóvel', 2: 'Compradores', 3: 'Vendedor', 4: 'Valores', 5: 'Parcelas', 6: 'Conferência' };
+/* À vista não tem parcelas: o passo some da conta, e "Passo 5 de 5" é a conferência. */
+function vfPassosAtivos() { return [1, 2, 3, 4, 5, 6].filter(p => p !== 5 || val('vfForma') !== 'vista'); }
+function vfMostrarPasso(p) {
+  const w = $('#vfWiz'); if (!w || !window.vfPasso) return;
+  window.vfPasso.atual = p; window.vfPasso.visto = Math.max(window.vfPasso.visto, p);
+  w.dataset.passo = p;
+  w.querySelectorAll('.vf-passo').forEach(s => s.classList.toggle('on', Number(s.dataset.passo) === p));
+  if (p === 6) vfConferencia();
+  if (p === 4 || p === 5) vfCalc();
+  vfPassosHtml();
+  const ativos = vfPassosAtivos(), i = ativos.indexOf(p), ultimo = i === ativos.length - 1;
+  const x = window.vfCtx || {};
+  $('#modalFoot').style.display = 'flex';
+  $('#modalFoot').innerHTML = (i === 0 ? '<button class="btn btn-secondary" onclick="fecharJanela()">Cancelar</button>' : '<button class="btn btn-secondary" onclick="vfVoltar()"><i class=ico data-i=caret-left></i>Voltar</button>')
+    + (ultimo ? `<button class="btn btn-primary" onclick="salvarVenda('','${esc(x.reservaId || '')}')"><i class=ico data-i=check></i>Salvar venda</button>`
+      : `<button class="btn btn-primary" onclick="vfAvancar()">Avançar<i class=ico data-i=caret-right></i></button>`);
+  $('#modalBody').scrollTop = 0;
+  const campo = { 1: carteiraAtual() ? 'vfImDesc' : 'vfLote', 2: 'vcNome', 3: 'vfVend', 4: 'vfTotal', 5: 'vfN', 6: '' }[p];
+  if (campo) focarSeLivre(campo);
+}
+function carteiraAtual() { return ehCarteira(curLot()); }
+/* A barra de passos: no computador, os seis nomes; no celular, "Passo 2 de 6 · Compradores"
+   e uma barra de progresso (o CSS escolhe). Passo já visitado é clicável para voltar. */
+function vfPassosHtml() {
+  const nav = $('#vfPassos'); if (!nav || !window.vfPasso) return;
+  const ativos = vfPassosAtivos(), { atual, visto } = window.vfPasso, i = ativos.indexOf(atual);
+  nav.innerHTML = `<div class="vf-passos-cel"><span>Passo ${i + 1} de ${ativos.length}</span> · <b>${VF_PASSOS[atual]}</b>
+      <div class="vf-barra" role="progressbar" aria-label="Progresso do contrato" aria-valuemin="1" aria-valuemax="${ativos.length}" aria-valuenow="${i + 1}"><i style="width:${Math.round((i + 1) / ativos.length * 100)}%"></i></div></div>
+    <ol>${ativos.map((p, k) => {
+      const st = p === atual ? 'atual' : p < atual ? 'feito' : '';
+      const alcance = p <= visto || p < atual;
+      return `<li class="${st}"><button type="button" ${p === atual ? 'aria-current="step"' : ''} ${alcance ? '' : 'disabled'} onclick="vfIrPasso(${p})"><span class="n">${p < atual ? '<i class=ico data-i=check></i>' : k + 1}</span>${VF_PASSOS[p]}</button></li>`;
+    }).join('')}</ol>`;
+}
+function vfAvancar() { const a = vfPassosAtivos(); const i = a.indexOf(window.vfPasso.atual); if (i < a.length - 1) vfIrPasso(a[i + 1]); }
+function vfVoltar() { const a = vfPassosAtivos(); const i = a.indexOf(window.vfPasso.atual); if (i > 0) vfMostrarPasso(a[i - 1]); }
+/* Para trás vai direto. Para a frente, cada passo do caminho é conferido: o usuário não chega
+   à conferência com um passo do meio pela metade. */
+function vfIrPasso(p) {
+  if (!window.vfPasso) return;
+  const atual = window.vfPasso.atual;
+  if (p <= atual) { vfMostrarPasso(p); return; }
+  for (const q of vfPassosAtivos().filter(q => q >= atual && q < p)) {
+    const f = vfChecar(q); if (f) { vfAvisar(f, q); return; }
+  }
+  vfMostrarPasso(p);
+}
+function vfAvisar(f, passo) {
+  toast(f.ic || '⚠️', f.t, f.s || '', true);
+  if (window.vfPasso && window.vfPasso.atual !== passo) vfMostrarPasso(passo);
+  const el = f.foco && document.getElementById(f.foco);
+  if (el) { el.scrollIntoView({ block: 'center' }); if (!matchMedia('(pointer: coarse)').matches) el.focus({ preventScroll: true }); }
+}
+/* O que cada passo exige. As mesmas regras valem para salvar, com ou sem passos: devolve o
+   aviso do primeiro problema, ou nada. */
+function vfChecar(p) {
+  const ctx = window.vfCtx || {}; const lot = curLot(); const carteira = ehCarteira(lot);
+  const x = ctx.id ? getVenda(ctx.id) : null;
+  if (p === 1) {
+    if (carteira) return val('vfImDesc') ? null : { t: 'Descreva o imóvel', s: 'Ex.: Apartamento 302, Ed. Aurora', foco: 'vfImDesc' };
+    if (!x && val('vfLote') === '__novo') {
+      if (!podeCriarLote()) return { ic: '🔒', t: 'Sem permissão', s: 'Cadastrar lote é do dono ou do administrador.' };
+      const quadra = val('vfNlQuadra').toUpperCase(), numero = val('vfNlNumero');
+      if (!quadra || !numero) return { t: 'Informe quadra e número do lote novo', foco: quadra ? 'vfNlNumero' : 'vfNlQuadra' };
+      const dup = db.lotes.find(y => y.loteamentoId === lot.id && String(y.quadra).toUpperCase() === quadra && String(y.numero) === numero);
+      if (dup) return { t: `${loteLabel(dup)} já existe`, s: 'Escolha ele na lista de lotes.', foco: 'vfLote' };
+      return null;
+    }
+    const l = getLote(x ? x.loteId : val('vfLote'));
+    if (!l) return { t: 'Selecione o lote', foco: 'vfLote' };
+    if (!x && l.status !== 'disponivel' && !(ctx.reservaId && l.status === 'reservado') && !vendidoSemContrato(l)) return { t: 'Lote não está disponível', foco: 'vfLote' };
+    return null;
+  }
+  if (p === 2) {
+    const compradores = pessoasDoFormLista('vc', vfCompradoresAntes());
+    if (!compradores.length) return { t: 'Informe o comprador', foco: 'vcNome' };
+    /* A qualificação é obrigatória: contrato e escritura não saem sem ela, e completar depois,
+       com o comprador fora da sala, é o que nunca acontece. */
+    const pend = compradores.map((c, i) => ({ i, f: faltaQualificacao(c) })).filter(o => o.f.length);
+    if (pend.length) return { t: 'Qualificação incompleta', s: `${compradores.length > 1 ? `Comprador ${pend[0].i + 1}: ` : ''}falta ${pend[0].f.join(', ')}.`, foco: pfxPessoa('vc', pend[0].i) + 'Nome' };
+    if (!compradores[0].telefone) return { t: 'Informe o telefone do comprador', s: 'É por ele que o sistema fala com a venda.', foco: 'vcTel' };
+    return null;
+  }
+  if (p === 3) {
+    if (val('vfTemCorretor') === 'sim' && (!val('vkNome') || !val('vkCreci'))) return { t: 'Informe o corretor', s: 'Nome e CRECI são obrigatórios quando houve intermediação.', foco: val('vkNome') ? 'vkCreci' : 'vkNome' };
+    return null;
+  }
+  if (p === 4) {
+    if (!num(val('vfTotal')) || !val('vfData')) return { t: 'Informe valor e data da venda', foco: val('vfData') ? 'vfTotal' : 'vfData' };
+    return null;
+  }
+  if (p === 5) {
+    if (val('vfForma') !== 'vista' && Math.round(num(val('vfN'))) > 0 && !val('vfPrimeiro')) return { t: 'Informe o 1º vencimento', foco: 'vfPrimeiro' };
+    return null;
+  }
+  return null;
+}
+function vfCompradoresAntes() {
+  const ctx = window.vfCtx || {}; const x = ctx.id ? getVenda(ctx.id) : null; const res = ctx.reservaId ? getReserva(ctx.reservaId) : null;
+  return x ? todosCompradores(x) : (res ? [res.cliente] : []);
+}
+/* Último passo: o contrato inteiro numa tela, do jeito que vai ser gravado (sai da mesma
+   montagem que o salvar usa), com "Alterar" levando de volta ao passo de cada parte. */
+function vfConferencia() {
+  const box = $('#vfConf'); if (!box) return;
+  const m = vfMontarVenda(); const v = m.venda;
+  const recs = gerarRecebiveis(v);
+  const parc = recs.filter(r => r.tipo === 'parcela'), bal = recs.filter(r => r.tipo === 'balao');
+  const soma = recs.reduce((s, r) => s + num(r.valor), 0), diff = soma - num(v.valorTotal);
+  const aVista = val('vfForma') === 'vista';
+  const bloco = (passo, titulo, html) => `<div class="vf-conf-bloco"><div class="row-between"><h3>${titulo}</h3><button type="button" class="vf-alterar" onclick="vfIrPasso(${passo})" aria-label="Alterar ${titulo.toLowerCase()}">Alterar</button></div>${html}</div>`;
+  const linha = (k, vv) => `<div><div class="k">${k}</div><div class="v">${vv}</div></div>`;
+  const im = v.imovel
+    ? `<b>${esc(v.imovel.descricao)}</b>${v.imovel.endereco ? `<div class="tiny muted">${esc(v.imovel.endereco)}</div>` : ''}${v.imovel.matricula ? `<div class="tiny muted">Matrícula ${esc(v.imovel.matricula)}</div>` : ''}`
+    : `<b>${esc(m.lote ? loteLabel(m.lote) : '—')}</b>${m.loteNovo ? ' <span class="badge convertida">lote novo</span>' : ''}${m.lote && num(m.lote.area) ? `<div class="tiny muted">${fmtNum(m.lote.area, 2)} m²${m.lote.matricula ? ' · matrícula ' + esc(m.lote.matricula) : ''}</div>` : ''}`;
+  const pessoas = m.compradores.map(c => `<div class="vf-conf-pessoa"><b>${esc(c.nome)}</b><div class="tiny muted">${[c.cpf && fmtCPF(c.cpf), estadoCivilTexto(c), c.conjuge && c.conjuge.nome ? 'cônjuge ' + esc(c.conjuge.nome) : '', c.telefone && fmtPhone(c.telefone)].filter(Boolean).join(' · ')}</div></div>`).join('');
+  const vendedores = [v.vendedor].concat(v.vendedoresExtras || []).map(d => esc(d && d.nome || 'Empresa do cadastro')).join('<br>');
+  const corretor = m.temCorretor
+    ? `${esc(v.corretor.nome)} · CRECI ${esc(v.corretor.creci)}${v.corretor.imobiliaria ? ' · ' + esc(v.corretor.imobiliaria) : ''}<div class="tiny muted">Comissão ${fmtMoney(v.comissaoValor)} (${String(Math.round(num(v.comissaoPct) * 10) / 10).replace('.', ',')}%)</div>`
+    : 'Venda direta, sem corretor';
+  const ind = v.indiceId && typeof getIndice === 'function' ? getIndice(v.indiceId) : null;
+  const pagamento = aVista
+    ? `<div class="detail-grid">${linha('Pagamento único', fmtMoney(v.entrada))}${linha('Data', fmtDate(v.dataEntrada))}</div>`
+    : `<div class="detail-grid">
+        ${num(v.entrada) ? linha('Entrada', `${fmtMoney(v.entrada)} <span class="tiny muted">em ${fmtDate(v.dataEntrada)}</span>`) : linha('Entrada', 'sem entrada')}
+        ${parc.length ? linha('Parcelas', `${parc.length}× ${fmtMoney(v.valorParcela)}`) : linha('Parcelas', 'nenhuma')}
+        ${parc.length ? linha('Vencimentos', `${fmtDate(parc[0].vencimento)} a ${fmtDate(parc[parc.length - 1].vencimento)}`) : ''}
+        ${parc.length ? linha('Juros', num(v.jurosMes) ? fmtNum(v.jurosMes, 2) + '% a.m.' : 'sem juros') : ''}
+        ${linha('Correção', ind ? `${esc(ind.nome)} <span class="tiny muted">desde ${monthLabel(v.indiceBase)}</span>` : 'sem correção monetária')}
+        ${bal.length ? linha('Reforços', bal.map(b => `${fmtMoney(b.valor)} <span class="tiny muted">em ${fmtDate(b.vencimento)}</span>`).join('<br>')) : ''}
+      </div>`;
+  const conta = Math.abs(diff) <= 1 ? '' : diff < 0
+    ? `<div class="alert warn" style="cursor:default"><span><b>Faltam ${fmtMoney(-diff)}</b> para fechar o valor da venda. Ajuste entrada, parcelas ou reforços no passo de ${aVista ? 'valores' : 'parcelas'}.</span></div>`
+    : `<p class="tiny muted">A soma passa ${fmtMoney(diff)} do valor da venda: são os juros do parcelamento.</p>`;
+  box.innerHTML = `<p class="help mb">Confira antes de salvar. Ao salvar, ${m.lote ? 'o lote fica vendido, ' : ''}${recs.length === 1 ? 'o pagamento entra' : `as ${recs.length} cobranças entram`} no contas a receber e o contrato ganha número.</p>
+    ${bloco(1, 'Imóvel', im)}
+    ${bloco(2, m.compradores.length > 1 ? 'Compradores' : 'Comprador', pessoas)}
+    ${bloco(3, 'Vendedor e corretor', `<div class="detail-grid">${linha(v.vendedoresExtras && v.vendedoresExtras.length ? 'Vendedores' : 'Vendedor', vendedores)}${linha('Intermediação', corretor)}</div>`)}
+    ${bloco(4, 'Valores', `<div class="detail-grid">${linha('Valor da venda', `<span class="vf-conf-total">${fmtMoney(v.valorTotal)}</span>`)}${linha('Data da venda', fmtDate(v.dataVenda))}</div>`)}
+    ${bloco(aVista ? 4 : 5, aVista ? 'Pagamento à vista' : 'Pagamento parcelado', pagamento + `<div class="vf-conf-soma row-between"><span>Total a receber</span><b>${fmtMoney(soma)}</b></div>` + conta)}`;
 }
 function vfCorretorChange() {
   const sim = val('vfTemCorretor') === 'sim';
@@ -853,6 +1023,8 @@ function vfFormaChange() {
   const p = $('#vfParcBox'), v = $('#vfVistaBox');
   if (p) p.style.display = vista ? 'none' : '';
   if (v) v.style.display = vista ? '' : 'none';
+  const p5 = $('#vfP5'); if (p5) p5.style.display = vista ? 'none' : '';
+  vfPassosHtml();
   vfCalc();
 }
 function vkPreenche() { const c = db.corretores.find(x => x.id === val('vkSel')); if (!c) return; setVal('vkNome', c.nome); setVal('vkCreci', c.creci); setVal('vkTel', c.telefone); setVal('vkImob', c.imobiliaria); }
@@ -868,7 +1040,7 @@ function addBalao() { window.vfBaloes.push({ data: addMonths(val('vfPrimeiro') |
 function delBalao(i) { window.vfBaloes.splice(i, 1); renderBaloes(); vfCalc(); }
 function renderBaloes() {
   const box = $('#vfBaloes'); if (!box) return;
-  box.innerHTML = (window.vfBaloes || []).map((b, i) => `<div class="frow" style="grid-template-columns:1fr 1fr auto;margin-bottom:6px"><input type="date" value="${b.data || ''}" onchange="vfBaloes[${i}].data=this.value;vfCalc()"><input type="number" step="0.01" placeholder="Valor" value="${b.valor || ''}" oninput="vfBaloes[${i}].valor=num(this.value);vfCalc()"><button class="btn-icon del" onclick="delBalao(${i})" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div>`).join('');
+  box.innerHTML = (window.vfBaloes || []).map((b, i) => `<div class="frow" style="grid-template-columns:1fr 1fr auto;margin-bottom:6px"><input type="date" aria-label="Data do reforço ${i + 1}" value="${b.data || ''}" onchange="vfBaloes[${i}].data=this.value;vfCalc()"><input type="number" step="0.01" placeholder="Valor" aria-label="Valor do reforço ${i + 1}" value="${b.valor || ''}" oninput="vfBaloes[${i}].valor=num(this.value);vfCalc()"><button class="btn-icon del" onclick="delBalao(${i})" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div>`).join('');
 }
 function vfCalc() {
   if (val('vfForma') === 'vista') {
@@ -888,45 +1060,27 @@ function vfCalc() {
   el.innerHTML = `Entrada <b>${fmtMoney(entrada)}</b>${baloes ? ` + reforços <b>${fmtMoney(baloes)}</b>` : ''} + <b>${n}×</b> ${fmtMoney(parcela)} = <b>${fmtMoney(soma)}</b><br><span class="tiny ${Math.abs(diff) > 1 ? (diff > 0 ? '' : '') : 'muted'}" style="${Math.abs(diff) > 1 ? 'color:' + (diff > 0 ? '#1d4ed8' : '#b45309') : ''}">${Math.abs(diff) <= 1 ? 'Soma confere com o valor da venda.' : diff > 0 ? `Soma ${fmtMoney(diff)} acima do valor da venda (juros do parcelamento).` : `Faltam ${fmtMoney(-diff)} para fechar o valor da venda — ajuste entrada, parcelas ou reforços.`}</span>`;
 }
 function vfCalcPct() { const total = num(val('vfTotal')), v = num(val('vkVal')); if (total) setVal('vkPct', Math.round(v / total * 1000) / 10); }
-function salvarVenda(id, reservaId) {
-  const lot = curLot(); const x = id ? getVenda(id) : null; const res = reservaId ? getReserva(reservaId) : null;
+/* Monta a venda a partir do formulário, sem gravar nada: o salvar usa, e a conferência
+   também, para mostrar exatamente o que vai ser gravado. */
+function vfMontarVenda() {
+  const ctx = window.vfCtx || {}; const lot = curLot();
+  const x = ctx.id ? getVenda(ctx.id) : null; const res = ctx.reservaId ? getReserva(ctx.reservaId) : null;
   const carteira = ehCarteira(lot);
   let l = carteira ? null : getLote(x ? x.loteId : val('vfLote'));
   /* Lote novo, cadastrado no próprio contrato. Só é gravado junto com a venda, depois de
      tudo conferido: um contrato recusado não deixa lote solto para trás. */
   let loteNovo = null;
   if (!carteira && !x && val('vfLote') === '__novo') {
-    if (!podeCriarLote()) { toast('🔒', 'Sem permissão', 'Cadastrar lote é do dono ou do administrador.', true); return; }
-    const quadra = val('vfNlQuadra').toUpperCase(), numero = val('vfNlNumero');
-    if (!quadra || !numero) { toast('⚠️', 'Informe quadra e número do lote novo', '', true); const q = $('#vfNlQuadra'); if (q) q.focus(); return; }
-    const dup = db.lotes.find(y => y.loteamentoId === lot.id && String(y.quadra).toUpperCase() === quadra && String(y.numero) === numero);
-    if (dup) { toast('⚠️', `${loteLabel(dup)} já existe`, 'Escolha ele na lista de lotes.', true); return; }
-    loteNovo = { id: genId(), loteamentoId: lot.id, quadra, numero, area: num(val('vfNlArea')), frente: num(val('vfNlFrente')) || null, fundos: num(val('vfNlFundos')) || null,
+    loteNovo = { id: genId(), loteamentoId: lot.id, quadra: val('vfNlQuadra').toUpperCase(), numero: val('vfNlNumero'), area: num(val('vfNlArea')), frente: num(val('vfNlFrente')) || null, fundos: num(val('vfNlFundos')) || null,
       preco: num(val('vfNlPreco')) || num(val('vfTotal')), tipo: 'residencial', matricula: val('vfNlMat'), status: 'disponivel', obs: '', criadoEm: new Date().toISOString() };
     l = loteNovo;
   }
-  if (!carteira) {
-    if (!l) { toast('⚠️', 'Selecione o lote', '', true); return; }
-    if (!x && l.status !== 'disponivel' && !(reservaId && l.status === 'reservado') && !vendidoSemContrato(l)) { toast('⚠️', 'Lote não está disponível', '', true); return; }
-  } else if (!val('vfImDesc')) { toast('⚠️', 'Descreva o imóvel', 'Ex.: Apartamento 302, Ed. Aurora', true); return; }
-  const total = num(val('vfTotal')); if (!total || !val('vfData')) { toast('⚠️', 'Informe valor e data da venda', '', true); return; }
+  const total = num(val('vfTotal'));
   const aVista = val('vfForma') === 'vista';
   const n = aVista ? 0 : Math.max(0, Math.round(num(val('vfN'))));
-  if (n && !val('vfPrimeiro')) { toast('⚠️', 'Informe o 1º vencimento', '', true); return; }
   const baloes = aVista ? [] : (window.vfBaloes || []).filter(b => b.data && num(b.valor) > 0);
-  const compradores = pessoasDoFormLista('vc', x ? todosCompradores(x) : (res ? [res.cliente] : []));
-  if (!compradores.length) { toast('⚠️', 'Informe o comprador', '', true); return; }
-  /* A qualificação é obrigatória: contrato e escritura não saem sem ela, e completar depois,
-     com o comprador fora da sala, é o que nunca acontece. */
-  const pend = compradores.map((p, i) => ({ i, f: faltaQualificacao(p) })).filter(o => o.f.length);
-  if (pend.length) {
-    toast('⚠️', 'Qualificação incompleta', `${compradores.length > 1 ? `Comprador ${pend[0].i + 1}: ` : ''}falta ${pend[0].f.join(', ')}.`, true);
-    const foco = document.getElementById(pfxPessoa('vc', pend[0].i) + 'Nome'); if (foco) foco.scrollIntoView({ block: 'center' });
-    return;
-  }
-  if (!compradores[0].telefone) { toast('⚠️', 'Informe o telefone do comprador', 'É por ele que o sistema fala com a venda.', true); return; }
+  const compradores = pessoasDoFormLista('vc', vfCompradoresAntes());
   const temCorretor = val('vfTemCorretor') === 'sim';
-  if (temCorretor && (!val('vkNome') || !val('vkCreci'))) { toast('⚠️', 'Informe o corretor', 'Nome e CRECI são obrigatórios quando houve intermediação.', true); return; }
   const corretor = temCorretor
     ? Object.assign(pessoaDoForm('vk', (x && x.corretor) || (res && res.corretor) || { tipo: 'pf' }), {
         creci: val('vkCreci'), imobiliaria: val('vkImob'),
@@ -935,7 +1089,7 @@ function salvarVenda(id, reservaId) {
       })
     : { tipo: 'pf', nome: 'Venda direta', creci: '', telefone: '', imobiliaria: '', email: '', userId: null };
   const vendIds = vendedoresDoFormLista('vfVend');
-  const venda = Object.assign({}, x || { id: genId(), loteId: l ? l.id : null, loteamentoId: lot.id, status: 'ativa', reservaId: reservaId || null, criadoEm: new Date().toISOString(), comissaoPaga: false, comissaoData: null }, {
+  const venda = Object.assign({}, x || { id: genId(), loteId: l ? l.id : null, loteamentoId: lot.id, status: 'ativa', reservaId: ctx.reservaId || null, criadoEm: new Date().toISOString(), comissaoPaga: false, comissaoData: null }, {
     imovel: carteira ? {
       descricao: val('vfImDesc'), endereco: val('vfImEnd'), matricula: val('vfImMat'), descricaoMatricula: val('vfImDescMat'),
       cartorio: val('vfImCart'), area: num(val('vfImArea')) || null, cep: val('vfImCep'), bairro: val('vfImBairro'), cidade: val('vfImCidade')
@@ -958,6 +1112,14 @@ function salvarVenda(id, reservaId) {
     comissaoPct: temCorretor ? num(val('vkPct')) : 0, comissaoValor: temCorretor ? num(val('vkVal')) : 0, obs: val('vfObs'),
     indiceId: aVista ? null : (val('vfIndice') || null), indiceBase: val('vfIndiceBase') || monthKey(val('vfData'))
   });
+  return { venda, lote: l, loteNovo, compradores, temCorretor };
+}
+function salvarVenda(id, reservaId) {
+  window.vfCtx = { id: id || '', reservaId: reservaId || '' };
+  const x = id ? getVenda(id) : null;
+  for (const p of [1, 2, 3, 4, 5]) { const f = vfChecar(p); if (f) { vfAvisar(f, p); return; } }
+  const { venda, lote: l, loteNovo, compradores } = vfMontarVenda();
+  const total = venda.valorTotal;
   upsert('vendas', venda);
   registrarClientesDaVenda(compradores);
   const temPagos = x && recebiveisDe(x.id).some(r => num(r.valorPago) > 0);
@@ -973,6 +1135,7 @@ function salvarVenda(id, reservaId) {
     logAct(`Venda registrada: ${imovelLabel(venda)} — ${venda.cliente.nome} — ${fmtMoney(total)}`);
   } else logAct(`Venda editada: ${imovelLabel(venda)} — ${venda.cliente.nome}`);
   atualizarStatusVenda(venda.id);
+  window.vfPasso = null;
   toast('✅', x ? 'Venda atualizada' : 'Venda registrada', imovelLabel(venda));
   if (x) { closeModal(); renderCurrent(); return; }
   /* Venda nova: ganha o número, abre a página dela e pergunta se já gera o contrato. */

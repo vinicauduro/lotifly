@@ -407,6 +407,39 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 .price-sub { font-size: 0.82rem; color: var(--muted); }
 .sim-result { background: var(--primary-soft); border: 1px solid var(--primary-light); border-radius: var(--r-md); padding: 12px 14px; font-size: 0.88rem; margin-top: 10px; line-height: 1.55; }
 .sim-result b { color: var(--primary); font-variant-numeric: tabular-nums; }
+/* Novo contrato em passos: no computador, os nomes dos passos; no celular, "Passo 2 de 6" e a barra */
+/* fica presa no alto enquanto o passo rola: o comprador tem muitos campos */
+.vf-passos { position: sticky; top: -18px; z-index: 2; background: var(--card); margin: -18px -20px 16px; padding: 14px 20px 10px; border-bottom: 1px solid var(--border); }
+.vf-passos ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.vf-passos li { flex: 1; min-width: 0; }
+.vf-passos li button { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; border-radius: var(--r-md); padding: 4px 2px 6px; font: inherit; font-size: 0.76rem; color: var(--muted); cursor: pointer; text-align: center; touch-action: manipulation; }
+.vf-passos li button:disabled { cursor: default; color: #8c8b86; }
+.vf-passos li button:focus-visible { outline: none; box-shadow: var(--ring); }
+.vf-passos .n { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-strong); background: var(--card); font-weight: 600; font-size: 0.78rem; font-variant-numeric: tabular-nums; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.vf-passos li.atual button { color: var(--text-strong); font-weight: 600; }
+.vf-passos li.atual .n { background: var(--primary); border-color: var(--primary); color: #fff; }
+.vf-passos li.feito .n { background: var(--primary-light); border-color: var(--primary-light); color: var(--primary); }
+@media (hover: hover) and (pointer: fine) { .vf-passos li button:not(:disabled):hover { color: var(--primary); } }
+.vf-passos-cel { display: none; font-size: 0.86rem; color: var(--muted); }
+.vf-passos-cel b { color: var(--text-strong); }
+.vf-barra { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.vf-barra i { display: block; height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.25s ease; }
+@media (max-width: 639px) { .vf-passos ol { display: none; } .vf-passos-cel { display: block; } }
+@media (prefers-reduced-motion: reduce) { .vf-barra i { transition: none; } }
+.em-passos > .vf-passo:not(.on) { display: none; }
+.em-passos:not([data-passo="4"]):not([data-passo="5"]) > #vfResumo { display: none; }
+.vf-conf-bloco { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; background: var(--card); }
+.vf-conf-bloco > .row-between { margin-bottom: 8px; }
+.vf-conf-bloco h3 { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin: 0; }
+.vf-conf-bloco .detail-grid { margin-bottom: 0; }
+.vf-conf-bloco .alert { margin: 10px 0 0; }
+.vf-alterar { background: none; border: 0; border-radius: var(--r-sm); color: var(--primary); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; padding: 6px 8px; margin: -6px -8px -6px 0; min-height: 32px; touch-action: manipulation; }
+.vf-alterar:focus-visible { outline: none; box-shadow: var(--ring); }
+@media (hover: hover) and (pointer: fine) { .vf-alterar:hover { text-decoration: underline; } }
+.vf-conf-pessoa + .vf-conf-pessoa { margin-top: 8px; }
+.vf-conf-total { font-size: 1.05rem; }
+.vf-conf-soma { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.vf-conf-soma b { color: var(--primary); }
 .progress { background: #ecebe7; border-radius: 999px; height: 6px; overflow: hidden; margin-top: 8px; }
 .progress > div { height: 100%; border-radius: 999px; background: var(--success-btn); }
 .progress > div.warn { background: #c27a12; }
