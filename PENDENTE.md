@@ -756,6 +756,21 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z21. Testes rodando sozinhos no GitHub (17/10)
+
+Até aqui os testes só rodavam quando eu rodava. Agora o **GitHub roda todos sozinho** a cada
+pull request e a cada mudança na main (`.github/workflows/testes.yml`). No PR aparece
+**"Testes"** com um ✓ verde ou um ✗ vermelho; clicando, o log diz qual teste falhou e por quê.
+`testes/rodar-todos.sh` é o mesmo roteiro, que também roda no computador.
+
+Para você fazer (uma vez, opcional mas recomendado):
+
+- [ ] No GitHub: **Settings › Branches › Add rule** para a `main`, marcar **Require status
+      checks to pass** e escolher **testes**. Assim nenhum PR entra com teste falhando, nem
+      por engano.
+
+---
+
 ## 7z18. Novo contrato em passos (17/10)
 
 O "Registrar venda" era uma folha só, comprida, com tudo de uma vez. Agora o **contrato novo
