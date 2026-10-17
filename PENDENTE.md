@@ -800,9 +800,6 @@ Para você fazer (uma vez, opcional mas recomendado):
 
 ---
 
-
----
-
 ## 7z20. Histórico com os registros mais recentes (17/10)
 
 **Defeito encontrado na análise do projeto.** Na nuvem, o app guarda na memória 400 registros
