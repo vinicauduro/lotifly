@@ -596,6 +596,8 @@ const Cloud = {
     this.subscribe();
     this.status = 'on'; this.msg = 'Sincronizado'; renderSyncStatus();
     startRole(this.admin ? 'admin' : 'corretor');
+    /* Erros guardados no aparelho (sem internet, antes de entrar) vão agora para a nuvem */
+    if (typeof Erros !== 'undefined') Erros.enviar();
     /* As plantas da empresa ficam guardadas no aparelho para abrir sem internet */
     setTimeout(() => PlantaOffline.guardarTodas(), 2500);
   },
@@ -712,6 +714,8 @@ const Cloud = {
     /* Sem internet não é falha: a alteração fica guardada aqui e vai quando a conexão voltar. */
     if (semRede(e)) { toast('📡', 'Sem internet', 'A alteração ficou guardada neste aparelho e vai para a nuvem quando a conexão voltar.'); return; }
     toast('⚠️', 'Falha ao salvar na nuvem', motivoFalhaNuvem((e && e.message) || String(e)), true);
+    /* A nuvem recusou: isso o dono precisa saber, mesmo que a pessoa feche o aviso */
+    if (typeof Erros !== 'undefined') Erros.registrar({ mensagem: `A nuvem recusou ${COL_NOMES[oque] ? 'gravar ' + COL_NOMES[oque].toLowerCase() : (oque || 'a gravação')}: ${(e && e.message) || String(e)}`, pilha: (e && e.stack) || '' });
   },
 
   // --- alterações que a nuvem recusou ---

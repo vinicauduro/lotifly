@@ -440,6 +440,14 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 .vf-conf-total { font-size: 1.05rem; }
 .vf-conf-soma { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
 .vf-conf-soma b { color: var(--primary); }
+/* Erros do app (Configurações) */
+.erros-lista { display: flex; flex-direction: column; }
+.erro-item { padding: 12px 0; border-bottom: 1px solid var(--border); min-width: 0; }
+.erro-item:last-child { border-bottom: 0; }
+.erro-msg { font-weight: 600; color: var(--text-strong); overflow-wrap: anywhere; min-width: 0; }
+.erro-item .row-between { align-items: flex-start; gap: 12px; }
+.erro-item details summary { cursor: pointer; color: var(--primary); margin-top: 4px; }
+.erro-pilha { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.75rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 8px 10px; margin: 6px 0 0; max-height: 240px; overflow: auto; }
 .progress { background: #ecebe7; border-radius: 999px; height: 6px; overflow: hidden; margin-top: 8px; }
 .progress > div { height: 100%; border-radius: 999px; background: var(--success-btn); }
 .progress > div.warn { background: #c27a12; }

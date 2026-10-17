@@ -1202,7 +1202,8 @@ function renderCadastros() {
   const todasTabs = [...(Cloud.active ? [['corretores', 'Equipe', 'equipe.gerenciar']] : []),
     ['empresa', 'Dados da empresa', 'config.editar'], ['permissoes', 'Permissões', 'equipe.gerenciar'], ['categorias', 'Categorias', 'custos.editar'], ['documentos', 'Modelos de documento', 'documentos.editar'],
     ['banco', 'Contas bancárias', 'config.editar'], ['cobranca', 'Régua de cobrança', 'cobranca.registrar'],
-    ['config', 'Geral', 'config.editar'], ['nuvem', Cloud.active ? 'Conta' : 'Nuvem', null], ['backup', 'Backup', 'backup.usar']];
+    ['config', 'Geral', 'config.editar'], ['nuvem', Cloud.active ? 'Conta' : 'Nuvem', null], ['backup', 'Backup', 'backup.usar'],
+    ...(podeVerErros() ? [['erros', 'Erros do app', null]] : [])];
   const tabs = todasTabs.filter(t => !t[2] || pode(t[2])).map(t => [t[0], t[1]]);
   if (!tabs.find(t => t[0] === state.sub.cad)) state.sub.cad = tabs.length ? tabs[0][0] : 'config';
   const sub = state.sub.cad;
@@ -1217,8 +1218,10 @@ function renderCadastros() {
   else if (sub === 'config') html += cadConfigHtml();
   else if (sub === 'nuvem') html += Cloud.active ? cadContaHtml() : cadNuvemHtml();
   else if (sub === 'backup') html += cadBackupHtml();
+  else if (sub === 'erros') html += cadErrosHtml();
   v.innerHTML = html;
   if (sub === 'nuvem') renderSyncStatus();
+  if (sub === 'erros') carregarErros();
 }
 function cadLoteamentoHtml() {
   const lot = curLot(); if (!lot) return `<div class="card"><p class="help">Nenhum loteamento. <button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Cadastrar</button></p></div>`;
@@ -1584,6 +1587,71 @@ function cadNuvemHtml() {
     <div class="btn-row"><button class="btn btn-secondary" onclick="copiarTexto(document.getElementById('linkCorretor').textContent)">Copiar link</button></div></div>`;
 }
 function copiarTexto(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('📋', 'Copiado', '')).catch(() => prompt('Copie o link:', t)); }
+/* ---------------------------------------------------------------- erros do app (erros.js) */
+/* Quem lê os erros é quem manda na empresa: no banco, só dono e administrador. */
+function podeVerErros() { return Cloud.active ? ['dono', 'admin'].includes(Cloud.papel) : state.role === 'admin'; }
+function cadErrosHtml() {
+  return `<div class="card"><h2>Erros do app</h2>
+    <p class="help mb">Quando algo dá errado no app de alguém da equipe, fica registrado aqui: quando, quem, em que tela, a versão do app e a mensagem. ${Cloud.active ? 'Os erros de todos os aparelhos da empresa chegam aqui e ficam 90 dias.' : 'No modo sem nuvem, aparecem só os erros deste aparelho.'} Se algo estranho acontecer, use <b>Copiar para o suporte</b> e mande junto com a descrição do que estava fazendo.</p>
+    <div class="btn-row mb"><button class="btn btn-secondary btn-sm" onclick="carregarErros()">Atualizar</button>
+      <button class="btn btn-secondary btn-sm" onclick="copiarErros()"><i class=ico data-i=copy></i>Copiar para o suporte</button>
+      <button class="btn btn-secondary btn-sm" onclick="erroDeTeste()">Fazer um erro de teste</button>
+      <button class="btn btn-outline-danger btn-sm" onclick="apagarErros()"><i class=ico data-i=trash></i>Apagar todos</button></div>
+    <div id="errosLista" aria-live="polite"><p class="help">Carregando…</p></div></div>`;
+}
+/* Na nuvem, os da empresa vêm do banco; os deste aparelho que ainda não foram (sem internet,
+   ou o banco ainda sem a tabela) aparecem junto, marcados. */
+async function carregarErros() {
+  const box = $('#errosLista'); if (!box) return;
+  const locais = Erros.guardados().slice().reverse();
+  let lista = [], aviso = '';
+  if (Cloud.active && Cloud.client && !Cloud.semInternet) {
+    await Erros.enviar();
+    try {
+      const { data, error } = await Cloud.client.from('erros').select('*').eq('org_id', Cloud.org.id).order('ts', { ascending: false }).limit(200);
+      if (error) throw error;
+      lista = (data || []).map(r => ({ ts: r.ts, quem: r.quem, tela: r.tela, versao: r.versao, mensagem: r.mensagem, pilha: r.pilha, navegador: r.navegador, vezes: r.vezes }));
+    } catch (e) {
+      aviso = /does not exist|schema cache|not find the table/i.test((e && e.message) || '')
+        ? 'O banco ainda não tem onde guardar os erros. Rode de novo o <b>supabase/schema.sql</b> no Supabase; até lá, os erros ficam guardados em cada aparelho.'
+        : 'Não deu para buscar os erros na nuvem agora. Tente de novo em instantes.';
+    }
+    lista = lista.concat(locais.filter(e => !e.enviado).map(e => Object.assign({}, e, { pendente: true })))
+      .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+  } else lista = locais.sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+  window.__erros = lista;
+  const quando = ts => { const d = new Date(ts); return isNaN(d) ? '' : `${fmtDate(d.toISOString().slice(0, 10))} ${fmtDateTime(ts).slice(-5)}`; };
+  box.innerHTML = (aviso ? `<div class="alert warn" style="cursor:default"><span>${aviso}</span></div>` : '') + (lista.length
+    ? `<div class="erros-lista">${lista.map(e => `<div class="erro-item">
+        <div class="row-between"><b class="erro-msg">${esc(e.mensagem)}</b><span class="tiny muted" style="flex:none">${quando(e.ts)}</span></div>
+        <div class="tiny muted">${[e.quem, e.tela, e.versao, (e.vezes || 1) > 1 ? `${e.vezes} vezes` : '', e.pendente ? 'ainda não enviado' : ''].filter(Boolean).map(esc).join(' · ')}</div>
+        ${e.pilha || e.navegador ? `<details><summary class="tiny">Detalhes técnicos</summary><pre class="erro-pilha">${esc([e.pilha, e.navegador].filter(Boolean).join('\n\n'))}</pre></details>` : ''}
+      </div>`).join('')}</div>`
+    : '<div class="empty"><div class="ic"><i class=ico data-i=check-circle></i></div><p><b>Nenhum erro registrado.</b></p></div>');
+}
+function copiarErros() {
+  const lista = (window.__erros || []).slice(0, 20);
+  if (!lista.length) { toast('ℹ️', 'Nada para copiar', 'Nenhum erro registrado.'); return; }
+  const txt = lista.map(e => `[${e.ts}] ${e.quem || ''} · ${e.tela || ''} · ${e.versao || ''}${(e.vezes || 1) > 1 ? ' · ' + e.vezes + ' vezes' : ''}\n${e.mensagem}\n${e.pilha || ''}\n${e.navegador || ''}`).join('\n\n---\n\n');
+  const ok = () => toast('✅', 'Copiado', `${lista.length} erro(s). Cole na mensagem para o suporte.`);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, () => prompt('Copie o texto abaixo:', txt));
+  else prompt('Copie o texto abaixo:', txt);
+}
+/* Para conferir que o registro funciona: um erro de propósito, que aparece na lista. */
+function erroDeTeste() {
+  setTimeout(() => { throw new Error('Erro de teste, feito de propósito em Configurações (pode apagar)'); }, 0);
+  toast('🧪', 'Erro de teste feito', 'Em instantes ele aparece na lista.');
+  setTimeout(carregarErros, 2500);
+}
+async function apagarErros() {
+  if (!confirm(Cloud.active ? 'Apagar todos os erros registrados da empresa?' : 'Apagar os erros registrados neste aparelho?')) return;
+  Erros.limparLocais();
+  if (Cloud.active && Cloud.client) {
+    const { error } = await Cloud.client.from('erros').delete().eq('org_id', Cloud.org.id);
+    if (error && !/does not exist|schema cache|not find the table/i.test(error.message || '')) { toast('⚠️', 'Não deu para apagar', error.message, true); return; }
+  }
+  carregarErros();
+}
 function cadBackupHtml() {
   const size = Math.round((localStorage.getItem(DB_KEY) || '').length / 1024);
   return `<div class="card"><h2>Backup e dados</h2>

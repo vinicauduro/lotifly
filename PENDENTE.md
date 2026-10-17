@@ -35,6 +35,7 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 - [x] *(feito por você em 15/10)* Rodar o `supabase/schema.sql` de novo para fechar as plantas (seção 7z11).
 - [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para a cessão de direitos (seção 7z12).
 - [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para o distrato (seção 7z15).
+- [ ] Rodar o `supabase/schema.sql` de novo para o registro de erros do app (seção 7z22).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -753,6 +754,34 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z22. Erros do app: registrados e visíveis para o dono (17/10)
+
+Até aqui, quando algo dava errado no celular de alguém da equipe, só aquela pessoa via, e
+ninguém ficava sabendo. Agora o app **registra o erro sozinho**: a mensagem, a tela, quem
+estava usando, a versão do app e o aparelho. Isso vale também para quando a **nuvem recusa
+uma gravação**.
+
+- Na nuvem, os erros de todos os aparelhos da empresa vão para o banco (tabela nova `erros`).
+  **Só dono e administrador leem**; cada pessoa grava só os seus. Ficam **90 dias**.
+- Tela nova: **Configurações › Erros do app** (só para dono e administrador). Tem
+  **Copiar para o suporte** (para me mandar), **Fazer um erro de teste** e **Apagar todos**.
+- O mesmo erro repetido vira um registro só ("4 vezes"). No máximo 30 erros diferentes por
+  sessão, para um defeito em laço não encher o banco. Barulho que não é defeito do app
+  (extensão do navegador, falta de internet) não entra.
+- Sem internet, ou antes de rodar o schema, os erros ficam guardados no aparelho e vão
+  depois.
+
+Para conferir:
+
+- [ ] Rodar o `supabase/schema.sql` de novo (cria a tabela `erros`).
+- [ ] Em **Configurações › Erros do app**, clicar em **Fazer um erro de teste** e ver ele
+      aparecer. Depois, **Apagar todos**.
+
+`testes/erros.test.js` (11 casos) cobre o app; o teste de banco confere quem grava, quem lê,
+quem apaga, o tamanho máximo e a limpeza de 90 dias.
 
 ---
 
