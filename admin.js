@@ -1530,17 +1530,29 @@ function salvarCorretor(id) {
 }
 function cadCategoriasHtml() {
   return `<div class="card"><h2>Categorias de custo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()"><i class=ico data-i=plus></i>Nova</button></span></h2>
-    ${db.categorias.map(c => `<div class="item" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${db.custos.filter(x => x.categoriaId === c.id).length} lançamento(s)</span></div></div></div>`).join('')}</div>`;
+    ${db.categorias.map(c => `<div class="item" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${db.custos.filter(x => x.categoriaId === c.id).length} lançamento(s)</span><span>${esc(nomeGrupoBalancete(grupoDaCategoria(c.id)) || 'No balancete: pelo vínculo da despesa')}</span></div></div></div>`).join('')}</div>`;
 }
 function abrirCategoriaForm(id) {
   const c = id ? getCategoria(id) : null;
-  openModal({ title: c ? 'Categoria' : 'Nova categoria', body: `<div class="fg"><label>Nome *</label><input type="text" id="ctNome" value="${esc(c ? c.nome : '')}"></div><div class="fg"><label>Cor</label><input type="color" id="ctCor" value="${c ? c.cor : '#0e4c73'}"></div>`,
+  openModal({ title: c ? 'Categoria' : 'Nova categoria', body: `<div class="fg"><label>Nome *</label><input type="text" id="ctNome" value="${esc(c ? c.nome : '')}"></div><div class="fg"><label>Cor</label><input type="color" id="ctCor" value="${c ? c.cor : '#0e4c73'}"></div>
+      <div class="fg"><label for="ctGrupo">Entra no balancete como</label><select id="ctGrupo" ${pode('config.editar') ? '' : 'disabled'}>
+        <option value="">Pelo vínculo (obra se for de um empreendimento, senão administrativa)</option>
+        ${GRUPOS_BALANCETE.filter(g => g[0] !== 'comissoes').map(([k, l]) => `<option value="${k}" ${c && grupoDaCategoria(c.id) === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <div class="hint">É assim que esta categoria aparece em Relatórios › Balancete. Salários e encargos ficam em Folha de pagamento.${pode('config.editar') ? '' : ' Só quem altera as configurações muda isto.'}</div></div>`,
     footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCategoria('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCategoria('${c ? c.id : ''}')">Salvar</button>` });
 }
 function salvarCategoria(id) {
   if (!val('ctNome')) { toast('⚠️', 'Informe o nome da categoria', '', true); const c = document.getElementById('ctNome'); if (c) c.focus(); return; }
   const prev = id ? getCategoria(id) : null, nome = val('ctNome');
-  upsert('categorias', Object.assign({}, prev || { id: genId() }, { nome, cor: val('ctCor') })); closeModal(); renderCurrent();
+  const cat = Object.assign({}, prev || { id: genId() }, { nome, cor: val('ctCor') });
+  upsert('categorias', cat);
+  /* O grupo do balancete fica na configuração da empresa, não na categoria */
+  if (pode('config.editar') && document.getElementById('ctGrupo')) {
+    const g = val('ctGrupo'), grupos = Object.assign({}, db.config.gruposBalancete || {});
+    if (g === (GRUPO_PADRAO_CATEGORIA[cat.id] || '')) delete grupos[cat.id]; else grupos[cat.id] = g;
+    if (JSON.stringify(grupos) !== JSON.stringify(db.config.gruposBalancete || {})) setConfig({ gruposBalancete: grupos });
+  }
+  closeModal(); renderCurrent();
   toast('✅', prev ? 'Categoria salva' : 'Categoria criada', nome);
 }
 function excluirCategoria(id) {

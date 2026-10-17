@@ -258,6 +258,7 @@ function defaultCategorias() {
     { id: 'cartorio', nome: 'Cartório', cor: '#b91c1c' },
     { id: 'documentacao', nome: 'Documentação', cor: '#ef4444' },
     { id: 'drenagem', nome: 'Drenagem', cor: '#0284c7' },
+    { id: 'folha', nome: 'Folha de pagamento (salários e encargos)', cor: '#7c3aed' },
     { id: 'esgoto', nome: 'Esgoto', cor: '#0e7490' },
     { id: 'impostos', nome: 'Impostos', cor: '#64748b' },
     { id: 'licencas', nome: 'Licenças', cor: '#0f766e' },
@@ -266,9 +267,11 @@ function defaultCategorias() {
     { id: 'materiais', nome: 'Materiais', cor: '#f97316' },
     { id: 'outros', nome: 'Outros', cor: '#94a3b8' },
     { id: 'pavimentacao', nome: 'Pavimentação', cor: '#0ea5e9' },
+    { id: 'pro-labore', nome: 'Pró-labore', cor: '#a855f7' },
     { id: 'projetos', nome: 'Projetos', cor: '#14b8a6' },
     { id: 'rede-eletrica', nome: 'Rede Elétrica / Iluminação', cor: '#eab308' },
     { id: 'taxas', nome: 'Taxas', cor: '#475569' },
+    { id: 'tarifas-bancarias', nome: 'Tarifas bancárias', cor: '#334155' },
     { id: 'terraplanagem', nome: 'Terraplanagem', cor: '#92400e' },
     { id: 'terreno', nome: 'Aquisição do Terreno', cor: '#a16207' },
     { id: 'vendas', nome: 'Vendas', cor: '#15803d' }
@@ -311,12 +314,20 @@ function migrarCategorias() {
     upsert('categorias', { id: nova[0], nome: nova[1], cor: nova[2] });
     n++;
   });
-  if (n) {
-    db.categorias.sort((a, b) => naturalCmp(a.nome, b.nome));
-    logAct(`Categorias de custo divididas em temas separados (${n})`);
-  }
-  return n;
+  if (n) logAct(`Categorias de custo divididas em temas separados (${n})`);
+  /* Categorias que o balancete precisa para separar a folha e o banco: quem já usa o sistema
+     ganha as que faltam (pelo id, uma vez só; apagada depois, não volta). */
+  const novas = CATEGORIAS_NOVAS.filter(([id]) => !db.categorias.some(c => c.id === id) && !(db.config.categoriasCriadas || []).includes(id));
+  novas.forEach(([id, nome, cor]) => upsert('categorias', { id, nome, cor }));
+  if (novas.length) setConfig({ categoriasCriadas: (db.config.categoriasCriadas || []).concat(novas.map(c => c[0])) });
+  if (n || novas.length) db.categorias.sort((a, b) => naturalCmp(a.nome, b.nome));
+  return n + novas.length;
 }
+const CATEGORIAS_NOVAS = [
+  ['folha', 'Folha de pagamento (salários e encargos)', '#7c3aed'],
+  ['pro-labore', 'Pró-labore', '#a855f7'],
+  ['tarifas-bancarias', 'Tarifas bancárias', '#334155']
+];
 function defaultConfig() {
   return {
     empresa: '',
@@ -1583,6 +1594,27 @@ function custoStatus(c) { if (c.status === 'pago') return 'pago'; if (c.vencimen
    não entra no orçado × realizado nem nas despesas do imóvel. */
 const CAT_DEVOLUCAO = 'devolucao-distrato';
 function custoDeObra(c) { return !!c.loteamentoId && c.categoriaId !== CAT_DEVOLUCAO; }
+/* Grupos de despesa do balancete. Cada categoria cai num grupo: o de fábrica vem daqui, e o
+   dono muda em Configurações › Categorias (fica em config.gruposBalancete). Categoria criada
+   pelo usuário sem grupo escolhido: obra se a despesa é de um empreendimento, senão
+   administrativa. */
+const GRUPOS_BALANCETE = [
+  ['obra', 'Custo das obras e dos imóveis'], ['folha', 'Folha de pagamento'], ['comissoes', 'Comissões de corretores'],
+  ['comercial', 'Comercial e marketing'], ['administrativo', 'Despesas administrativas'], ['impostos', 'Impostos e taxas'],
+  ['financeiro', 'Despesas financeiras'], ['devolucao', 'Devoluções de distrato']
+];
+const GRUPO_PADRAO_CATEGORIA = {
+  administrativo: 'administrativo', agua: 'obra', cartorio: 'obra', documentacao: 'obra', drenagem: 'obra', esgoto: 'obra',
+  folha: 'folha', 'pro-labore': 'folha', impostos: 'impostos', taxas: 'impostos', licencas: 'obra', 'mao-de-obra': 'obra',
+  marketing: 'comercial', vendas: 'comercial', materiais: 'obra', outros: 'administrativo', pavimentacao: 'obra', projetos: 'obra',
+  'rede-eletrica': 'obra', terraplanagem: 'obra', terreno: 'obra', 'tarifas-bancarias': 'financeiro', 'devolucao-distrato': 'devolucao'
+};
+function grupoDaCategoria(catId) {
+  const g = (db.config || {}).gruposBalancete || {};
+  return Object.prototype.hasOwnProperty.call(g, catId) ? g[catId] : (GRUPO_PADRAO_CATEGORIA[catId] || '');
+}
+function grupoDoCusto(c) { return grupoDaCategoria(c.categoriaId) || (c.loteamentoId ? 'obra' : 'administrativo'); }
+function nomeGrupoBalancete(g) { return (GRUPOS_BALANCETE.find(x => x[0] === g) || [, ''])[1]; }
 function custosDo(escopo) { return db.custos.filter(c => noEscopo(c, escopo)); }
 /* De quem é a despesa (Fase 4): da empresa (sem empreendimento), de um empreendimento ou de um
    imóvel — um lote do loteamento ou o imóvel avulso de um contrato da carteira. */
