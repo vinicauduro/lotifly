@@ -4,6 +4,7 @@
 
 const RELATORIOS = [
   ['resumo', 'Resumo gerencial'],
+  ['balancete', 'Balancete (resultado)'],
   ['espelho', 'Espelho de vendas'],
   ['vendas', 'Vendas'],
   ['receber', 'Contas a receber'],
@@ -14,7 +15,7 @@ const RELATORIOS = [
 
 function relState() {
   const hoje = todayStr();
-  state.rel = state.rel || { tipo: 'resumo', de: hoje.slice(0, 4) + '-01-01', ate: hoje, agrupar: 'categoria', status: 'todos', categoria: '', fornecedor: '', corretor: '', quadra: '', base: 'competencia' };
+  state.rel = state.rel || { tipo: 'resumo', de: hoje.slice(0, 4) + '-01-01', ate: hoje, agrupar: 'categoria', status: 'todos', categoria: '', fornecedor: '', corretor: '', quadra: '', base: 'competencia', regime: 'caixa' };
   return state.rel;
 }
 function relSet(campo, valor) { relState()[campo] = valor; renderRelatorios(); }
@@ -75,6 +76,7 @@ function empsDo(escopo) { return escopo ? db.loteamentos.filter(l => l.id === es
 function montarRelatorio(tipo, escopo) {
   if (!db.loteamentos.length) return { titulo: 'Relatório', html: '<div class="card"><p class="help">Cadastre um empreendimento primeiro.</p></div>', cols: [], csv: [] };
   if (tipo === 'resumo') return relResumo(escopo);
+  if (tipo === 'balancete') return relBalancete(escopo);
   if (tipo === 'espelho') return relEspelho(escopo);
   if (tipo === 'vendas') return relVendas(escopo);
   if (tipo === 'receber') return relReceber(escopo);
@@ -125,6 +127,127 @@ function relResumo(escopo) {
     ]),
     html: relTabela(cols, linhas.map(l => ({ cells: [l[0], l[1]] }))),
     cols, csv: linhas
+  };
+}
+
+/* Balancete gerencial: o resultado da empresa mês a mês — receitas, despesas separadas por
+   grupo (obra, folha, comissões, administrativas…) e o lucro ou prejuízo.
+   Caixa: o que entrou (pagamentos recebidos) e saiu (despesas e comissões pagas) no mês.
+   Competência: receitas pelo vencimento das parcelas e despesas pelo mês de competência,
+   pagas ou não; comissão no mês da venda. */
+const LINHAS_RECEITA = [['entrada', 'Entradas (sinal)'], ['parcela', 'Parcelas'], ['balao', 'Reforços'], ['taxa', 'Taxas de cessão'], ['encargos', 'Correção, juros e multas'], ['outras', 'Outras receitas']];
+function lancamentosBalancete(escopo, regime) {
+  const out = [];
+  const linhaRec = r => (LINHAS_RECEITA.some(l => l[0] === r.tipo) && r.tipo !== 'encargos' ? r.tipo : 'outras');
+  if (regime === 'caixa') {
+    /* O que foi recebido vale mesmo se o contrato depois virou distrato: o dinheiro entrou. */
+    db.recebiveis.filter(r => noEscopo(r, escopo) && num(r.valorPago) > 0 && noPeriodo(r.dataPagamento)).forEach(r => {
+      const pago = num(r.valorPago), principal = Math.min(pago, num(r.valor));
+      out.push({ data: r.dataPagamento, tipo: 'receita', linha: linhaRec(r), valor: principal });
+      if (pago - principal > 0.005) out.push({ data: r.dataPagamento, tipo: 'receita', linha: 'encargos', valor: pago - principal });
+    });
+    custosDo(escopo).filter(c => c.status === 'pago' && noPeriodo(c.dataPagamento))
+      .forEach(c => out.push({ data: c.dataPagamento, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor) }));
+    vendasDo(escopo).filter(v => v.comissaoPaga && num(v.comissaoValor) > 0 && noPeriodo(v.comissaoData))
+      .forEach(v => out.push({ data: v.comissaoData, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor) }));
+  } else {
+    recebiveisDo(escopo).filter(r => noPeriodo(r.vencimento)).forEach(r => {
+      out.push({ data: r.vencimento, tipo: 'receita', linha: linhaRec(r), valor: num(r.valor) });
+      const corr = recValor(r) - num(r.valor);
+      if (corr > 0.005) out.push({ data: r.vencimento, tipo: 'receita', linha: 'encargos', valor: corr });
+    });
+    custosDo(escopo).filter(c => noPeriodo(c.dataCompetencia))
+      .forEach(c => out.push({ data: c.dataCompetencia, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor) }));
+    vendasDo(escopo).filter(v => v.status !== 'distrato' && num(v.comissaoValor) > 0 && noPeriodo(v.dataVenda))
+      .forEach(v => out.push({ data: v.dataVenda, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor) }));
+  }
+  return out;
+}
+/* Colunas: um mês por coluna até 12 meses; mais que isso, um ano por coluna. Só o trecho que
+   tem lançamento: "Tudo" não abre cem anos vazios. */
+function colunasBalancete(lanc) {
+  const f = relState();
+  const datas = lanc.map(l => l.data).sort();
+  const de = datas.length ? (datas[0] > f.de ? datas[0] : f.de) : f.de;
+  const ate = datas.length ? (datas[datas.length - 1] < f.ate ? datas[datas.length - 1] : f.ate) : f.ate;
+  const meses = [];
+  for (let k = de.slice(0, 7); k <= ate.slice(0, 7) && meses.length <= 13; k = monthKey(addMonths(k + '-01', 1))) meses.push(k);
+  if (meses.length <= 12) return { porAno: false, chaves: meses, rotulo: k => monthLabel(k), de: d => d.slice(0, 7) };
+  const anos = [];
+  for (let a = Number(de.slice(0, 4)); a <= Number(ate.slice(0, 4)); a++) anos.push(String(a));
+  return { porAno: true, chaves: anos, rotulo: k => k, de: d => d.slice(0, 4) };
+}
+function relBalancete(escopo) {
+  const f = relState(), regime = f.regime === 'competencia' ? 'competencia' : 'caixa';
+  const lanc = lancamentosBalancete(escopo, regime);
+  const col = colunasBalancete(lanc);
+  const soma = (filtro, k) => lanc.filter(l => filtro(l) && (k == null || col.de(l.data) === k)).reduce((s, l) => s + l.valor, 0);
+  const porColuna = filtro => col.chaves.map(k => soma(filtro, k)).concat(soma(filtro));
+  const receita = porColuna(l => l.tipo === 'receita');
+  const despesa = porColuna(l => l.tipo === 'despesa');
+  const resultado = receita.map((v, i) => v - despesa[i]);
+  const totRec = receita[receita.length - 1], totDesp = despesa[despesa.length - 1], totRes = totRec - totDesp;
+  const pct = v => totRec ? fmtNum(v / totRec * 100, 1) + '%' : '—';
+  const dinheiro = v => (Math.abs(v) < 0.005 ? '—' : fmtMoney(v));
+  /* As linhas, na ordem do balancete: seção, contas, total. Linha zerada no período some. */
+  const linhas = [];
+  linhas.push({ classe: 'sec', rot: 'Receitas' });
+  LINHAS_RECEITA.forEach(([k, rot]) => { const v = porColuna(l => l.tipo === 'receita' && l.linha === k); if (Math.abs(v[v.length - 1]) > 0.005) linhas.push({ classe: 'conta', rot, v }); });
+  linhas.push({ classe: 'tot', rot: 'Receita total', v: receita });
+  linhas.push({ classe: 'sec', rot: 'Despesas' });
+  GRUPOS_BALANCETE.forEach(([g, rot]) => {
+    const v = porColuna(l => l.tipo === 'despesa' && l.linha === g);
+    if (Math.abs(v[v.length - 1]) < 0.005) return;
+    linhas.push({ classe: 'conta', rot, v });
+    /* Embaixo do grupo, as categorias que o compõem: é aqui que se vê o que é folha, o que
+       é obra, o que é escritório. */
+    const cats = [...new Set(lanc.filter(l => l.tipo === 'despesa' && l.linha === g && l.sub).map(l => l.sub))];
+    if (cats.length) cats.map(id => ({ id, nome: (getCategoria(id) || {}).nome || 'Sem categoria' })).sort((a, b) => naturalCmp(a.nome, b.nome))
+      .forEach(c => linhas.push({ classe: 'sub', rot: c.nome, v: porColuna(l => l.tipo === 'despesa' && l.linha === g && l.sub === c.id) }));
+  });
+  linhas.push({ classe: 'tot', rot: 'Despesa total', v: despesa });
+  linhas.push({ classe: 'res', rot: totRes >= 0 ? 'Resultado do período: lucro' : 'Resultado do período: prejuízo', v: resultado });
+  const cols = [{ t: 'Conta' }].concat(col.chaves.map(k => ({ t: col.rotulo(k), num: true })), [{ t: col.chaves.length > 1 ? 'Total' : 'Valor', num: true }, { t: '% da receita', num: true }]);
+  const umaColuna = col.chaves.length <= 1;
+  const cel = (v, i, l) => {
+    if (umaColuna && i < v.length - 1) return null;
+    const neg = l.classe === 'res' && v[i] < -0.005;
+    return `<td class="num${neg ? ' neg' : l.classe === 'res' ? ' pos' : ''}">${dinheiro(v[i])}</td>`;
+  };
+  const html = lanc.length ? `<div class="card" style="padding:10px"><div class="table-wrap" tabindex="0" role="region" aria-label="Balancete, role para o lado para ver todos os meses"><table class="tbl tbl-balancete">
+    <thead><tr><th>Conta</th>${umaColuna ? '' : col.chaves.map(k => `<th class="num">${esc(col.rotulo(k))}</th>`).join('')}<th class="num">${umaColuna ? 'Valor' : 'Total'}</th><th class="num">% da receita</th></tr></thead>
+    <tbody>${linhas.map(l => l.classe === 'sec'
+      ? `<tr class="bal-sec"><td colspan="${(umaColuna ? 0 : col.chaves.length) + 3}">${esc(l.rot)}</td></tr>`
+      : `<tr class="bal-${l.classe}"><td>${esc(l.rot)}</td>${l.v.map((_, i) => cel(l.v, i, l)).filter(Boolean).join('')}<td class="num">${pct(l.v[l.v.length - 1])}</td></tr>`).join('')}</tbody>
+  </table></div></div>` : `<div class="empty"><div class="ic"><i class=ico data-i=file-text></i></div><p>Nada ${regime === 'caixa' ? 'recebido nem pago' : 'lançado'} neste período.</p></div>`;
+  /* O que o regime deixa de fora, para ninguém confundir caixa com resultado */
+  const naoPagas = regime === 'caixa' ? custosDo(escopo).filter(c => c.status !== 'pago' && noPeriodo(c.dataCompetencia)).reduce((s, c) => s + num(c.valor), 0) : 0;
+  const aReceber = regime === 'caixa' ? recebiveisDo(escopo).filter(r => noPeriodo(r.vencimento)).reduce((s, r) => s + recRestante(r), 0) : 0;
+  const temFolha = lanc.some(l => l.linha === 'folha');
+  const emp = escopo ? getLoteamento(escopo) : null;
+  const notas = [
+    regime === 'caixa'
+      ? '<b>Regime de caixa:</b> o que entrou (pagamentos recebidos) e o que saiu (despesas e comissões pagas) em cada mês.'
+      : '<b>Regime de competência:</b> receitas pelo vencimento das parcelas e despesas pelo mês de competência, pagas ou não; a comissão entra no mês da venda.',
+    regime === 'caixa' && (naoPagas > 0.005 || aReceber > 0.005) ? `Ficaram de fora, por ainda não terem sido pagos: ${naoPagas > 0.005 ? `${fmtMoney(naoPagas)} de despesas do período` : ''}${naoPagas > 0.005 && aReceber > 0.005 ? ' e ' : ''}${aReceber > 0.005 ? `${fmtMoney(aReceber)} a receber de parcelas que venceram no período` : ''}.` : '',
+    emp ? `Só o empreendimento <b>${esc(emp.nome)}</b>: as despesas da empresa sem empreendimento (escritório, folha) não entram. Para o resultado da empresa inteira, escolha "Todos" no alto da tela.` : '',
+    'As comissões vêm da marcação "paga" nos contratos. Se a comissão também foi lançada como despesa, ela aparece duas vezes: deixe só uma.',
+    temFolha ? '' : 'Para ver a folha separada, lance salários e encargos na categoria <b>Folha de pagamento</b> (e a retirada dos sócios em <b>Pró-labore</b>). O grupo de cada categoria se ajusta em Configurações › Categorias.'
+  ].filter(Boolean);
+  const csv = linhas.filter(l => l.classe !== 'sec').map(l => [l.classe === 'sub' ? '   ' + l.rot : l.rot].concat((umaColuna ? [l.v[l.v.length - 1]] : l.v).map(v => fmtNum(v)), [pct(l.v[l.v.length - 1])]));
+  return {
+    titulo: `Balancete (${regime === 'caixa' ? 'caixa' : 'competência'})`,
+    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label for="relRegime">Regime</label><select id="relRegime" onchange="relSet('regime',this.value)">
+        <option value="caixa" ${regime === 'caixa' ? 'selected' : ''}>Caixa: o que entrou e saiu no mês</option>
+        <option value="competencia" ${regime === 'competencia' ? 'selected' : ''}>Competência: o que é do mês, pago ou não</option></select></div></div>`,
+    kpis: relKpis([
+      { lbl: 'Receitas', val: fmtMoneyShort(totRec), sub: regime === 'caixa' ? 'recebido no período' : 'do período', cor: 'c-blue' },
+      { lbl: 'Despesas', val: fmtMoneyShort(totDesp), sub: regime === 'caixa' ? 'pago no período' : 'do período', cor: 'c-amber' },
+      { lbl: totRes >= 0 ? 'Lucro' : 'Prejuízo', val: fmtMoneyShort(totRes), sub: 'receitas menos despesas', cor: totRes >= 0 ? 'c-green' : 'c-red' },
+      { lbl: 'Margem', val: totRec ? fmtNum(totRes / totRec * 100, 1) + '%' : '—', sub: 'do que entrou, quanto sobrou', cor: totRes >= 0 ? 'c-green' : 'c-red' }
+    ]),
+    html: html + `<div class="card bal-notas">${notas.map(n => `<p class="help">${n}</p>`).join('')}</div>`,
+    cols, csv, csvHead: cols.filter((c, i) => !umaColuna || i === 0 || i > col.chaves.length).map(c => c.t)
   };
 }
 

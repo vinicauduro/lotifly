@@ -757,6 +757,51 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z23. Balancete: o resultado do mês da empresa (17/10)
+
+Pedido seu: um balancete que mostre o resultado do mês, as despesas, o lucro, e o que é
+despesa de folha e o que é outro tipo de despesa. Está em **Relatórios › Balancete
+(resultado)**.
+
+- **Uma coluna por mês** do período (até 12 meses; mais que isso, uma por ano), o **total** e
+  quanto cada linha representa **da receita**.
+- **Receitas:** entradas, parcelas, reforços, taxas de cessão e, à parte, correção, juros e
+  multas recebidos.
+- **Despesas por grupo**, cada um com as categorias embaixo:
+  **custo das obras e dos imóveis**, **folha de pagamento**, **comissões de corretores**,
+  **comercial e marketing**, **despesas administrativas**, **impostos e taxas**,
+  **despesas financeiras** e **devoluções de distrato**.
+- **Resultado do período:** lucro em verde, prejuízo em vermelho, e a margem.
+- **Dois regimes:**
+  - **Caixa** (padrão): o que entrou e o que saiu no mês. Embaixo, o aviso do que ficou de
+    fora por ainda não ter sido pago.
+  - **Competência:** o que é do mês, pago ou não. A receita conta pelo vencimento e a
+    comissão, no mês da venda.
+- **Categorias novas**, criadas sozinhas para quem já usa o sistema:
+  **Folha de pagamento (salários e encargos)**, **Pró-labore** e **Tarifas bancárias**.
+- Cada categoria tem o seu grupo no balancete; o dono troca em **Configurações ›
+  Categorias** ("Entra no balancete como"). Categoria criada por você sem grupo: obra se a
+  despesa é de um empreendimento, senão administrativa.
+- **Com um empreendimento escolhido no alto da tela**, o balancete mostra só o resultado
+  dele: despesas da empresa (escritório, folha) ficam de fora, e a nota avisa. Para o
+  resultado da empresa inteira, escolha "Todos".
+- Imprime e exporta CSV como os outros relatórios.
+
+Atenção às comissões: elas vêm da marcação "paga" nos contratos. Se você também lançou a
+comissão como despesa, ela aparece duas vezes; deixe só uma.
+
+Para conferir:
+
+- [ ] Lançar a folha do mês na categoria **Folha de pagamento** e o pró-labore em
+      **Pró-labore**, e ver o balancete de **Mês passado**.
+- [ ] Conferir se o grupo de cada categoria está como você quer (Configurações ›
+      Categorias).
+
+`testes/balancete.test.js` (11 casos) confere os números, montados e somados à mão, nos dois
+regimes. Não precisa rodar nada no Supabase.
+
+---
+
 ## 7z22. Erros do app: registrados e visíveis para o dono (17/10)
 
 Até aqui, quando algo dava errado no celular de alguém da equipe, só aquela pessoa via, e
