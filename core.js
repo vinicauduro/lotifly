@@ -608,7 +608,9 @@ const Cloud = {
   async loadAll() {
     const org = this.org.id;
     const tabs = Object.keys(TABLE_COLS);
-    const results = await Promise.all(tabs.map(t => this.client.from(tabelaDe(t)).select('*').eq('org_id', org).limit(t === 'log' ? 400 : 20000).order(t === 'log' ? 'ts' : 'id', { ascending: true })));
+    const results = await Promise.all(tabs.map(t => t === 'log'
+      ? this.client.from(tabelaDe(t)).select('*').eq('org_id', org).limit(400).order('ts', { ascending: true })
+      : this.buscarTudo(t, org)));
     /* Tabela nova que ainda não existe no banco (o schema.sql não foi rodado de novo) não
        derruba o aplicativo inteiro: aquela parte fica vazia e o resto funciona. */
     this.tabelasFaltando = [];
@@ -632,6 +634,24 @@ const Cloud = {
     saveLocal();
     renderPendentes();
     if (this.pendentes.length) setTimeout(() => this.reenviarPendentes(true), 0);
+  },
+  /* O Supabase entrega no máximo 1.000 linhas por pedido (Settings › API › Max rows) e corta
+     o resto sem avisar: 20 contratos de 60 parcelas já passam disso. Aqui a tabela vem em
+     blocos, pela ordem do id, até chegar ao total que o próprio banco informa. Um bloco
+     vazio encerra, para um total que mudou no meio do caminho não virar laço sem fim. */
+  async buscarTudo(t, org) {
+    const BLOCO = 1000, dados = [];
+    let total = null;
+    for (;;) {
+      const r = await this.client.from(tabelaDe(t)).select('*', total == null ? { count: 'exact' } : {})
+        .eq('org_id', org).order('id', { ascending: true }).range(dados.length, dados.length + BLOCO - 1);
+      if (r.error) return { data: null, error: r.error };
+      if (total == null) total = r.count == null ? Infinity : r.count;
+      const pg = r.data || [];
+      dados.push(...pg);
+      if (!pg.length || dados.length >= total || (total === Infinity && pg.length < BLOCO)) break;
+    }
+    return { data: dados, error: null };
   },
   async loadEquipe() {
     const org = this.org.id;
