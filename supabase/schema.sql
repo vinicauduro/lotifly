@@ -636,6 +636,9 @@ alter table public.vendas alter column lote_id drop not null;
 -- e a despesa de um imóvel avulso da carteira aponta para o contrato.
 alter table public.custos alter column loteamento_id drop not null;
 alter table public.custos add column if not exists venda_id text;
+-- Centro de custo da despesa da empresa (Comercial, Escritório…), criado em Configurações ›
+-- Centros de custo. Vazio: Administração. Despesa de empreendimento usa o próprio empreendimento.
+alter table public.custos add column if not exists centro_id text;
 -- Cessão de direitos: o histórico de quem cedeu para quem fica no próprio contrato.
 alter table public.vendas add column if not exists cessoes jsonb not null default '[]'::jsonb;
 -- Distrato (16/10): retenção, devolução e as parcelas da devolução ficam no próprio contrato.

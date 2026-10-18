@@ -119,6 +119,22 @@ await passo('despesas da empresa: sem empreendimento, e despesa ligada a um cont
   if (r.length !== 2 || r[0].loteamento_id !== null || r[1].venda_id !== 'v1') throw new Error('gravou errado: ' + JSON.stringify(r));
   await recusa('cor', `insert into public.custos (org_id, id, loteamento_id, descricao, valor, data_competencia) values ('${ORG}','c4',null,'Café',50,'2026-10-01')`);
 });
+await passo('centro de custo: a despesa da empresa guarda o centro; criar centro ou grupo do plano é configuração', async () => {
+  await como('fin', `insert into public.custos (org_id, id, loteamento_id, centro_id, descricao, valor, data_competencia) values ('${ORG}','c5',null,'cc-1','Stand de vendas',1200,'2026-10-01')`);
+  const r = (await db.query(`select centro_id from public.custos where id = 'c5'`)).rows;
+  if (r.length !== 1 || r[0].centro_id !== 'cc-1') throw new Error('não gravou o centro: ' + JSON.stringify(r));
+  /* O financeiro não altera a empresa: o banco recusa ou simplesmente não grava */
+  const cfg = async () => (await db.query(`select config->'centrosCusto' as c, config->'planoGrupos' as g from public.organizacoes where id = '${ORG}'`)).rows[0];
+  for (const sql of [`update public.organizacoes set config = config || '{"centrosCusto":[{"id":"cc-1","nome":"Comercial","ativo":true}]}'::jsonb where id = '${ORG}'`,
+    `update public.organizacoes set config = config || '{"planoGrupos":[{"id":"g-1","nome":"Veículos"}]}'::jsonb where id = '${ORG}'`]) {
+    try { await como('fin', sql); } catch (e) { if (!/configura|permiss/i.test(e.message)) throw e; }
+  }
+  const antes = await cfg();
+  if (antes.c !== null || antes.g !== null) throw new Error('o financeiro mudou a configuração: ' + JSON.stringify(antes));
+  await como('dono', `update public.organizacoes set config = config || '{"centrosCusto":[{"id":"cc-1","nome":"Comercial","ativo":true}],"planoGrupos":[{"id":"g-1","nome":"Veículos"}]}'::jsonb where id = '${ORG}'`);
+  const depois = await cfg();
+  if (!depois.c || depois.c[0].nome !== 'Comercial' || depois.g[0].nome !== 'Veículos') throw new Error('o dono não conseguiu: ' + JSON.stringify(depois));
+});
 await passo('ninguém ajusta as próprias permissões; o administrador ajusta os outros', async () => {
   await ajustar({ permissoesPessoas: {} });
   await recusa('admin', `update public.organizacoes set config = config || jsonb_build_object('permissoesPessoas', jsonb_build_object('${U.admin}', '{"x.y": true}'::jsonb)) where id = '${ORG}'`, 'próprias permissões');

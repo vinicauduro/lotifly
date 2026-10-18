@@ -1200,7 +1200,7 @@ function renderCadastros() {
      são rotina e têm lugar no menu; a vitrine saiu do produto. No modo local não existe
      equipe — os corretores ficam em Comercial › Corretores. */
   const todasTabs = [...(Cloud.active ? [['corretores', 'Equipe', 'equipe.gerenciar']] : []),
-    ['empresa', 'Dados da empresa', 'config.editar'], ['permissoes', 'Permissões', 'equipe.gerenciar'], ['categorias', 'Categorias', 'custos.editar'], ['documentos', 'Modelos de documento', 'documentos.editar'],
+    ['empresa', 'Dados da empresa', 'config.editar'], ['permissoes', 'Permissões', 'equipe.gerenciar'], ['categorias', 'Plano de contas', 'custos.editar'], ['centros', 'Centros de custo', 'custos.editar'], ['documentos', 'Modelos de documento', 'documentos.editar'],
     ['banco', 'Contas bancárias', 'config.editar'], ['cobranca', 'Régua de cobrança', 'cobranca.registrar'],
     ['config', 'Geral', 'config.editar'], ['nuvem', Cloud.active ? 'Conta' : 'Nuvem', null], ['backup', 'Backup', 'backup.usar'],
     ...(podeVerErros() ? [['erros', 'Erros do app', null]] : [])];
@@ -1211,6 +1211,7 @@ function renderCadastros() {
   if (sub === 'corretores') html += cadEquipeHtml();
   else if (sub === 'empresa') html += cadEmpresaHtml();
   else if (sub === 'categorias') html += cadCategoriasHtml();
+  else if (sub === 'centros') html += cadCentrosHtml();
   else if (sub === 'documentos') html += cadDocumentosHtml();
   else if (sub === 'cobranca') html += cadCobrancaHtml();
   else if (sub === 'banco') html += cadBancoHtml();
@@ -1528,36 +1529,137 @@ function salvarCorretor(id) {
   upsert('corretores', Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString() }, { nome: val('cfNome'), creci: val('cfCreci'), telefone: val('cfTel'), email: val('cfEmail'), imobiliaria: val('cfImob'), ativo: checked('cfAtivo') }));
   closeModal(); renderCurrent(); toast('✅', 'Corretor salvo', '');
 }
+/* Plano de contas: receitas (automáticas, vêm dos contratos) e despesas em dois níveis —
+   grupo e conta. A conta é a categoria da despesa; o grupo é a linha do balancete. Criar,
+   renomear e desativar grupo ou conta mexe na configuração da empresa (config.editar); as
+   contas em si (nome, cor) seguem com quem lança despesas (custos.editar). */
 function cadCategoriasHtml() {
-  return `<div class="card"><h2>Categorias de custo <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()"><i class=ico data-i=plus></i>Nova</button></span></h2>
-    ${db.categorias.map(c => `<div class="item" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${db.custos.filter(x => x.categoriaId === c.id).length} lançamento(s)</span><span>${esc(nomeGrupoBalancete(grupoDaCategoria(c.id)) || 'No balancete: pelo vínculo da despesa')}</span></div></div></div>`).join('')}</div>`;
+  const cfg = pode('config.editar');
+  const usos = id => db.custos.filter(x => x.categoriaId === id).length;
+  const conta = c => `<div class="item pc-conta${contaAtiva(c.id) ? '' : ' inativa'}" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}${contaAtiva(c.id) ? '' : ' <span class="badge neutral">desativada</span>'}</div><div class="meta"><span>${usos(c.id)} lançamento(s)</span></div></div></div>`;
+  const auto = { comissoes: 'Automático: as comissões marcadas como pagas nos contratos.', devolucao: 'O distrato lança aqui a devolução ao comprador.' };
+  const grupos = gruposDespesa().map(([g, nome]) => {
+    const cs = db.categorias.filter(c => grupoDaCategoria(c.id) === g);
+    return `<div class="pc-grupo" data-grupo="${esc(g)}"><div class="pc-gh"><div><b>${esc(nome)}</b> <span class="tiny muted">${cs.length} conta(s)${grupoDeFabrica(g) ? '' : ' · criado pela empresa'}</span>${auto[g] ? `<div class="tiny muted">${auto[g]}</div>` : ''}</div>
+      <span class="h-actions">${cfg ? `<button class="btn btn-secondary btn-sm" onclick="abrirGrupoPlanoForm('${esc(g)}')" title="Renomear o grupo" aria-label="Renomear o grupo ${esc(nome)}"><i class=ico data-i=pencil-simple></i></button>` : ''}${g !== 'comissoes' ? `<button class="btn btn-secondary btn-sm" onclick="abrirCategoriaForm(null, '${esc(g)}')" aria-label="Nova conta em ${esc(nome)}"><i class=ico data-i=plus></i>Conta</button>` : ''}</span></div>
+      ${cs.map(conta).join('')}</div>`;
+  }).join('');
+  const soltas = db.categorias.filter(c => !grupoDaCategoria(c.id));
+  return `<div class="card"><h2>Plano de contas <span class="h-actions">${cfg ? `<button class="btn btn-secondary btn-sm" onclick="abrirGrupoPlanoForm()"><i class=ico data-i=plus></i>Grupo</button>` : ''}<button class="btn btn-primary btn-sm" onclick="abrirCategoriaForm()"><i class=ico data-i=plus></i>Conta</button></span></h2>
+    <p class="help">É assim que o dinheiro da empresa se organiza: cada despesa é lançada numa <b>conta</b>, e as contas se juntam em <b>grupos</b>, que são as linhas do balancete. Quem gastou (um empreendimento, a administração, o comercial) é o <b>centro de custo</b>, escolhido no lançamento.</p>
+    <h3 class="pc-sec">Receitas</h3>
+    <div class="pc-grupo"><div class="pc-gh"><div><b>Vendas de imóveis</b> <span class="tiny muted">automático</span><div class="tiny muted">Vêm das parcelas recebidas dos contratos, cada uma no centro de custo do seu empreendimento.</div></div></div>
+      ${LINHAS_RECEITA.map(([, rot]) => `<div class="item pc-conta pc-auto"><div class="info"><div class="title">${esc(rot)}</div></div></div>`).join('')}</div>
+    <h3 class="pc-sec">Despesas</h3>
+    ${grupos}
+    ${soltas.length ? `<div class="pc-grupo" data-grupo=""><div class="pc-gh"><div><b>Sem grupo</b> <span class="tiny muted">${soltas.length} conta(s)</span><div class="tiny muted">No balancete entram em "Custo das obras" quando a despesa é de um empreendimento, e em "Despesas administrativas" quando é da empresa. Abra a conta para escolher o grupo.</div></div></div>${soltas.map(conta).join('')}</div>` : ''}
+    ${cfg ? '' : '<p class="help">Criar e renomear grupos, mudar o grupo de uma conta ou desativá-la é com quem altera as configurações da empresa.</p>'}</div>`;
 }
-function abrirCategoriaForm(id) {
-  const c = id ? getCategoria(id) : null;
-  openModal({ title: c ? 'Categoria' : 'Nova categoria', body: `<div class="fg"><label>Nome *</label><input type="text" id="ctNome" value="${esc(c ? c.nome : '')}"></div><div class="fg"><label>Cor</label><input type="color" id="ctCor" value="${c ? c.cor : '#0e4c73'}"></div>
-      <div class="fg"><label for="ctGrupo">Entra no balancete como</label><select id="ctGrupo" ${pode('config.editar') ? '' : 'disabled'}>
-        <option value="">Pelo vínculo (obra se for de um empreendimento, senão administrativa)</option>
-        ${GRUPOS_BALANCETE.filter(g => g[0] !== 'comissoes').map(([k, l]) => `<option value="${k}" ${c && grupoDaCategoria(c.id) === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
-        <div class="hint">É assim que esta categoria aparece em Relatórios › Balancete. Salários e encargos ficam em Folha de pagamento.${pode('config.editar') ? '' : ' Só quem altera as configurações muda isto.'}</div></div>`,
+function abrirCategoriaForm(id, grupoIni) {
+  const c = id ? getCategoria(id) : null, cfg = pode('config.editar');
+  const gAtual = c ? grupoDaCategoria(c.id) : (grupoIni || '');
+  openModal({ title: c ? 'Conta do plano' : 'Nova conta', body: `<div class="fg"><label for="ctNome">Nome *</label><input type="text" id="ctNome" value="${esc(c ? c.nome : '')}" placeholder="Ex.: Aluguel do escritório"></div><div class="fg"><label for="ctCor">Cor</label><input type="color" id="ctCor" value="${c ? c.cor : '#0e4c73'}"></div>
+      <div class="fg"><label for="ctGrupo">Grupo (linha do balancete)</label><select id="ctGrupo" ${cfg ? '' : 'disabled'}>
+        <option value="">Sem grupo: obra se for de um empreendimento, senão administrativa</option>
+        ${gruposDespesa().filter(g => g[0] !== 'comissoes').map(([k, l]) => `<option value="${esc(k)}" ${gAtual === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+        <div class="hint">É assim que esta conta aparece em Relatórios › Balancete. Salários e encargos ficam em Folha de pagamento.${cfg ? '' : ' Só quem altera as configurações muda isto.'}</div></div>
+      <div class="fg"><label class="check"><input type="checkbox" id="ctAtiva" ${!c || contaAtiva(c.id) ? 'checked' : ''} ${cfg ? '' : 'disabled'}> Conta ativa (aparece para lançar despesas)</label>
+        <div class="hint">Desativada, some do lançamento, mas o que já foi lançado nela continua nos relatórios.</div></div>`,
     footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCategoria('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCategoria('${c ? c.id : ''}')">Salvar</button>` });
+  focarSeLivre('ctNome');
 }
 function salvarCategoria(id) {
-  if (!val('ctNome')) { toast('⚠️', 'Informe o nome da categoria', '', true); const c = document.getElementById('ctNome'); if (c) c.focus(); return; }
+  if (!val('ctNome')) { toast('⚠️', 'Informe o nome da conta', '', true); const c = document.getElementById('ctNome'); if (c) c.focus(); return; }
   const prev = id ? getCategoria(id) : null, nome = val('ctNome');
   const cat = Object.assign({}, prev || { id: genId() }, { nome, cor: val('ctCor') });
   upsert('categorias', cat);
-  /* O grupo do balancete fica na configuração da empresa, não na categoria */
+  /* O grupo e a situação ficam na configuração da empresa, não na categoria */
   if (pode('config.editar') && document.getElementById('ctGrupo')) {
     const g = val('ctGrupo'), grupos = Object.assign({}, db.config.gruposBalancete || {});
     if (g === (GRUPO_PADRAO_CATEGORIA[cat.id] || '')) delete grupos[cat.id]; else grupos[cat.id] = g;
-    if (JSON.stringify(grupos) !== JSON.stringify(db.config.gruposBalancete || {})) setConfig({ gruposBalancete: grupos });
+    const inat = (db.config.contasInativas || []).filter(x => x !== cat.id).concat(checked('ctAtiva') ? [] : [cat.id]);
+    const patch = {};
+    if (JSON.stringify(grupos) !== JSON.stringify(db.config.gruposBalancete || {})) patch.gruposBalancete = grupos;
+    if (JSON.stringify(inat) !== JSON.stringify(db.config.contasInativas || [])) patch.contasInativas = inat;
+    if (Object.keys(patch).length) setConfig(patch);
   }
+  if (!prev) db.categorias.sort((a, b) => naturalCmp(a.nome, b.nome));
   closeModal(); renderCurrent();
-  toast('✅', prev ? 'Categoria salva' : 'Categoria criada', nome);
+  toast('✅', prev ? 'Conta salva' : 'Conta criada', nome);
 }
 function excluirCategoria(id) {
-  if (db.custos.some(x => x.categoriaId === id)) { toast('⚠️', 'Categoria em uso por lançamentos', '', true); return; }
-  if (!confirm('Excluir categoria?')) return; removeRec('categorias', id); closeModal(); renderCurrent();
+  if (db.custos.some(x => x.categoriaId === id)) { toast('⚠️', 'Conta em uso por lançamentos', 'Desative em vez de excluir: some do lançamento e o histórico fica.', true); return; }
+  if (!confirm('Excluir esta conta do plano?')) return; removeRec('categorias', id); closeModal(); renderCurrent();
+}
+/* Grupo do plano: renomear qualquer um; criar e apagar só os da empresa (vazios). */
+function abrirGrupoPlanoForm(id) {
+  const g = id ? gruposDespesa().find(x => x[0] === id) : null;
+  const vazio = g && !db.categorias.some(c => grupoDaCategoria(c.id) === g[0]);
+  openModal({ title: g ? 'Grupo do plano' : 'Novo grupo de despesas', body: `<div class="fg"><label for="gpNome">Nome do grupo *</label><input type="text" id="gpNome" value="${esc(g ? g[1] : '')}" placeholder="Ex.: Veículos e combustível">
+      <div class="hint">${g && grupoDeFabrica(g[0]) ? 'Grupo de fábrica: pode trocar o nome, mas não apagar.' : 'Vira uma linha do balancete, com as contas dele embaixo.'}</div></div>`,
+    footer: `${g && !grupoDeFabrica(g[0]) ? `<button class="btn btn-outline-danger" onclick="excluirGrupoPlano('${esc(g[0])}')" ${vazio ? '' : 'disabled title="Mude as contas deste grupo antes de apagar"'}>Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarGrupoPlano('${g ? esc(g[0]) : ''}')">Salvar</button>` });
+  focarSeLivre('gpNome');
+}
+function salvarGrupoPlano(id) {
+  const nome = val('gpNome');
+  if (!nome) { toast('⚠️', 'Informe o nome do grupo', '', true); return; }
+  const lista = gruposDespesa().map(([k, n]) => ({ id: k, nome: n }));
+  if (lista.some(g => g.id !== id && g.nome.toLowerCase() === nome.toLowerCase())) { toast('⚠️', 'Já existe um grupo com esse nome', '', true); return; }
+  if (id) lista.forEach(g => { if (g.id === id) g.nome = nome; });
+  else lista.push({ id: 'g-' + genId(), nome });
+  setConfig({ planoGrupos: lista });
+  logAct(id ? `Grupo do plano de contas renomeado: ${nome}` : `Grupo do plano de contas criado: ${nome}`);
+  closeModal(); renderCurrent(); toast('✅', id ? 'Grupo salvo' : 'Grupo criado', nome);
+}
+function excluirGrupoPlano(id) {
+  if (grupoDeFabrica(id) || db.categorias.some(c => grupoDaCategoria(c.id) === id)) return;
+  if (!confirm('Excluir este grupo do plano de contas?')) return;
+  const grupos = Object.assign({}, db.config.gruposBalancete || {});
+  Object.keys(grupos).forEach(k => { if (grupos[k] === id) delete grupos[k]; });
+  setConfig({ planoGrupos: gruposDespesa().filter(g => g[0] !== id).map(([k, n]) => ({ id: k, nome: n })), gruposBalancete: grupos });
+  closeModal(); renderCurrent();
+}
+
+/* Centros de custo: os empreendimentos e a Administração existem sozinhos; a empresa cria os
+   dela (Comercial, Escritório…) para separar as despesas que não são de obra nenhuma. */
+function cadCentrosHtml() {
+  const cfg = pode('config.editar');
+  const n = k => db.custos.filter(c => centroDoCusto(c) === k).length;
+  const linha = (k, nome, sub, clique) => `<div class="item pc-conta${clique ? '' : ' pc-auto'}" ${clique ? `onclick="${clique}"` : ''}><div class="info"><div class="title">${esc(nome)}</div><div class="meta"><span>${n(k)} despesa(s)</span><span>${sub}</span></div></div></div>`;
+  const proprios = centrosCusto();
+  return `<div class="card"><h2>Centros de custo <span class="h-actions">${cfg ? `<button class="btn btn-primary btn-sm" onclick="abrirCentroForm()"><i class=ico data-i=plus></i>Novo centro</button>` : ''}</span></h2>
+    <p class="help">O centro de custo diz <b>quem gastou</b>. Cada empreendimento é um centro, e o que é da empresa fica na Administração ou num centro criado aqui. No balancete dá para ver o resultado de cada centro lado a lado.</p>
+    <h3 class="pc-sec">Da empresa</h3>
+    ${linha(CENTRO_ADM, 'Administração', 'despesas da empresa sem outro centro')}
+    ${proprios.map(c => linha(c.id, c.nome + (c.ativo === false ? ' (desativado)' : ''), 'criado pela empresa', cfg ? `abrirCentroForm('${esc(c.id)}')` : '')).join('')}
+    ${proprios.length ? '' : '<p class="help">Crie, por exemplo, <b>Comercial</b> (marketing, stand, corretores internos) ou <b>Escritório</b> (aluguel, contas, material).</p>'}
+    <h3 class="pc-sec">Empreendimentos</h3>
+    ${db.loteamentos.length ? db.loteamentos.map(l => linha('emp:' + l.id, l.nome, 'automático')).join('') : '<p class="help">Cada empreendimento cadastrado vira um centro de custo.</p>'}</div>`;
+}
+function abrirCentroForm(id) {
+  const c = id ? getCentro(id) : null, usos = c ? db.custos.filter(x => !x.loteamentoId && x.centroId === c.id).length : 0;
+  openModal({ title: c ? 'Centro de custo' : 'Novo centro de custo', body: `<div class="fg"><label for="ccNome">Nome *</label><input type="text" id="ccNome" value="${esc(c ? c.nome : '')}" placeholder="Ex.: Comercial"></div>
+      ${c ? `<div class="fg"><label class="check"><input type="checkbox" id="ccAtivo" ${c.ativo !== false ? 'checked' : ''}> Centro ativo (aparece para lançar despesas)</label><div class="hint">${usos} despesa(s) neste centro.</div></div>` : ''}`,
+    footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCentro('${esc(c.id)}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCentro('${c ? esc(c.id) : ''}')">Salvar</button>` });
+  focarSeLivre('ccNome');
+}
+function salvarCentro(id) {
+  const nome = val('ccNome');
+  if (!nome) { toast('⚠️', 'Informe o nome do centro de custo', '', true); return; }
+  const lista = centrosCusto().map(c => Object.assign({}, c));
+  if (/^administra[cç][aã]o$/i.test(nome) || lista.some(c => c.id !== id && c.nome.toLowerCase() === nome.toLowerCase())) { toast('⚠️', 'Já existe um centro com esse nome', '', true); return; }
+  if (id) lista.forEach(c => { if (c.id === id) { c.nome = nome; c.ativo = checked('ccAtivo'); } });
+  else lista.push({ id: 'cc-' + genId(), nome, ativo: true });
+  setConfig({ centrosCusto: lista });
+  if (!id) logAct(`Centro de custo criado: ${nome}`);
+  closeModal(); renderCurrent(); toast('✅', id ? 'Centro salvo' : 'Centro criado', nome);
+}
+function excluirCentro(id) {
+  const usos = db.custos.filter(x => !x.loteamentoId && x.centroId === id).length;
+  if (usos) { toast('⚠️', 'Centro em uso por despesas', 'Desative em vez de excluir: some do lançamento e o histórico fica.', true); return; }
+  if (!confirm('Excluir este centro de custo?')) return;
+  setConfig({ centrosCusto: centrosCusto().filter(c => c.id !== id) });
+  closeModal(); renderCurrent();
 }
 function cadConfigHtml() {
   const c = db.config;
