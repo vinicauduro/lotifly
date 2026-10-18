@@ -234,7 +234,7 @@ function abrirLancarIndice(id, mes) {
       ${atual != null ? `<button class="btn btn-outline-danger btn-sm mt" onclick="apagarValorIndice('${id}','${m}')">Apagar o lançamento deste mês</button>` : ''}`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarValorIndice('${id}')">Salvar</button>`
   });
-  setTimeout(() => { const el = $('#lxValor'); if (el) el.focus(); }, 60);
+  focarSeLivre('lxValor');
 }
 /* ---------------------------------------------------------------- lançamento por ano
    Lançar mês a mês, cada um num modal, é lento e não deixa conferir o ano inteiro. Aqui os
@@ -253,7 +253,7 @@ function abrirIndiceAno(id, ano) {
       <button class="btn btn-outline" onclick="ixCapturar();abrirIndiceValores('${id}')">Colar de uma planilha</button>
       <button class="btn btn-primary" onclick="salvarIndiceAno('${id}')">Salvar</button>`
   });
-  setTimeout(() => { const el = document.getElementById('ix0'); if (el) el.focus(); }, 60);
+  focarSeLivre('ix0');
 }
 function ixAnoHtml(id) {
   const ind = getIndice(id); const ano = window.__ixAno; const buf = window.__ixBuf || {};

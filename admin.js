@@ -1175,7 +1175,7 @@ function excluirVenda(id) {
       <div class="fg mt"><label>Para confirmar, escreva <b>EXCLUIR</b></label><input type="text" id="exVenda" placeholder="EXCLUIR" autocomplete="off"></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-outline-danger" onclick="confirmarExclusaoVenda('${x.id}')">Excluir contrato</button>`
   });
-  setTimeout(() => { const el = $('#exVenda'); if (el) el.focus(); }, 60);
+  focarSeLivre('exVenda');
 }
 function confirmarExclusaoVenda(id) {
   const x = getVenda(id); if (!x) return;
@@ -1563,7 +1563,11 @@ function cadConfigHtml() {
   const c = db.config;
   return `<div class="card"><h2>Configurações gerais</h2>
     <div class="frow"><div class="fg"><label>Nome da empresa / incorporadora</label><input type="text" id="cgEmpresa" value="${esc(c.empresa)}"></div><div class="fg"><label>WhatsApp da administração</label><input type="tel" id="cgWa" value="${esc(c.adminWhatsapp)}" placeholder="(00) 00000-0000"><div class="hint">Corretores podem avisar você pelo WhatsApp ao pedir reserva.</div></div></div>
-    <div class="frow3"><div class="fg"><label>Validade da reserva (dias)</label><input type="number" id="cgDias" value="${c.reservaDias}"></div><div class="fg"><label>Comissão padrão (%)</label><input type="number" id="cgCom" step="0.1" value="${c.comissaoPct}"></div><div class="fg"><label>Multa por atraso (%)</label><input type="number" id="cgMulta" step="0.1" value="${c.multaPct}"></div></div>
+    <div class="fieldset"><span class="lg">Reservas</span>
+      <div class="fg"><label for="cgDias">Duração da reserva (dias)</label><input type="number" id="cgDias" inputmode="numeric" min="1" value="${c.reservaDias}" style="max-width:160px"><div class="hint">Conta a partir da aprovação (ou do pedido feito pela administração).</div></div>
+      <div class="fg"><label class="check"><input type="checkbox" id="cgResAuto" ${c.reservaLiberaSozinha ? 'checked' : ''}> Liberar o lote sozinho quando o prazo da reserva acabar</label>
+      <div class="hint">Marcado: no dia seguinte ao fim do prazo, a reserva vira "expirada" e o lote volta a ficar disponível para os corretores. Desmarcado: o lote continua reservado até você liberar ou renovar, e a reserva aparece em "Reservas vencidas".</div></div></div>
+    <div class="frow"><div class="fg"><label>Comissão padrão (%)</label><input type="number" id="cgCom" step="0.1" value="${c.comissaoPct}"></div><div class="fg"><label>Multa por atraso (%)</label><input type="number" id="cgMulta" step="0.1" value="${c.multaPct}"></div></div>
     <div class="frow"><div class="fg"><label>Juros de mora (% ao mês)</label><input type="number" id="cgJuros" step="0.01" value="${c.jurosMesPct}"></div><div class="fg"><label>Corretor vê preço de lotes vendidos?</label><select id="cgMostra"><option value="1" ${c.mostrarPrecoVendido ? 'selected' : ''}>Sim</option><option value="0" ${!c.mostrarPrecoVendido ? 'selected' : ''}>Não</option></select></div></div>
     <button class="btn btn-primary" onclick="salvarConfig()">Salvar configurações</button></div>
     <div class="card"><h2>Dados da empresa</h2>
@@ -1575,7 +1579,7 @@ function cadConfigHtml() {
     <p class="help mt">Este controle de acesso é simples (sem servidor). Serve para organizar o uso, não para proteger dados sigilosos.</p></div>`}`;
 }
 function salvarConfig() {
-  setConfig({ empresa: val('cgEmpresa'), adminWhatsapp: val('cgWa'), reservaDias: Math.max(1, Math.round(num(val('cgDias')) || 7)), comissaoPct: num(val('cgCom')), multaPct: num(val('cgMulta')), jurosMesPct: num(val('cgJuros')), mostrarPrecoVendido: val('cgMostra') === '1' });
+  setConfig({ empresa: val('cgEmpresa'), adminWhatsapp: val('cgWa'), reservaDias: Math.max(1, Math.round(num(val('cgDias')) || 7)), reservaLiberaSozinha: !!($('#cgResAuto') && $('#cgResAuto').checked), comissaoPct: num(val('cgCom')), multaPct: num(val('cgMulta')), jurosMesPct: num(val('cgJuros')), mostrarPrecoVendido: val('cgMostra') === '1' });
   toast('✅', 'Configurações salvas', ''); renderCurrent();
 }
 function salvarAcesso() {

@@ -36,6 +36,7 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 - [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para a cessão de direitos (seção 7z12).
 - [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para o distrato (seção 7z15).
 - [ ] Rodar o `supabase/schema.sql` de novo para o registro de erros do app (seção 7z22).
+- [ ] Rodar o `supabase/schema.sql` de novo para a liberação automática das reservas vencidas (seção 7z25).
 - [ ] Rodar o `supabase/schema.sql` de novo para fechar as funções do banco a quem não entrou na conta (seção 7z24).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
@@ -755,6 +756,43 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z25. Reserva que libera sozinha e "Copiar proposta" (18/10)
+
+Das ideias tiradas dos concorrentes, as duas que você escolheu para agora.
+
+**Reserva vencida (Configurações › Geral › Reservas):**
+
+- **Duração da reserva (dias)**, como antes, agora num quadro próprio.
+- Caixa **"Liberar o lote sozinho quando o prazo da reserva acabar"** (desmarcada de
+  fábrica, que é como sempre funcionou):
+  - **Marcada:** no dia seguinte ao fim do prazo, a reserva vira **expirada** e o lote volta a
+    ficar **disponível** para os corretores. Fica no histórico ("Reserva expirada… lote
+    liberado sozinho"). Na nuvem, **o próprio banco faz isso a cada 30 minutos**, sem depender
+    de alguém abrir o app; o app também faz na hora, quando o dono ou o administrador abre.
+  - **Desmarcada:** o lote continua reservado até você liberar ou renovar, e a reserva aparece
+    em "Reservas vencidas", como hoje.
+- Vale o dia de Brasília: a reserva vale até o fim do último dia do prazo.
+- Reserva expirada não oferece mais "Renovar" nem "Converter em venda": o lote já está livre;
+  para reservar de novo, é um pedido novo.
+
+**"Copiar proposta" (em Gerar proposta):** copia o texto das condições (lote, valor, entrada,
+parcelas, juros, 1º vencimento, reforços, total, validade e o corretor), pronto para colar na
+conversa com o cliente. No WhatsApp, os asteriscos viram negrito. Sem nome do cliente, sai sem
+a linha "Para:"; à vista, sai "Pagamento à vista".
+
+Para você fazer:
+
+- [ ] Rodar o `supabase/schema.sql` de novo (cria a liberação automática e o agendamento a cada
+      30 minutos). Se aparecer um aviso sobre `pg_cron`, me mande: é a extensão de agendamento
+      do Supabase, que às vezes precisa ser ligada em Database › Extensions.
+- [ ] Marcar a caixa em Configurações › Geral, se quiser a liberação automática.
+- [ ] Abrir um lote como corretor › Proposta › **Copiar proposta** e colar no WhatsApp.
+
+`testes/reserva-proposta.test.js` (9 casos) e um caso novo no teste de banco (a liberação só na
+empresa que escolheu, a reserva que vence hoje fica, ninguém do app chama a função).
 
 ---
 
