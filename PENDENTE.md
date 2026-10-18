@@ -37,6 +37,7 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 - [x] *(feito por você em 16/10)* Rodar o `supabase/schema.sql` de novo para o distrato (seção 7z15).
 - [ ] Rodar o `supabase/schema.sql` de novo para o registro de erros do app (seção 7z22).
 - [ ] Rodar o `supabase/schema.sql` de novo para a liberação automática das reservas vencidas (seção 7z25).
+- [ ] Rodar o `supabase/schema.sql` de novo para fechar as funções do banco a quem não entrou na conta (seção 7z24).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -792,6 +793,46 @@ Para você fazer:
 
 `testes/reserva-proposta.test.js` (9 casos) e um caso novo no teste de banco (a liberação só na
 empresa que escolheu, a reserva que vence hoje fica, ninguém do app chama a função).
+
+---
+
+## 7z24. Visitante sem login: nada da empresa, nem no banco nem no aparelho (17/10)
+
+Pedido seu: listar tudo o que um usuário não autenticado acessa. A análise (testada numa
+cópia do banco com as permissões padrão do Supabase) mostrou que **sem login ninguém lê,
+grava, altera ou apaga nada** nas 22 tabelas, nem vê as plantas. Duas correções saíram dela:
+
+- **Sair da conta apaga deste aparelho o que é da empresa.** Antes, a cópia dos dados (a que
+  abre o app sem internet, com clientes, CPF e contratos) ficava no navegador depois de sair,
+  e quem usasse o mesmo computador conseguia lê-la. Agora saem: a cópia dos dados, a lista de
+  empresas, os erros guardados (que vão para a nuvem antes) e o e-mail da tela de entrada.
+  - Se houver alteração que a nuvem ainda não recebeu, o app **pergunta antes de sair**:
+    saindo, ela se perde.
+  - Se a sessão cair sozinha (sem clicar em Sair), a cópia sai, mas a alteração pendente
+    fica para a próxima entrada.
+- **As funções do banco ficam fechadas para quem não entrou na conta.** Todas já se
+  protegiam sozinhas (pedem login ou que a pessoa seja da empresa); agora o banco nem deixa o
+  visitante chamar. É uma segunda tranca, que vale também para as funções que vierem depois.
+
+Para você fazer:
+
+- [ ] Rodar o `supabase/schema.sql` de novo.
+- [ ] Entrar, sair e entrar de novo: o e-mail não vem mais preenchido (é de propósito).
+
+Ficam para você decidir (não mudam código):
+
+- [ ] **O repositório `vinicauduro/lotifly` é público**: código, histórico, este arquivo, o
+      PRODUCT.md (com seu nome e CRECI) e a estrutura do banco ficam à vista. Fechar exige o
+      plano pago do GitHub (para continuar no GitHub Pages) ou publicar o app pelo
+      Cloudflare Pages / Netlify, que são gratuitos com repositório privado.
+- [ ] No painel do Supabase (Authentication › Sign In / Providers): conferir se a
+      **confirmação de e-mail** está ligada e se o **cadastro aberto** é o que você quer.
+- [ ] Convites com validade e limite de usos, para um código repassado não valer para
+      sempre.
+
+`testes/sair-limpa.test.js` (5 casos) e o caso novo do teste de banco (que agora simula as
+permissões padrão do Supabase) cobrem tudo; no código antigo, falham
+(`diagnostico/visitante-sem-acesso/`).
 
 ---
 

@@ -1170,6 +1170,26 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------
+-- 9. Tranca final: quem não entrou na conta (anon) não executa nada
+-- ---------------------------------------------------------------------
+-- Fica no fim do arquivo para pegar todas as funções acima. Todas já se protegem sozinhas
+-- (pedem login ou que a pessoa seja da empresa); esta é a segunda tranca. No Postgres, função
+-- nova nasce executável por qualquer um (PUBLIC), e no Supabase o anon ganha tudo o que é
+-- criado no public: fecha as de hoje e as que vierem depois. Quem está logado continua
+-- executando (as regras de acesso e os gatilhos usam estas funções).
+revoke execute on all functions in schema public from public, anon;
+grant execute on all functions in schema public to authenticated;
+do $$ begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    execute 'grant execute on all functions in schema public to service_role';
+  end if;
+end $$;
+alter default privileges in schema public revoke execute on functions from public;
+alter default privileges in schema public revoke all on functions from anon;
+alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke all on sequences from anon;
+alter default privileges in schema public grant execute on functions to authenticated;
+
 -- 10. Reserva vencida liberada sozinha (Configurações › Geral › Reservas)
 -- ---------------------------------------------------------------------
 -- Na empresa que marcou "liberar o lote sozinho" (config.reservaLiberaSozinha), a reserva

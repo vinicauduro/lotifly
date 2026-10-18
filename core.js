@@ -501,7 +501,7 @@ const Cloud = {
     this.client = window.supabase.createClient(GL_CFG.supabaseUrl, GL_CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
     this.client.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') { state.role = 'landing'; showScreen('landing'); renderAuth('nova-senha'); return; }
-      if (event === 'SIGNED_OUT') { this.user = null; this.fecharOrg(); state.role = 'landing'; showScreen('landing'); renderAuth('login'); return; }
+      if (event === 'SIGNED_OUT') { this.user = null; this.fecharOrg(); this.limparAparelho(false); state.role = 'landing'; showScreen('landing'); renderAuth('login'); return; }
       if (event === 'SIGNED_IN' && session && !this.user) { this.user = session.user; this.aposLogin(); }
     });
   },
@@ -540,7 +540,28 @@ const Cloud = {
     if (error) throw error;
     return data; // data.session === null quando a confirmação de e-mail está ativada
   },
-  async signOut() { if (this.user) { try { localStorage.removeItem('gl_orgs_' + this.user.id); } catch (e) { /* ignora */ } } this.fecharOrg(); await this.client.auth.signOut(); },
+  async signOut() {
+    /* Os erros guardados vão antes de sair: depois, sem login, não teriam como ir */
+    if (typeof Erros !== 'undefined') await Promise.race([Erros.enviar(), new Promise(r => setTimeout(r, 2000))]);
+    this.fecharOrg(); this.limparAparelho(true);
+    await this.client.auth.signOut();
+  },
+  /* Sair da conta apaga deste aparelho o que é da empresa: a cópia dos dados (a que abre o app
+     sem internet, com clientes, CPF e contratos), a lista de empresas, os erros guardados e o
+     e-mail que fica na tela de entrada. Num computador do escritório, quem senta depois não
+     acha nada. As alterações que a nuvem ainda não recebeu só saem no "Sair" de verdade, e
+     com confirmação (sair()); se a sessão cai sozinha, elas ficam para a próxima entrada. */
+  limparAparelho(comPendentes) {
+    try {
+      Object.keys(localStorage).filter(k => /^gl_(cache|orgs)_/.test(k) || k === 'gl_erros' || (comPendentes && k.startsWith('gl_pend_')))
+        .forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* navegador sem armazenamento: nada guardado */ }
+    prefs.ultimoEmail = ''; prefs.orgId = null; prefs.convitePendente = null; savePrefs();
+  },
+  /* Quantas alterações deste aparelho a nuvem ainda não recebeu, somando todas as empresas */
+  pendentesNoAparelho() {
+    try { return Object.keys(localStorage).filter(k => k.startsWith('gl_pend_')).reduce((s, k) => s + (JSON.parse(localStorage.getItem(k) || '[]').length || 0), 0); } catch (e) { return 0; }
+  },
   async resetPassword(email) { const { error } = await this.client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) throw error; },
   async updatePassword(senha) { const { error } = await this.client.auth.updateUser({ password: senha }); if (error) throw error; },
   async rpc(fn, args) { const { data, error } = await this.client.rpc(fn, args); if (error) throw new Error(error.message || String(error)); return data; },
@@ -1834,6 +1855,10 @@ function startRole(role) {
 }
 function voltarAdmin() { if (Cloud.active ? Cloud.admin : sessionStorage.getItem('gl_admin') === '1') startRole('admin'); }
 async function sair() {
+  if (Cloud.enabled && Cloud.user) {
+    const n = Math.max(Cloud.pendentesNoAparelho(), (Cloud.pendentes || []).length);
+    if (n && !confirm(`${n} alteração(ões) feitas neste aparelho ainda não chegaram à nuvem (sem internet ou recusadas). Saindo da conta, elas são apagadas daqui e se perdem.\n\nSair mesmo assim?`)) return;
+  }
   sessionStorage.removeItem('gl_admin');
   prefs.lastRole = null; savePrefs();
   if (Cloud.enabled) { state.role = 'landing'; showScreen('landing'); renderAuth('carregando'); await Cloud.signOut(); renderAuth('login'); return; }
