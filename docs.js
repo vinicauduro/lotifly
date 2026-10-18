@@ -430,7 +430,7 @@ function abrirPropostaForm(loteId) {
   });
   window.ppManual = false;
   ppCalc();
-  setTimeout(() => { const el = $('#ppNome'); if (el) el.focus(); }, 60);
+  focarSeLivre('ppNome');
 }
 
 function ppDados() {

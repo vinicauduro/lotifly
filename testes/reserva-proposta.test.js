@@ -87,10 +87,11 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.fill('#ppNome', 'Juliana Prado'); await page.fill('#ppTotal', '150000'); await page.fill('#ppEntrada', '30000'); await page.fill('#ppN', '60'); await page.fill('#ppJuros', '1');
     await page.evaluate(() => { window.ppManual = false; ppCalc(); setVal('ppVenc', '2026-11-17'); setVal('ppValidade', '2026-10-25'); });
     await page.getByRole('button', { name: 'Copiar proposta' }).click(); await page.waitForTimeout(150);
-    const r = await page.evaluate(lid => ({ t: window.copiado, rot: loteLabel(getLote(lid)), toast: [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' ') }), lid);
+    const r = await page.evaluate(lid => ({ t: window.copiado, rot: loteLabel(getLote(lid)), toast: [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' '),
+      tela: ['ppTotal', 'ppEntrada', 'ppN', 'ppJuros', 'ppParcela', 'ppReforco'].map(id => id + '=' + val(id)).join(' ') + ' manual=' + window.ppManual }), lid);
     const parcela = (120000 * 0.01 / (1 - Math.pow(1.01, -60))).toFixed(2).replace('.', ',');
     for (const s of [`*Proposta — ${r.rot}*`, 'Para: Juliana Prado', 'Valor: *R$ 150.000,00*', 'Entrada: R$ 30.000,00', `*60× de R$ ${parcela.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}*`, 'juros de 1,00% ao mês', '1º vencimento: 17/11/2026', 'Proposta válida até 25/10/2026.', 'Ana Souza · CRECI 12345-F · (47) 99123-4567'])
-      if (!(r.t || '').replace(/ /g, ' ').includes(s)) throw new Error(`falta "${s}" em:\n${r.t}`);
+      if (!(r.t || '').replace(/ /g, ' ').includes(s)) throw new Error(`falta "${s}" em: ${JSON.stringify(r.t)} · tela: ${r.tela}`);
     if (!/Proposta copiada/.test(r.toast)) throw new Error('sem aviso: ' + r.toast);
   });
   await passo('à vista e sem nome do cliente: "Pagamento à vista", sem a linha "Para:"', async () => {

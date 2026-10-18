@@ -1175,7 +1175,7 @@ function excluirVenda(id) {
       <div class="fg mt"><label>Para confirmar, escreva <b>EXCLUIR</b></label><input type="text" id="exVenda" placeholder="EXCLUIR" autocomplete="off"></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-outline-danger" onclick="confirmarExclusaoVenda('${x.id}')">Excluir contrato</button>`
   });
-  setTimeout(() => { const el = $('#exVenda'); if (el) el.focus(); }, 60);
+  focarSeLivre('exVenda');
 }
 function confirmarExclusaoVenda(id) {
   const x = getVenda(id); if (!x) return;
