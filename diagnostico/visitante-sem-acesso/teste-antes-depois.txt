@@ -1,0 +1,19 @@
+# Sair da conta — antes (main)
+✘ sair apaga a cópia dos dados, a lista de empresas, os erros e o e-mail; o resto do navegador fica sobrou: gl_cache_11111111-1111-1111-1111-111111111111, gl_cache_outra-empresa, gl_erros, gl_pend_11111111-1111-1111-1
+✘ os erros guardados vão para a nuvem antes de sair []
+✘ com alteração que a nuvem não recebeu: pergunta; "Cancelar" não sai nem apaga nada pergunta: 
+✘ confirmando, sai e apaga também a alteração pendente {"ch":["gl_cache_11111111-1111-1111-1111-111111111111","gl_cache_outra-empresa","gl_erros","gl_pend_11111111-1111-1111-1111-111111111111"],"saiu":3}
+✘ sessão que cai sozinha (sem clicar em Sair): apaga a cópia, mas guarda a alteração pendente page.evaluate: TypeError: Cloud.limparAparelho is not a function
+
+# Sair da conta — depois
+✔ sair apaga a cópia dos dados, a lista de empresas, os erros e o e-mail; o resto do navegador fica
+✔ os erros guardados vão para a nuvem antes de sair
+✔ com alteração que a nuvem não recebeu: pergunta; "Cancelar" não sai nem apaga nada
+✔ confirmando, sai e apaga também a alteração pendente
+✔ sessão que cai sozinha (sem clicar em Sair): apaga a cópia, mas guarda a alteração pendente
+
+# Banco — visitante sem login, com o schema antigo
+✘ visitante sem login: nenhuma tabela, nenhuma função; quem está logado continua executando 21 furo(s): anon executa atualizar_meu_perfil | anon executa cancelar_minha_reserva | anon executa colunas_mudadas | anon executa criar_organizacao
+
+# Banco — depois
+✔ visitante sem login: nenhuma tabela, nenhuma função; quem está logado continua executando
