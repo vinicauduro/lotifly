@@ -208,6 +208,34 @@ await passo('erros do app: todo membro grava os seus; só dono e admin leem e ap
   await como('admin', `delete from public.erros where org_id = '${ORG}'`);
   if (await n('admin') !== 0) throw new Error('admin não apagou');
 });
+await passo('reserva vencida: o banco libera sozinho só na empresa que escolheu; ninguém do app chama a função', async () => {
+  const ORG3 = '33333333-3333-3333-3333-333333333333';
+  await db.exec(`
+    insert into public.organizacoes (id, nome) values ('${ORG3}', 'Outra Loteadora');
+    insert into public.loteamentos (org_id, id, nome) values ('${ORG3}', 'lotx', 'Outro');
+    update public.organizacoes set config = config || '{"reservaLiberaSozinha": true}'::jsonb where id = '${ORG}';
+    set session_replication_role = replica;
+    insert into public.lotes (org_id, id, loteamento_id, quadra, numero, status, reserva_id) values
+      ('${ORG}', 'lv1', 'lot1', 'R', '1', 'reservado', 'rv1'),
+      ('${ORG}', 'lv2', 'lot1', 'R', '2', 'reservado', 'rv2'),
+      ('${ORG}', 'lv3', 'lot1', 'R', '3', 'reservado', 'rv3'),
+      ('${ORG3}', 'lv9', 'lotx', 'R', '9', 'reservado', 'rv9');
+    set session_replication_role = origin;
+    insert into public.reservas (org_id, id, loteamento_id, lote_id, cliente, status, validade) values
+      ('${ORG}', 'rv1', 'lot1', 'lv1', '{"nome":"Vencida Ontem"}', 'aprovada', (now() at time zone 'America/Sao_Paulo')::date - 1),
+      ('${ORG}', 'rv2', 'lot1', 'lv2', '{"nome":"Vence Hoje"}', 'aprovada', (now() at time zone 'America/Sao_Paulo')::date),
+      ('${ORG}', 'rv3', 'lot1', 'lv3', '{"nome":"Pedido Velho"}', 'pendente', (now() at time zone 'America/Sao_Paulo')::date - 3),
+      ('${ORG3}', 'rv9', 'lotx', 'lv9', '{"nome":"Empresa Manual"}', 'aprovada', (now() at time zone 'America/Sao_Paulo')::date - 5);`);
+  const n = (await db.query(`select public.liberar_reservas_vencidas() as n`)).rows[0].n;
+  const st = (await db.query(`select r.id, r.status, l.status as lote, l.reserva_id from public.reservas r join public.lotes l on l.org_id = r.org_id and l.id = r.lote_id where r.id in ('rv1','rv2','rv3','rv9') order by r.id`)).rows.map(x => `${x.id}:${x.status}/${x.lote}${x.reserva_id ? '' : '(livre)'}`).join(' ');
+  if (n !== 2 || st !== 'rv1:expirada/disponivel(livre) rv2:aprovada/reservado rv3:expirada/disponivel(livre) rv9:aprovada/reservado') throw new Error(n + ' · ' + st);
+  const log = (await db.query(`select count(*)::int as n from public.log where org_id = '${ORG}' and msg like 'Reserva expirada: Quadra R · Lote 1 — Vencida Ontem%'`)).rows[0].n;
+  if (log !== 1) throw new Error('sem registro no histórico');
+  if ((await db.query(`select public.liberar_reservas_vencidas() as n`)).rows[0].n !== 0) throw new Error('liberou de novo');
+  await db.exec(SCHEMA);   // como no Supabase: o schema rodado de novo deixa a função fechada
+  const pode = (await db.query(`select has_function_privilege('authenticated', 'public.liberar_reservas_vencidas()', 'execute') a, has_function_privilege('anon', 'public.liberar_reservas_vencidas()', 'execute') b`)).rows[0];
+  if (pode.a || pode.b) throw new Error('app consegue chamar a função: ' + JSON.stringify(pode));
+});
 await passo('corretor continua barrado pela função (nem chega às travas por pessoa)', async () => {
   await db.exec(`insert into public.vendas (org_id, id, loteamento_id, lote_id, valor_total) values ('${ORG}','v9','lot1','l9',1)`);
   const r = await como('cor', `update public.vendas set obs = 'x' where id = 'v9' returning id`);

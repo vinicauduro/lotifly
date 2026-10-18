@@ -335,6 +335,7 @@ function defaultConfig() {
     pinPadrao: true,
     codigoCorretor: '',
     reservaDias: 7,
+    reservaLiberaSozinha: false,
     multaPct: 2,
     jurosMesPct: 1,
     comissaoPct: 5,
@@ -1594,6 +1595,23 @@ function custoStatus(c) { if (c.status === 'pago') return 'pago'; if (c.vencimen
    não entra no orçado × realizado nem nas despesas do imóvel. */
 const CAT_DEVOLUCAO = 'devolucao-distrato';
 function custoDeObra(c) { return !!c.loteamentoId && c.categoriaId !== CAT_DEVOLUCAO; }
+/* Reserva vencida, na empresa que escolheu "liberar o lote sozinho" (Configurações › Geral):
+   a reserva passa a "expirada" e o lote volta a ficar disponível, como no botão "Liberar o
+   lote". Na nuvem o banco faz o mesmo a cada meia hora (liberar_reservas_vencidas), sem
+   depender de alguém abrir o app; aqui é o mesmo efeito na hora, para quem pode mexer em
+   reservas (dono e administrador; no modo sem nuvem, quem usa o aparelho). Confere no máximo
+   uma vez por minuto: a tela redesenha muitas vezes. */
+function liberarReservasVencidas(agora) {
+  if (!db.config || !db.config.reservaLiberaSozinha) return 0;
+  if (Cloud.active && !['dono', 'admin'].includes(Cloud.papel)) return 0;
+  const t = Date.now();
+  if (!agora && state._liberouReservasEm && t - state._liberouReservasEm < 60000) return 0;
+  state._liberouReservasEm = t;
+  const hoje = todayStr();
+  const vencidas = db.reservas.filter(r => (r.status === 'pendente' || r.status === 'aprovada') && r.validade && r.validade < hoje);
+  vencidas.forEach(r => liberarReserva(r, 'expirada', 'Prazo vencido: lote liberado sozinho'));
+  return vencidas.length;
+}
 /* Grupos de despesa do balancete. Cada categoria cai num grupo: o de fábrica vem daqui, e o
    dono muda em Configurações › Categorias (fica em config.gruposBalancete). Categoria criada
    pelo usuário sem grupo escolhido: obra se a despesa é de um empreendimento, senão
@@ -1691,6 +1709,7 @@ function switchTab(tab) {
 }
 function renderCurrent() {
   if (state.role === 'landing' || !state.role) { renderLanding(); return; }
+  liberarReservasVencidas();
   const mudou = registrarMudancas();
   const kpisAntes = mudou ? lerKpis() : null;
   if (state.role === 'corretor') renderCorretorTab();

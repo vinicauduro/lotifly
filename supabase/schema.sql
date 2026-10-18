@@ -1168,3 +1168,53 @@ begin
   delete from public.log where org_id = p_org;
   perform set_config('lotifly.limpando', '', true);
 end $$;
+
+-- ---------------------------------------------------------------------
+-- 10. Reserva vencida liberada sozinha (Configurações › Geral › Reservas)
+-- ---------------------------------------------------------------------
+-- Na empresa que marcou "liberar o lote sozinho" (config.reservaLiberaSozinha), a reserva
+-- pendente ou aprovada cujo prazo acabou vira "expirada" e o lote volta a ficar disponível.
+-- Roda no próprio banco a cada 30 minutos (pg_cron), sem depender de alguém abrir o app. O dia
+-- é o de Brasília: a reserva vale até o fim do último dia do prazo.
+create or replace function public.liberar_reservas_vencidas()
+returns int language plpgsql security definer set search_path = public as $$
+declare v_hoje date := (now() at time zone 'America/Sao_Paulo')::date; v_n int := 0; r record;
+begin
+  for r in
+    select rs.org_id, rs.id, rs.lote_id, coalesce(rs.cliente->>'nome', '') as cliente,
+           coalesce('Quadra ' || l.quadra || ' · Lote ' || l.numero, 'lote') as lote
+      from public.reservas rs
+      join public.organizacoes o on o.id = rs.org_id
+      left join public.lotes l on l.org_id = rs.org_id and l.id = rs.lote_id
+     where rs.status in ('pendente', 'aprovada') and rs.validade is not null and rs.validade < v_hoje
+       and coalesce(o.config->>'reservaLiberaSozinha', '') = 'true'
+     for update of rs skip locked
+  loop
+    update public.reservas set status = 'expirada', encerrada_em = now(), motivo = 'Prazo vencido: lote liberado sozinho'
+     where org_id = r.org_id and id = r.id;
+    update public.lotes set status = 'disponivel', reserva_id = null
+     where org_id = r.org_id and id = r.lote_id and status = 'reservado' and reserva_id = r.id;
+    insert into public.log (org_id, id, who, msg)
+      values (r.org_id, public.gl_novo_id(), 'Sistema', 'Reserva expirada: ' || r.lote || ' — ' || r.cliente || ' (Prazo vencido: lote liberado sozinho)');
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end $$;
+-- Só o banco chama (pelo agendamento): ninguém do app, logado ou não.
+revoke execute on function public.liberar_reservas_vencidas() from public, anon, authenticated;
+
+-- O agendamento a cada 30 minutos. Sem o pg_cron (banco fora do Supabase, ou extensão
+-- indisponível), segue sem ele: o app libera quando o dono ou o administrador abre.
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron indisponível (%); a liberação fica por conta do app', sqlerrm;
+  end;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.schedule('lotifly-liberar-reservas', '*/30 * * * *', 'select public.liberar_reservas_vencidas()');
+  end if;
+exception when others then
+  raise notice 'agendamento da liberação de reservas não criado (%)', sqlerrm;
+end $$;

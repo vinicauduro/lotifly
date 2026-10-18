@@ -426,7 +426,7 @@ function abrirPropostaForm(loteId) {
         <div class="frow"><div class="fg"><label>Reforço anual (R$) <span class="tiny muted">opcional</span></label><input type="number" id="ppReforco" step="0.01" value="" oninput="ppCalc()"></div><div class="fg"><label>Validade da proposta</label><input type="date" id="ppValidade" value="${addDays(todayStr(), 5)}"></div></div>
         <div class="sim-result" id="ppResumo"></div></div>
       ${docFormLivres(livres, 'ppL_')}`,
-    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="gerarProposta('${l.id}')">Gerar proposta</button>`
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-outline" onclick="copiarProposta('${l.id}')"><i class=ico data-i=copy></i>Copiar proposta</button><button class="btn btn-primary" onclick="gerarProposta('${l.id}')">Gerar proposta</button>`
   });
   window.ppManual = false;
   ppCalc();
@@ -453,6 +453,50 @@ function ppCalc() {
   const box = $('#ppResumo'); if (!box) return;
   box.innerHTML = `Entrada <b>${fmtMoney(d.entrada)}</b> + <b>${d.n}×</b> de <b>${fmtMoney(parcela)}</b>${somaRef ? ` + ${d.baloes.length} reforço(s) de ${fmtMoney(d.baloes[0].valor)}` : ''}
     <br><span class="tiny muted">Total pago ${fmtMoney(d.entrada + parcela * d.n + somaRef)} · saldo financiado ${fmtMoney(Math.max(0, d.total - d.entrada))}</span>`;
+}
+
+/* "Copiar proposta": o texto das condições, pronto para colar na conversa com o cliente
+   (WhatsApp, e-mail). Sai do que está na tela agora, com ou sem o nome do cliente; os
+   asteriscos viram negrito no WhatsApp. */
+function textoProposta(loteId) {
+  const l = getLote(loteId); if (!l) return '';
+  const lot = getLoteamento(l.loteamentoId) || {};
+  const d = ppDados(), parcela = num(val('ppParcela')), juros = num(val('ppJuros'));
+  const perfil = typeof corretorPerfil === 'function' ? corretorPerfil() : {};
+  const somaRef = d.baloes.reduce((s, b) => s + b.valor, 0);
+  const linhas = [`*Proposta — ${loteLabel(l)}*`, [lot.nome, lot.cidade].filter(Boolean).join(', ')];
+  if (val('ppNome')) linhas.push(`Para: ${val('ppNome')}`);
+  linhas.push('');
+  if (num(l.area)) linhas.push(`Área: ${fmtNum(l.area, 2)} m²${l.frente ? ` (${fmtNum(l.frente, 2)} × ${fmtNum(l.fundos || 0, 2)} m)` : ''}`);
+  linhas.push(`Valor: *${fmtMoney(d.total)}*`);
+  if (!d.n) linhas.push(`Pagamento à vista: ${fmtMoney(d.total)}`);
+  else {
+    if (d.entrada) linhas.push(`Entrada: ${fmtMoney(d.entrada)}`);
+    linhas.push(`Parcelas: *${d.n}× de ${fmtMoney(parcela)}* (${juros ? `juros de ${fmtNum(juros, 2)}% ao mês` : 'sem juros'})`);
+    linhas.push(`1º vencimento: ${fmtDate(d.venc)}`);
+    if (somaRef) linhas.push(`Reforços anuais: ${d.baloes.length}× de ${fmtMoney(d.baloes[0].valor)}`);
+    linhas.push(`Total: ${fmtMoney(d.entrada + parcela * d.n + somaRef)}`);
+  }
+  if (val('ppValidade')) linhas.push('', `Proposta válida até ${fmtDate(val('ppValidade'))}.`);
+  const assina = [perfil.nome, perfil.creci ? 'CRECI ' + perfil.creci : '', perfil.telefone ? fmtPhone(perfil.telefone) : ''].filter(Boolean).join(' · ');
+  if (assina) linhas.push('', assina);
+  return linhas.join('\n');
+}
+function copiarProposta(loteId) {
+  const txt = textoProposta(loteId); if (!txt) return;
+  const ok = () => toast('📋', 'Proposta copiada', 'Cole na conversa com o cliente.');
+  /* Sem a área de transferência moderna (navegador antigo, página sem https), copia pelo
+     jeito antigo, selecionando um campo escondido. */
+  const antigo = () => {
+    const ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+    let feito = false; try { feito = document.execCommand('copy'); } catch (e) { /* sem cópia */ }
+    ta.remove();
+    if (feito) ok(); else toast('⚠️', 'Não deu para copiar', 'Use "Gerar proposta" e envie o PDF.', true);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, antigo); else antigo();
+  const l = getLote(loteId);
+  logAct(`Proposta copiada: ${l ? loteLabel(l) : ''}${val('ppNome') ? ' — ' + val('ppNome') : ''}`);
 }
 
 function gerarProposta(loteId) {
