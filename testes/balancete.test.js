@@ -120,7 +120,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     });
     if (r.n1 !== 3 || !r.tem || r.n2 !== 0 || r.volta) throw new Error(JSON.stringify(r));
   });
-  await passo('Configurações › Categorias: escolher o grupo do balancete no formulário', async () => {
+  await passo('Configurações › Plano de contas: escolher o grupo do balancete no formulário da conta', async () => {
     await page.evaluate(() => { abrirCategoriaForm('cx'); });
     const opts = await page.locator('#ctGrupo option').allInnerTexts();
     if (!opts.some(o => o === 'Folha de pagamento') || opts.some(o => /Comissões/.test(o))) throw new Error(opts.join(' | '));

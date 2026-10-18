@@ -453,6 +453,15 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--p
 /* Balancete (Relatórios): seções, totais e resultado com peso diferente; a coluna da conta
    fica presa na rolagem lateral quando há muitos meses */
 .tbl-balancete td, .tbl-balancete th { white-space: nowrap; }
+/* Plano de contas e centros de custo: grupo com as contas embaixo */
+.pc-sec { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+.pc-grupo { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.pc-gh { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+.pc-gh > div { min-width: 0; }
+.pc-gh .h-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pc-grupo .item.pc-conta { margin-bottom: 4px; }
+.item.pc-auto { cursor: default; }
+.item.pc-conta.inativa .title { color: var(--muted); }
 .tbl-balancete th:first-child, .tbl-balancete td:first-child { position: sticky; left: 0; background: var(--card); z-index: 1; white-space: normal; min-width: 180px; }
 .tbl-balancete th:first-child { background: var(--surface-2); z-index: 2; }
 .tbl-balancete .bal-sec td { background: var(--surface-2); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 10px; }

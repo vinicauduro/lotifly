@@ -38,6 +38,7 @@ perderam na limpeza do ambiente. Só os arquivos de `testes/` contam como cobert
 - [ ] Rodar o `supabase/schema.sql` de novo para o registro de erros do app (seção 7z22).
 - [ ] Rodar o `supabase/schema.sql` de novo para a liberação automática das reservas vencidas (seção 7z25).
 - [ ] Rodar o `supabase/schema.sql` de novo para fechar as funções do banco a quem não entrou na conta (seção 7z24).
+- [ ] Rodar o `supabase/schema.sql` de novo para o centro de custo das despesas (seção 7z26).
 - [ ] **Dados da empresa**, com quem assina; colar o **seu contrato** e a **sua proposta** em
       Modelos de documento e usar **Ver exemplo** (seções 3 e 7h).
 - [ ] **Índices reais** (IGP-M, INPC, IPCA, CUB), colando da planilha (seções 4 e 7h).
@@ -756,6 +757,76 @@ permissões por funcionário, definidas por você e garantidas também no banco.
 `test26` cobre o menu: cada item abre só a sua tela, Boletos com e sem conta, A pagar da
 empresa inteira, lançar despesa pelo menu, reservas, permissões escondendo item e grupo, e a
 gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco passam.
+
+---
+
+## 7z26. Financeiro: plano de contas e centros de custo (18/10)
+
+Primeira etapa do financeiro único. Antes havia uma lista solta de "categorias"; agora o
+dinheiro da empresa se organiza como num plano de contas, e cada despesa diz **quem gastou**.
+
+**Configurações › Plano de contas** (era "Categorias"):
+
+- **Receitas:** as linhas que vêm sozinhas dos contratos (entradas, parcelas, reforços, taxas
+  de cessão, correção e juros).
+- **Despesas em dois níveis: grupo e conta.** O grupo é a linha do balancete (Custo das obras,
+  Folha de pagamento, Comercial e marketing, Despesas administrativas, Impostos, Financeiras…);
+  as contas ficam embaixo dele (Terraplanagem, Salários, Pró-labore, Aluguel…).
+- **Grupo novo** (botão "Grupo"), por exemplo "Veículos e combustível". Vira uma linha do
+  balancete. Os grupos de fábrica podem ser **renomeados**, mas não apagados; os criados pela
+  empresa se apagam quando ficam vazios.
+- **Conta nova direto no grupo** (botão "Conta" de cada grupo).
+- **Desativar conta:** some do lançamento de despesas, mas o que já foi lançado nela continua
+  nos relatórios. Conta com lançamento não se exclui; desative.
+- Contas sem grupo aparecem em "Sem grupo" e seguem a regra de antes (obra se for de um
+  empreendimento, administrativa se for da empresa).
+
+**Configurações › Centros de custo** (nova):
+
+- Cada **empreendimento** já é um centro, sozinho.
+- **Administração:** as despesas da empresa sem outro centro (é onde estava tudo até hoje).
+- **Centros da empresa** que você cria: Comercial, Escritório, Diretoria… Dá para desativar
+  (some do lançamento, o histórico fica).
+
+**No lançamento da despesa:** "De quem é a despesa (centro de custo)" agora oferece, além dos
+empreendimentos, **Empresa · Administração** e **Empresa · Comercial** (e os que você criar). A
+conta aparece separada pelos grupos do plano.
+
+**Financeiro › A pagar:** filtro por centro de custo da empresa, e o filtro de conta separado
+por grupo.
+
+**Relatórios › Balancete:**
+
+- **Colunas por centro de custo:** cada empreendimento, a Administração e os seus centros lado
+  a lado, com receita, despesa e resultado de cada um. As parcelas e as comissões vão para o
+  empreendimento do contrato. A Administração e os centros da empresa costumam dar negativo,
+  porque só gastam: é o custo da estrutura que os empreendimentos pagam.
+- **Filtro "Centro de custo da empresa":** o resultado só da Administração ou só do Comercial.
+- Os grupos criados e renomeados aparecem no balancete.
+
+**Relatórios › Despesas:** agrupar por **centro de custo** e por **grupo do plano**; o CSV
+ganhou as colunas Grupo e Centro de custo.
+
+Para você fazer:
+
+- [ ] Rodar o `supabase/schema.sql` de novo (cria o campo do centro de custo na despesa). Antes
+      disso, as despesas sem centro continuam sendo lançadas normalmente; só a escolha de um
+      centro novo pede o schema.
+- [ ] Criar os seus centros (ex.: Comercial, Escritório) e, se quiser, os grupos que faltam.
+- [ ] Abrir o balancete com **Colunas › Por centro de custo** e conferir com a sua planilha.
+
+**Próximas etapas do financeiro único** (para decidirmos a ordem):
+
+1. **Contas bancárias com saldo:** cada recebimento e pagamento sai de uma conta (Banco do
+   Brasil, Caixa, dinheiro), com saldo inicial, **transferência entre contas** e **extrato**.
+2. **Receitas avulsas:** intermediação, aluguel, aporte dos sócios, rendimento, que hoje não
+   têm onde ser lançadas.
+3. **Fluxo de caixa:** previsto × realizado, mês a mês, somando parcelas a receber e contas a
+   pagar.
+4. **Conciliação pelo extrato do banco (OFX)** e **exportação para o contador**.
+
+`testes/plano-contas.test.js` (13 casos) e um caso novo no teste de banco (a despesa grava o
+centro; só quem altera as configurações cria centros e grupos).
 
 ---
 

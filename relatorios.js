@@ -15,7 +15,7 @@ const RELATORIOS = [
 
 function relState() {
   const hoje = todayStr();
-  state.rel = state.rel || { tipo: 'resumo', de: hoje.slice(0, 4) + '-01-01', ate: hoje, agrupar: 'categoria', status: 'todos', categoria: '', fornecedor: '', corretor: '', quadra: '', base: 'competencia', regime: 'caixa' };
+  state.rel = state.rel || { tipo: 'resumo', de: hoje.slice(0, 4) + '-01-01', ate: hoje, agrupar: 'categoria', status: 'todos', categoria: '', fornecedor: '', corretor: '', quadra: '', base: 'competencia', regime: 'caixa', centro: '', colunas: 'mes' };
   return state.rel;
 }
 function relSet(campo, valor) { relState()[campo] = valor; renderRelatorios(); }
@@ -143,45 +143,57 @@ function lancamentosBalancete(escopo, regime) {
     /* O que foi recebido vale mesmo se o contrato depois virou distrato: o dinheiro entrou. */
     db.recebiveis.filter(r => noEscopo(r, escopo) && num(r.valorPago) > 0 && noPeriodo(r.dataPagamento)).forEach(r => {
       const pago = num(r.valorPago), principal = Math.min(pago, num(r.valor));
-      out.push({ data: r.dataPagamento, tipo: 'receita', linha: linhaRec(r), valor: principal });
-      if (pago - principal > 0.005) out.push({ data: r.dataPagamento, tipo: 'receita', linha: 'encargos', valor: pago - principal });
+      out.push({ data: r.dataPagamento, tipo: 'receita', linha: linhaRec(r), valor: principal, centro: centroDe(r) });
+      if (pago - principal > 0.005) out.push({ data: r.dataPagamento, tipo: 'receita', linha: 'encargos', valor: pago - principal, centro: centroDe(r) });
     });
     custosDo(escopo).filter(c => c.status === 'pago' && noPeriodo(c.dataPagamento))
-      .forEach(c => out.push({ data: c.dataPagamento, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor) }));
+      .forEach(c => out.push({ data: c.dataPagamento, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor), centro: centroDoCusto(c) }));
     vendasDo(escopo).filter(v => v.comissaoPaga && num(v.comissaoValor) > 0 && noPeriodo(v.comissaoData))
-      .forEach(v => out.push({ data: v.comissaoData, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor) }));
+      .forEach(v => out.push({ data: v.comissaoData, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor), centro: centroDe(v) }));
   } else {
     recebiveisDo(escopo).filter(r => noPeriodo(r.vencimento)).forEach(r => {
-      out.push({ data: r.vencimento, tipo: 'receita', linha: linhaRec(r), valor: num(r.valor) });
+      out.push({ data: r.vencimento, tipo: 'receita', linha: linhaRec(r), valor: num(r.valor), centro: centroDe(r) });
       const corr = recValor(r) - num(r.valor);
-      if (corr > 0.005) out.push({ data: r.vencimento, tipo: 'receita', linha: 'encargos', valor: corr });
+      if (corr > 0.005) out.push({ data: r.vencimento, tipo: 'receita', linha: 'encargos', valor: corr, centro: centroDe(r) });
     });
     custosDo(escopo).filter(c => noPeriodo(c.dataCompetencia))
-      .forEach(c => out.push({ data: c.dataCompetencia, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor) }));
+      .forEach(c => out.push({ data: c.dataCompetencia, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor), centro: centroDoCusto(c) }));
     vendasDo(escopo).filter(v => v.status !== 'distrato' && num(v.comissaoValor) > 0 && noPeriodo(v.dataVenda))
-      .forEach(v => out.push({ data: v.dataVenda, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor) }));
+      .forEach(v => out.push({ data: v.dataVenda, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor), centro: centroDe(v) }));
   }
-  return out;
+  /* Um centro de custo da empresa escolhido (sem empreendimento no alto da tela): só ele */
+  const centro = !escopo && centroDoFiltro();
+  return centro ? out.filter(l => l.centro === centro) : out;
 }
+/* Parcela e comissão são do empreendimento do contrato */
+function centroDoFiltro() { const c = relState().centro; return c && (c === CENTRO_ADM || getCentro(c)) ? c : ''; }
+function centroDe(rec) { return rec.loteamentoId ? 'emp:' + rec.loteamentoId : CENTRO_ADM; }
 /* Colunas: um mês por coluna até 12 meses; mais que isso, um ano por coluna. Só o trecho que
    tem lançamento: "Tudo" não abre cem anos vazios. */
 function colunasBalancete(lanc) {
   const f = relState();
+  /* Por centro de custo: um centro por coluna (os que tiveram movimento), na ordem do cadastro */
+  if (f.colunas === 'centro') {
+    const tem = new Set(lanc.map(l => l.centro));
+    const chaves = todosCentros().map(c => c[0]).filter(k => tem.has(k));
+    tem.forEach(k => { if (!chaves.includes(k)) chaves.push(k); });
+    return { porCentro: true, chaves, rotulo: k => nomeCentro(k), de: l => l.centro };
+  }
   const datas = lanc.map(l => l.data).sort();
   const de = datas.length ? (datas[0] > f.de ? datas[0] : f.de) : f.de;
   const ate = datas.length ? (datas[datas.length - 1] < f.ate ? datas[datas.length - 1] : f.ate) : f.ate;
   const meses = [];
   for (let k = de.slice(0, 7); k <= ate.slice(0, 7) && meses.length <= 13; k = monthKey(addMonths(k + '-01', 1))) meses.push(k);
-  if (meses.length <= 12) return { porAno: false, chaves: meses, rotulo: k => monthLabel(k), de: d => d.slice(0, 7) };
+  if (meses.length <= 12) return { porAno: false, chaves: meses, rotulo: k => monthLabel(k), de: l => l.data.slice(0, 7) };
   const anos = [];
   for (let a = Number(de.slice(0, 4)); a <= Number(ate.slice(0, 4)); a++) anos.push(String(a));
-  return { porAno: true, chaves: anos, rotulo: k => k, de: d => d.slice(0, 4) };
+  return { porAno: true, chaves: anos, rotulo: k => k, de: l => l.data.slice(0, 4) };
 }
 function relBalancete(escopo) {
   const f = relState(), regime = f.regime === 'competencia' ? 'competencia' : 'caixa';
   const lanc = lancamentosBalancete(escopo, regime);
   const col = colunasBalancete(lanc);
-  const soma = (filtro, k) => lanc.filter(l => filtro(l) && (k == null || col.de(l.data) === k)).reduce((s, l) => s + l.valor, 0);
+  const soma = (filtro, k) => lanc.filter(l => filtro(l) && (k == null || col.de(l) === k)).reduce((s, l) => s + l.valor, 0);
   const porColuna = filtro => col.chaves.map(k => soma(filtro, k)).concat(soma(filtro));
   const receita = porColuna(l => l.tipo === 'receita');
   const despesa = porColuna(l => l.tipo === 'despesa');
@@ -195,7 +207,7 @@ function relBalancete(escopo) {
   LINHAS_RECEITA.forEach(([k, rot]) => { const v = porColuna(l => l.tipo === 'receita' && l.linha === k); if (Math.abs(v[v.length - 1]) > 0.005) linhas.push({ classe: 'conta', rot, v }); });
   linhas.push({ classe: 'tot', rot: 'Receita total', v: receita });
   linhas.push({ classe: 'sec', rot: 'Despesas' });
-  GRUPOS_BALANCETE.forEach(([g, rot]) => {
+  gruposDespesa().forEach(([g, rot]) => {
     const v = porColuna(l => l.tipo === 'despesa' && l.linha === g);
     if (Math.abs(v[v.length - 1]) < 0.005) return;
     linhas.push({ classe: 'conta', rot, v });
@@ -208,13 +220,13 @@ function relBalancete(escopo) {
   linhas.push({ classe: 'tot', rot: 'Despesa total', v: despesa });
   linhas.push({ classe: 'res', rot: totRes >= 0 ? 'Resultado do período: lucro' : 'Resultado do período: prejuízo', v: resultado });
   const cols = [{ t: 'Conta' }].concat(col.chaves.map(k => ({ t: col.rotulo(k), num: true })), [{ t: col.chaves.length > 1 ? 'Total' : 'Valor', num: true }, { t: '% da receita', num: true }]);
-  const umaColuna = col.chaves.length <= 1;
+  const umaColuna = col.chaves.length <= 1 && !col.porCentro;
   const cel = (v, i, l) => {
     if (umaColuna && i < v.length - 1) return null;
     const neg = l.classe === 'res' && v[i] < -0.005;
     return `<td class="num${neg ? ' neg' : l.classe === 'res' ? ' pos' : ''}">${dinheiro(v[i])}</td>`;
   };
-  const html = lanc.length ? `<div class="card" style="padding:10px"><div class="table-wrap" tabindex="0" role="region" aria-label="Balancete, role para o lado para ver todos os meses"><table class="tbl tbl-balancete">
+  const html = lanc.length ? `<div class="card" style="padding:10px"><div class="table-wrap" tabindex="0" role="region" aria-label="Balancete, role para o lado para ver todas as colunas"><table class="tbl tbl-balancete">
     <thead><tr><th>Conta</th>${umaColuna ? '' : col.chaves.map(k => `<th class="num">${esc(col.rotulo(k))}</th>`).join('')}<th class="num">${umaColuna ? 'Valor' : 'Total'}</th><th class="num">% da receita</th></tr></thead>
     <tbody>${linhas.map(l => l.classe === 'sec'
       ? `<tr class="bal-sec"><td colspan="${(umaColuna ? 0 : col.chaves.length) + 3}">${esc(l.rot)}</td></tr>`
@@ -225,21 +237,30 @@ function relBalancete(escopo) {
   const aReceber = regime === 'caixa' ? recebiveisDo(escopo).filter(r => noPeriodo(r.vencimento)).reduce((s, r) => s + recRestante(r), 0) : 0;
   const temFolha = lanc.some(l => l.linha === 'folha');
   const emp = escopo ? getLoteamento(escopo) : null;
+  const centro = !escopo ? centroDoFiltro() : '';
   const notas = [
     regime === 'caixa'
       ? '<b>Regime de caixa:</b> o que entrou (pagamentos recebidos) e o que saiu (despesas e comissões pagas) em cada mês.'
       : '<b>Regime de competência:</b> receitas pelo vencimento das parcelas e despesas pelo mês de competência, pagas ou não; a comissão entra no mês da venda.',
     regime === 'caixa' && (naoPagas > 0.005 || aReceber > 0.005) ? `Ficaram de fora, por ainda não terem sido pagos: ${naoPagas > 0.005 ? `${fmtMoney(naoPagas)} de despesas do período` : ''}${naoPagas > 0.005 && aReceber > 0.005 ? ' e ' : ''}${aReceber > 0.005 ? `${fmtMoney(aReceber)} a receber de parcelas que venceram no período` : ''}.` : '',
     emp ? `Só o empreendimento <b>${esc(emp.nome)}</b>: as despesas da empresa sem empreendimento (escritório, folha) não entram. Para o resultado da empresa inteira, escolha "Todos" no alto da tela.` : '',
+    !emp && centro ? `Só o centro de custo <b>${esc(nomeCentro(centro))}</b>: as despesas lançadas nele${centro === CENTRO_ADM ? ' (as da empresa sem outro centro)' : ''}. As receitas dos contratos são dos empreendimentos, por isso não aparecem aqui.` : '',
+    col.porCentro ? 'Cada coluna é um centro de custo: as receitas e comissões vão para o empreendimento do contrato, e cada despesa para o centro escolhido no lançamento. O resultado da Administração e dos outros centros da empresa costuma ser negativo, porque eles só gastam: é o custo da estrutura que os empreendimentos sustentam.' : '',
     'As comissões vêm da marcação "paga" nos contratos. Se a comissão também foi lançada como despesa, ela aparece duas vezes: deixe só uma.',
-    temFolha ? '' : 'Para ver a folha separada, lance salários e encargos na categoria <b>Folha de pagamento</b> (e a retirada dos sócios em <b>Pró-labore</b>). O grupo de cada categoria se ajusta em Configurações › Categorias.'
+    temFolha ? '' : 'Para ver a folha separada, lance salários e encargos na conta <b>Folha de pagamento</b> (e a retirada dos sócios em <b>Pró-labore</b>). O grupo de cada conta se ajusta em Configurações › Plano de contas.'
   ].filter(Boolean);
   const csv = linhas.filter(l => l.classe !== 'sec').map(l => [l.classe === 'sub' ? '   ' + l.rot : l.rot].concat((umaColuna ? [l.v[l.v.length - 1]] : l.v).map(v => fmtNum(v)), [pct(l.v[l.v.length - 1])]));
   return {
-    titulo: `Balancete (${regime === 'caixa' ? 'caixa' : 'competência'})`,
+    titulo: `Balancete (${regime === 'caixa' ? 'caixa' : 'competência'})${!emp && centro ? ' · ' + nomeCentro(centro) : ''}${col.porCentro ? ' por centro de custo' : ''}`,
     filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label for="relRegime">Regime</label><select id="relRegime" onchange="relSet('regime',this.value)">
         <option value="caixa" ${regime === 'caixa' ? 'selected' : ''}>Caixa: o que entrou e saiu no mês</option>
-        <option value="competencia" ${regime === 'competencia' ? 'selected' : ''}>Competência: o que é do mês, pago ou não</option></select></div></div>`,
+        <option value="competencia" ${regime === 'competencia' ? 'selected' : ''}>Competência: o que é do mês, pago ou não</option></select></div>
+      <div class="fg"><label for="relColunas">Colunas</label><select id="relColunas" onchange="relSet('colunas',this.value)">
+        <option value="mes" ${!col.porCentro ? 'selected' : ''}>Por período (mês ou ano)</option>
+        <option value="centro" ${col.porCentro ? 'selected' : ''}>Por centro de custo</option></select></div></div>
+      ${!emp ? `<div class="frow"><div class="fg"><label for="relCentro">Centro de custo da empresa</label><select id="relCentro" onchange="relSet('centro',this.value)">
+        <option value="">Todos (empresa inteira)</option>${[[CENTRO_ADM, 'Administração']].concat(centrosCusto().map(c => [c.id, c.nome])).map(([k, l]) => `<option value="${esc(k)}" ${centro === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+        <div class="hint">Para um empreendimento, escolha-o no alto da tela.</div></div></div>` : ''}`,
     kpis: relKpis([
       { lbl: 'Receitas', val: fmtMoneyShort(totRec), sub: regime === 'caixa' ? 'recebido no período' : 'do período', cor: 'c-blue' },
       { lbl: 'Despesas', val: fmtMoneyShort(totDesp), sub: regime === 'caixa' ? 'pago no período' : 'do período', cor: 'c-amber' },
@@ -434,6 +455,8 @@ function relDespesas(escopo) {
     : f.agrupar === 'mes' ? monthLabel(monthKey(dataBase(c)))
       : f.agrupar === 'lote' ? (c.loteId ? loteShort(getLote(c.loteId) || {}) || 'Geral' : c.vendaId && getVenda(c.vendaId) ? imovelShort(getVenda(c.vendaId)) || 'Imóvel' : c.loteamentoId ? 'Geral do empreendimento' : 'Empresa (sem empreendimento)')
         : f.agrupar === 'vinculo' ? (c.loteamentoId ? (getLoteamento(c.loteamentoId) || {}).nome || 'Empreendimento' : 'Empresa (sem empreendimento)')
+        : f.agrupar === 'centro' ? nomeCentro(centroDoCusto(c))
+        : f.agrupar === 'grupo' ? nomeGrupoBalancete(grupoDoCusto(c)) || 'Sem grupo'
         : (getCategoria(c.categoriaId) || {}).nome || 'Sem categoria';
   const linhas = [], csv = [];
   let atual = null;
@@ -448,9 +471,9 @@ function relDespesas(escopo) {
     const cat = getCategoria(c.categoriaId);
     const l = c.loteId ? getLote(c.loteId) : null;
     linhas.push({ cells: [fmtDate(dataBase(c)), esc(c.descricao), cat ? esc(cat.nome) : '—', esc(c.fornecedor || '—'), esc(vinculoDoCusto(c).rotulo), fmtMoney(c.valor), statusLabel(custoStatus(c))] });
-    csv.push([fmtDate(c.dataCompetencia), c.vencimento ? fmtDate(c.vencimento) : '', c.dataPagamento ? fmtDate(c.dataPagamento) : '', c.descricao, cat ? cat.nome : '', c.fornecedor || '', vinculoDoCusto(c).rotulo, fmtNum(c.valor), statusLabel(custoStatus(c)), c.formaPagamento || '', c.obs || '']);
+    csv.push([fmtDate(c.dataCompetencia), c.vencimento ? fmtDate(c.vencimento) : '', c.dataPagamento ? fmtDate(c.dataPagamento) : '', c.descricao, cat ? cat.nome : '', nomeGrupoBalancete(grupoDoCusto(c)), c.fornecedor || '', vinculoDoCusto(c).rotulo, nomeCentro(centroDoCusto(c)), fmtNum(c.valor), statusLabel(custoStatus(c)), c.formaPagamento || '', c.obs || '']);
   });
-  const cols = [{ t: 'Data' }, { t: 'Descrição' }, { t: 'Categoria' }, { t: 'Fornecedor' }, { t: 'De quem' }, { t: 'Valor', num: true }, { t: 'Situação' }];
+  const cols = [{ t: 'Data' }, { t: 'Descrição' }, { t: 'Conta' }, { t: 'Fornecedor' }, { t: 'De quem' }, { t: 'Valor', num: true }, { t: 'Situação' }];
   const total = lista.reduce((s, c) => s + num(c.valor), 0);
   const pago = lista.filter(c => c.status === 'pago').reduce((s, c) => s + num(c.valor), 0);
   const atrasado = lista.filter(c => custoStatus(c) === 'atrasado').reduce((s, c) => s + num(c.valor), 0);
@@ -460,12 +483,12 @@ function relDespesas(escopo) {
   return {
     titulo: 'Despesas',
     filtros: `<div class="frow" style="margin-top:8px">
-        <div class="fg"><label>Categoria</label><select aria-label="Categoria" onchange="relSet('categoria',this.value)"><option value="">Todas</option>${db.categorias.map(c => `<option value="${esc(c.id)}" ${f.categoria === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select></div>
+        <div class="fg"><label>Conta</label><select aria-label="Conta do plano de contas" onchange="relSet('categoria',this.value)"><option value="">Todas</option>${opcoesContasHtml(f.categoria, db.categorias)}</select></div>
         <div class="fg"><label>Fornecedor</label><select aria-label="Fornecedor" onchange="relSet('fornecedor',this.value)">${optHtml(fornecedores, f.fornecedor, 'Todos')}</select></div></div>
       <div class="frow3">
         <div class="fg"><label>Situação</label><select aria-label="Situação" onchange="relSet('status',this.value)">${[['todos', 'Todas'], ['pago', 'Pagas'], ['pendente', 'A pagar'], ['atrasado', 'Atrasadas']].map(([k, l]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="fg"><label>Data considerada</label><select aria-label="Base" onchange="relSet('base',this.value)">${[['competencia', 'Competência'], ['vencimento', 'Vencimento'], ['pagamento', 'Pagamento']].map(([k, l]) => `<option value="${k}" ${f.base === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="fg"><label>Agrupar por</label><select aria-label="Agrupar por" onchange="relSet('agrupar',this.value)">${[['categoria', 'Categoria'], ['vinculo', 'Empresa ou empreendimento'], ['fornecedor', 'Fornecedor'], ['mes', 'Mês'], ['lote', 'Lote'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
+        <div class="fg"><label>Agrupar por</label><select aria-label="Agrupar por" onchange="relSet('agrupar',this.value)">${[['categoria', 'Conta do plano'], ['grupo', 'Grupo do plano de contas'], ['centro', 'Centro de custo'], ['vinculo', 'Empresa ou empreendimento'], ['fornecedor', 'Fornecedor'], ['mes', 'Mês'], ['lote', 'Lote'], ['nenhum', 'Sem agrupar']].map(([k, l]) => `<option value="${k}" ${f.agrupar === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
     kpis: relKpis([
       { lbl: 'Despesas', val: fmtMoneyShort(total), sub: `${lista.length} lançamento(s)`, cor: 'c-amber' },
       { lbl: 'Pagas', val: fmtMoneyShort(pago), sub: '', cor: 'c-green' },
@@ -473,7 +496,7 @@ function relDespesas(escopo) {
       { lbl: 'Orçado no projeto', val: fmtMoneyShort(orcTotal), sub: orcTotal ? `realizado ${fmtNum(custosDo(escopo).filter(custoDeObra).reduce((s, c) => s + num(c.valor), 0) / orcTotal * 100, 0)}%` : 'sem orçamento', cor: 'c-blue' }
     ]),
     html: relTabela(cols, linhas, ['Total', '', '', '', '', fmtMoney(total), '']) + orcamentoHtml(escopo, lista),
-    cols, csv, csvHead: ['Competência', 'Vencimento', 'Pagamento', 'Descrição', 'Categoria', 'Fornecedor', 'De quem', 'Valor', 'Situação', 'Forma', 'Observação']
+    cols, csv, csvHead: ['Competência', 'Vencimento', 'Pagamento', 'Descrição', 'Conta', 'Grupo', 'Fornecedor', 'De quem', 'Centro de custo', 'Valor', 'Situação', 'Forma', 'Observação']
   };
 }
 

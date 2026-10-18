@@ -456,7 +456,7 @@ const TABLE_COLS = {
   clientes: ['id', 'tipo', 'genero', 'nome', 'cpf', 'rg', 'rgOrgao', 'nacionalidade', 'profissao', 'estadoCivil', 'regimeBens', 'conjuge', 'inscricaoEstadual', 'representante', 'telefone', 'email', 'cep', 'logradouro', 'numeroEnd', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'obs', 'criadoEm'],
   vendas: ['id', 'numeroContrato', 'loteamentoId', 'loteId', 'imovel', 'vendedorId', 'vendedor', 'vendedoresExtras', 'reservaId', 'cliente', 'compradoresExtras', 'corretor', 'corretorUserId', 'dataVenda', 'valorTotal', 'entrada', 'dataEntrada', 'nParcelas', 'jurosMes', 'valorParcela', 'primeiroVencimento', 'baloes', 'indiceId', 'indiceBase', 'comissaoPct', 'comissaoValor', 'comissaoPaga', 'comissaoData', 'status', 'obs', 'motivo', 'distratoEm', 'cessoes', 'distrato', 'criadoEm'],
   recebiveis: ['id', 'loteamentoId', 'vendaId', 'tipo', 'numero', 'descricao', 'vencimento', 'valor', 'valorPago', 'valorCorrigido', 'nossoNumero', 'contaId', 'remessaEm', 'bancoValor', 'bancoVenc', 'dataPagamento', 'forma', 'obsPagamento'],
-  custos: ['id', 'loteamentoId', 'loteId', 'vendaId', 'descricao', 'categoriaId', 'fornecedor', 'valor', 'formaPagamento', 'dataCompetencia', 'vencimento', 'status', 'dataPagamento', 'obs', 'criadoEm'],
+  custos: ['id', 'loteamentoId', 'loteId', 'vendaId', 'centroId', 'descricao', 'categoriaId', 'fornecedor', 'valor', 'formaPagamento', 'dataCompetencia', 'vencimento', 'status', 'dataPagamento', 'obs', 'criadoEm'],
   modelos: ['id', 'nome', 'tipo', 'corpo', 'criadoEm'],
   indices: ['id', 'codigo', 'nome', 'tipo', 'valores', 'criadoEm'],
   contasBanco: ['id', 'loteamentoId', 'banco', 'carteira', 'variacao', 'agencia', 'agenciaDv', 'conta', 'contaDv', 'convenio', 'nossoNumeroAtual', 'nnMax', 'remessaSeq', 'multaPct', 'jurosMesPct', 'jurosDia', 'descontoPct', 'protestoDias', 'baixaDias', 'especie', 'aceite', 'instrucao1', 'instrucao2', 'mensagem1', 'mensagem2', 'criadoEm'],
@@ -466,7 +466,7 @@ const TABLE_COLS = {
 };
 /* Tabelas criadas depois da primeira versão do schema: se faltarem, o app segue sem elas. */
 const TABELAS_NOVAS = ['clientes'];
-const NULLABLE_EMPTY = new Set(['loteamentoId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area']);
+const NULLABLE_EMPTY = new Set(['loteamentoId', 'centroId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area']);
 const INT_FIELDS = new Set(['nParcelas', 'numero']);
 function snakeKey(k) { return k.replace(/[A-Z]/g, m => '_' + m.toLowerCase()); }
 /* No aplicativo a coleção é camelCase (contasBanco); no Postgres a tabela é snake_case
@@ -1634,7 +1634,7 @@ function liberarReservasVencidas(agora) {
   return vencidas.length;
 }
 /* Grupos de despesa do balancete. Cada categoria cai num grupo: o de fábrica vem daqui, e o
-   dono muda em Configurações › Categorias (fica em config.gruposBalancete). Categoria criada
+   dono muda em Configurações › Plano de contas (fica em config.gruposBalancete). Categoria criada
    pelo usuário sem grupo escolhido: obra se a despesa é de um empreendimento, senão
    administrativa. */
 const GRUPOS_BALANCETE = [
@@ -1648,17 +1648,65 @@ const GRUPO_PADRAO_CATEGORIA = {
   marketing: 'comercial', vendas: 'comercial', materiais: 'obra', outros: 'administrativo', pavimentacao: 'obra', projetos: 'obra',
   'rede-eletrica': 'obra', terraplanagem: 'obra', terreno: 'obra', 'tarifas-bancarias': 'financeiro', 'devolucao-distrato': 'devolucao'
 };
+/* Plano de contas: os grupos de despesa são os de fábrica (acima) mais os que a empresa cria,
+   e todos podem ser renomeados. Fica em config.planoGrupos ([{ id, nome }], na ordem). Os de
+   fábrica nunca somem, porque o balancete e as rotinas automáticas (comissão, distrato)
+   contam com eles. As contas do plano são as categorias; cada uma aponta para um grupo. */
+function gruposDespesa() {
+  const cfg = (db.config || {}).planoGrupos;
+  const lista = Array.isArray(cfg) ? cfg.filter(g => g && g.id && String(g.nome || '').trim()).map(g => [String(g.id), String(g.nome).trim()]) : [];
+  GRUPOS_BALANCETE.forEach(g => { if (!lista.some(x => x[0] === g[0])) lista.splice(GRUPOS_BALANCETE.indexOf(g), 0, g.slice()); });
+  return lista;
+}
+function grupoDeFabrica(g) { return GRUPOS_BALANCETE.some(x => x[0] === g); }
 function grupoDaCategoria(catId) {
   const g = (db.config || {}).gruposBalancete || {};
-  return Object.prototype.hasOwnProperty.call(g, catId) ? g[catId] : (GRUPO_PADRAO_CATEGORIA[catId] || '');
+  const k = Object.prototype.hasOwnProperty.call(g, catId) ? g[catId] : (GRUPO_PADRAO_CATEGORIA[catId] || '');
+  /* Grupo apagado: a conta volta a seguir o vínculo da despesa */
+  return k && gruposDespesa().some(x => x[0] === k) ? k : '';
 }
 function grupoDoCusto(c) { return grupoDaCategoria(c.categoriaId) || (c.loteamentoId ? 'obra' : 'administrativo'); }
-function nomeGrupoBalancete(g) { return (GRUPOS_BALANCETE.find(x => x[0] === g) || [, ''])[1]; }
+function nomeGrupoBalancete(g) { return (gruposDespesa().find(x => x[0] === g) || [, ''])[1]; }
+/* Conta desativada não aparece para lançar, mas o histórico dela continua nos relatórios. */
+function contaAtiva(catId) { return !((db.config || {}).contasInativas || []).includes(catId); }
+function categoriasParaLancar(atual) { return db.categorias.filter(c => contaAtiva(c.id) || c.id === atual); }
+/* As contas para escolher num <select>, separadas pelo grupo do plano. As que seguem o
+   vínculo da despesa vêm por último. */
+function opcoesContasHtml(atual, lista) {
+  const cats = lista || categoriasParaLancar(atual);
+  const blocos = gruposDespesa().map(([g, nome]) => [nome, cats.filter(c => grupoDaCategoria(c.id) === g)])
+    .concat([['Outras (pelo vínculo da despesa)', cats.filter(c => !grupoDaCategoria(c.id))]]).filter(b => b[1].length);
+  return blocos.map(([nome, cs]) => `<optgroup label="${esc(nome)}">${cs.map(c => `<option value="${c.id}" ${c.id === atual ? 'selected' : ''}>${esc(c.nome)}${contaAtiva(c.id) ? '' : ' (desativada)'}</option>`).join('')}</optgroup>`).join('');
+}
+
+/* Centros de custo: quem gastou. Cada empreendimento é um centro (sozinho, pelo vínculo da
+   despesa); o que é da empresa fica na Administração ou num centro que a empresa cria
+   (Comercial, Escritório, Diretoria…), guardado em config.centrosCusto ([{ id, nome, ativo }]).
+   A despesa da empresa guarda o centro em centroId; sem centro, é da Administração. */
+const CENTRO_ADM = 'adm';
+function centrosCusto() {
+  const cfg = (db.config || {}).centrosCusto;
+  return Array.isArray(cfg) ? cfg.filter(c => c && c.id && String(c.nome || '').trim()) : [];
+}
+function getCentro(id) { return centrosCusto().find(c => c.id === id); }
+function centroDoCusto(c) {
+  if (c.loteamentoId) return 'emp:' + c.loteamentoId;
+  return c.centroId && getCentro(c.centroId) ? c.centroId : CENTRO_ADM;
+}
+function nomeCentro(k) {
+  if (!k || k === CENTRO_ADM) return 'Administração';
+  if (k.startsWith('emp:')) { const l = getLoteamento(k.slice(4)); return l ? l.nome : 'Empreendimento'; }
+  const c = getCentro(k); return c ? c.nome : 'Administração';
+}
+/* Todos os centros, na ordem das telas: os empreendimentos, a Administração e os da empresa */
+function todosCentros() {
+  return db.loteamentos.map(l => ['emp:' + l.id, l.nome]).concat([[CENTRO_ADM, 'Administração']], centrosCusto().map(c => [c.id, c.nome]));
+}
 function custosDo(escopo) { return db.custos.filter(c => noEscopo(c, escopo)); }
 /* De quem é a despesa (Fase 4): da empresa (sem empreendimento), de um empreendimento ou de um
    imóvel — um lote do loteamento ou o imóvel avulso de um contrato da carteira. */
 function vinculoDoCusto(c) {
-  if (!c.loteamentoId) return { tipo: 'empresa', rotulo: 'Empresa' };
+  if (!c.loteamentoId) { const k = centroDoCusto(c); return { tipo: 'empresa', rotulo: k === CENTRO_ADM ? 'Empresa' : 'Empresa · ' + nomeCentro(k) }; }
   const emp = getLoteamento(c.loteamentoId), nome = emp ? emp.nome : 'Empreendimento';
   const l = c.loteId && getLote(c.loteId); if (l) return { tipo: 'imovel', rotulo: `${nome} · ${loteShort(l)}` };
   const v = c.vendaId && getVenda(c.vendaId); if (v) return { tipo: 'imovel', rotulo: imovelShort(v) || nome };
