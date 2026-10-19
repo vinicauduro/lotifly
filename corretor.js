@@ -72,6 +72,7 @@ function renderCLotes() {
   else if (f.ordem === 'area') list.sort((a, b) => (a.area || 0) - (b.area || 0));
   const cnt = s => ls.filter(l => l.status === s).length;
   v.innerHTML = `
+    <div class="row-between mb"><span class="small muted">${esc(lot.nome)}</span><button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Tabela de preços</button></div>
     <div class="chips">
       ${[['all', 'Todos', ls.length], ['disponivel', 'Disponíveis', cnt('disponivel')], ['reservado', 'Reservados', cnt('reservado')], ['vendido', 'Vendidos', cnt('vendido')]].map(([k, l, n]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="cSetFiltro('status','${k}')">${l}<span class="n">${n}</span></div>`).join('')}
     </div>
