@@ -93,7 +93,7 @@ function renderContrato() {
   const extras = (x.compradoresExtras || []).length;
   const aba = ABAS_CONTRATO.some(a => a[0] === state.contratoAba) ? state.contratoAba : 'resumo';
   const de = state.contratoDe && state.contratoDe !== 'contrato' ? state.contratoDe : 'vendas';
-  const voltarRot = { vendas: 'Todos os contratos', clientes: 'Clientes', recebiveis: 'A receber', cobranca: 'Cobrança', emp: 'Imóveis', painel: 'Início' }[de] || 'Voltar';
+  const voltarRot = { vendas: 'Contratos', clientes: 'Clientes', recebiveis: 'A receber', cobranca: 'Cobrança', emp: 'Imóveis', painel: 'Início' }[de] || 'Voltar';
   /* Cabeçalho com uma ação principal: registrar o pagamento da próxima parcela em aberto, que
      é o que mais se faz num contrato. Documentos (contrato, extrato, resumo pelo WhatsApp) e o
      resto (editar, antecipar, excluir) ficam em dois menus; Excluir fica separado e em vermelho,

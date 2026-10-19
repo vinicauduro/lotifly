@@ -27,7 +27,9 @@ function renderRecebiveis() {
      da venda, e quem quiser tudo aqui escolhe "Todos os meses". */
   const f = filtroRec();
   const all = recebiveisDo(esc0);
-  const grupos = { aberto: r => recStatus(r) !== 'pago', atrasado: r => recStatus(r) === 'atrasado', pago: r => recStatus(r) === 'pago', all: () => true };
+  const grupos = { aberto: r => recStatus(r) !== 'pago', atrasado: r => recStatus(r) === 'atrasado', pago: r => recStatus(r) === 'pago', all: () => true,
+    avencer: r => recStatus(r) !== 'pago' && r.vencimento >= todayStr(), atrasadoMes: r => recStatus(r) === 'atrasado' };
+  if (!grupos[f.status]) f.status = 'aberto';
   const meses = [...new Set(all.map(r => monthKey(r.vencimento)).concat([mesAtual()]))].sort();
   /* Atraso não é do mês: parcela vencida em julho continua atrasada em setembro. Nesse
      filtro o mês é ignorado, senão o que a empresa mais precisa ver ficaria escondido. */
@@ -44,22 +46,24 @@ function renderRecebiveis() {
   const somaLista = list.reduce((s, r) => s + (f.status === 'pago' ? num(r.valorPago) : recRestante(r)), 0);
   v.innerHTML = `
     ${avisoRemessaHtml(esc0)}
+    ${barraMesHtml(esc0)}
     <div class="kpi-grid">
       <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(tot - pago)}</div><div class="sub">de ${fmtMoneyShort(tot)} contratado</div></div>
-      <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoney(pago)}</div><div class="sub">${fmtMoneyShort(recMes)} neste mês</div></div>
+      <div class="kpi c-blue"><div class="lbl">Recebido</div><div class="val">${fmtMoney(pago)}</div><div class="sub">${fmtMoneyShort(recMes)} neste mês</div></div>
       <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(atr)}</div><div class="sub">${all.filter(r => recStatus(r) === 'atrasado').length} parcela(s)</div></div>
-      <div class="kpi c-blue"><div class="lbl">Vence este mês</div><div class="val">${fmtMoney(mes)}</div><div class="sub">${monthLabel(mesKey)}</div></div>
+      <div class="kpi c-primary"><div class="lbl">Vence este mês</div><div class="val">${fmtMoney(mes)}</div><div class="sub">${monthLabel(mesKey)}</div></div>
     </div>
     <div class="chips">${[['aberto', 'Em aberto'], ['atrasado', 'Atrasados'], ['pago', 'Pagos'], ['all', 'Todos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="mostrarRecebiveis('${k}')">${l}<span class="n">${all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)).length}</span></div>`).join('')}
-      ${contasComLayout().length ? `<div class="chip" onclick="abrirGerarCobrancas()">Gerar cobranças<span class="n">${parcelasDoMes(esc0, mesAtual()).filter(r => !registradaNoBanco(r) && !bloqueioRemessa(r)).length}</span></div>
-      <div class="chip" onclick="abrirRetorno()">Retorno</div>` : ''}</div>
+</div>
     <div class="filters">
       ${escopoSelectHtml('renderRecebiveis()')}
       <select aria-label="Mês" onchange="filtroRec().mes=this.value;renderRecebiveis()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}${m === mesAtual() ? ' (mês atual)' : ''}</option>`).join('')}</select>
       <input type="text" placeholder="Cliente ou lote…" value="${esc(f.busca)}" oninput="aSetFiltro('rec','busca',this.value,renderRecebiveis,this)">
       <button class="btn btn-secondary btn-sm" onclick="exportarRecebiveisCSV()">CSV</button>
+      ${contasComLayout().length ? `<button class="btn btn-secondary btn-sm" onclick="abrirGerarCobrancas()"><i class=ico data-i=bank></i>Gerar cobranças <span class="n">${parcelasDoMes(esc0, mesAtual()).filter(r => !registradaNoBanco(r) && !bloqueioRemessa(r)).length}</span></button>
+      <button class="btn btn-secondary btn-sm" onclick="abrirRetorno()">Retorno</button>` : ''}
     </div>
-    <p class="small muted mb">${list.length} parcela(s) · ${fmtMoney(somaLista)}${f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
+    <p class="small muted mb">${list.length} parcela(s) · ${fmtMoney(somaLista)}${f.status === 'avencer' ? ` · a vencer em ${monthLabel(f.mes)}` : f.status === 'atrasadoMes' ? ` · vencidas em ${monthLabel(f.mes)} e não pagas. <a href="#" onclick="mostrarRecebiveis('atrasado');return false">Ver os atrasos de todos os meses</a>` : f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
     ${list.length ? list.map(r => recRowHtml(r)).join('')
       : !all.length ? `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Ainda não há parcelas a receber.</p><p>Elas aparecem aqui quando você registra um contrato com parcelas.</p></div>`
       : f.busca ? `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhuma parcela de “${esc(f.busca)}” nesta lista.</p><p><button class="btn btn-secondary btn-sm" onclick="filtroRec().busca='';renderRecebiveis()">Limpar busca</button></p></div>`
@@ -77,6 +81,32 @@ function inadimplenciaDoMes(escopo, mesKey = todayStr().slice(0, 7)) {
 }
 function inadimplenciaTexto(im) {
   return im.previsto ? `${fmtNum(im.pct, 1)}% das parcelas do mês em atraso (${fmtMoneyShort(im.atraso)} de ${fmtMoneyShort(im.previsto)})` : 'nenhuma parcela vence este mês';
+}
+/* As parcelas que vencem no mês, numa barra só: quanto já entrou, quanto ainda vai vencer e
+   quanto venceu e não foi pago. É o recorte do mês; o atraso de meses anteriores fica no
+   número "Em atraso". Cada trecho abre a lista que o compõe. */
+function cobrancasDoMes(escopo, mes = mesAtual()) {
+  const hoje = todayStr(), c = { mes, recebido: 0, aVencer: 0, atraso: 0, nRec: 0, nVen: 0, nAtr: 0 };
+  recebiveisDo(escopo).filter(r => monthKey(r.vencimento) === mes).forEach(r => {
+    const pago = Math.min(num(r.valorPago), recValor(r)), rest = recRestante(r);
+    if (pago > 0.005) c.recebido += pago;
+    if (rest <= 0.005) c.nRec++;
+    else if (r.vencimento < hoje) { c.atraso += rest; c.nAtr++; }
+    else { c.aVencer += rest; c.nVen++; }
+  });
+  c.total = c.recebido + c.aVencer + c.atraso;
+  return c;
+}
+function verParcelasDoMes(st) { const f = filtroRec(); f.status = st; f.mes = mesAtual(); f.busca = ''; switchTab('recebiveis'); }
+function barraMesHtml(escopo) {
+  const c = cobrancasDoMes(escopo);
+  if (c.total < 0.005) return '';
+  const pct = v => fmtNum(v / c.total * 100, 1) + '%';
+  const seg = (cls, v, rot, st) => v > 0.005 ? `<button type="button" class="bm-seg ${cls}" style="flex-grow:${Math.max(v / c.total, 0.015)}" onclick="verParcelasDoMes('${st}')" title="${rot}: ${fmtMoney(v)}" aria-label="${rot}: ${fmtMoney(v)} (${pct(v)}). Ver as parcelas"></button>` : '';
+  const leg = (cls, rot, v, n, st, extra) => `<button type="button" class="bm-leg" onclick="verParcelasDoMes('${st}')"><span class="dot ${cls}"></span><span class="bm-rot">${rot}</span><b>${fmtMoney(v)}</b><span class="bm-n">${n} parcela${n === 1 ? '' : 's'}${extra || ''}</span></button>`;
+  return `<div class="card bm"><div class="bm-cab"><h2>Parcelas de ${monthLabel(c.mes)}</h2><span class="bm-total">${fmtMoney(c.total)}</span></div>
+    <div class="bm-barra">${seg('rec', c.recebido, 'Recebido', 'pago')}${seg('ven', c.aVencer, 'A vencer', 'avencer')}${seg('atr', c.atraso, 'Em atraso', 'atrasadoMes')}</div>
+    <div class="bm-legenda">${leg('rec', 'Recebido', c.recebido, c.nRec, 'pago', ` · ${pct(c.recebido)}`)}${leg('ven', 'A vencer', c.aVencer, c.nVen, 'avencer')}${leg('atr', 'Em atraso', c.atraso, c.nAtr, 'atrasadoMes', ` · ${inadimplenciaTexto(inadimplenciaDoMes(escopo, c.mes)).replace(/ \(.*\)$/, '')}`)}</div></div>`;
 }
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
 function recRowHtml(r) {
@@ -247,6 +277,13 @@ function renderCustos(alvo) {
   const orcTotal = lot ? Object.values(lot.orcamento || {}).reduce((s, x) => s + num(x), 0) : 0;
   const porCat = {}; all.forEach(c => { porCat[c.categoriaId] = (porCat[c.categoriaId] || 0) + num(c.valor); });
   const catData = Object.entries(porCat).map(([id, value]) => { const c = getCategoria(id); return { label: c ? c.nome : 'Sem categoria', color: c ? c.cor : '#94a3b8', value }; }).sort((a, b) => b.value - a.value);
+  /* No A pagar da empresa a lista vem primeiro (é o que se usa todo dia); o gráfico e o
+     orçado ficam embaixo. Dentro do empreendimento a obra começa pelo orçamento. */
+  const graficosCustos = `    <div class="grid2">
+      <div class="card"><h2>Custos por categoria</h2><canvas class="chart" id="chartCustos" height="190"></canvas><div class="legend-list" id="chartCustosLegend"></div></div>
+      ${!lot ? `<div class="card"><h2>Orçado × realizado</h2><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h2>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></span></h2>
+        ${db.categorias.filter(c => num((lot.orcamento || {})[c.id]) > 0).map(c => { const o = lot.orcamento[c.id]; const real = porCat[c.id] || 0; const pct = Math.round(real / o * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${c.cor}"></span> ${esc(c.nome)}</span><span class="muted">${fmtMoneyShort(real)} / ${fmtMoneyShort(o)} · ${pct}%</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Defina o orçamento por categoria para acompanhar aqui.</p>'}</div>`}
+    </div>`;
   v.innerHTML = `
     <div class="kpi-grid">
       <div class="kpi c-primary"><div class="lbl">Total de custos</div><div class="val">${fmtMoney(tot)}</div><div class="sub">${orcTotal ? Math.round(tot / orcTotal * 100) + '% do orçamento (' + fmtMoneyShort(orcTotal) + ')' : all.length + ' lançamento(s)'}</div></div>
@@ -256,11 +293,7 @@ function renderCustos(alvo) {
     </div>
     ${global ? `<div class="filters">${escopoSelectHtml('renderCustos()')}</div>` : ''}
     ${global && !escopo ? `<div class="chips chips-vinc" role="group" aria-label="De quem é a despesa">${[['todos', 'Todas as despesas'], ['empresa', 'Só da empresa'], ['emps', 'Só de empreendimentos']].map(([k, l]) => `<div class="chip ${vinc === k ? 'active' : ''}" onclick="state.filters.custos.vinc='${k}';renderCustos()">${l}<span class="n">${k === 'todos' ? doEscopo.length : k === 'empresa' ? doEscopo.filter(c => !c.loteamentoId).length : doEscopo.filter(c => c.loteamentoId).length}</span></div>`).join('')}</div>` : ''}
-    <div class="grid2">
-      <div class="card"><h2>Custos por categoria</h2><canvas class="chart" id="chartCustos" height="190"></canvas><div class="legend-list" id="chartCustosLegend"></div></div>
-      ${!lot ? `<div class="card"><h2>Orçado × realizado</h2><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h2>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></span></h2>
-        ${db.categorias.filter(c => num((lot.orcamento || {})[c.id]) > 0).map(c => { const o = lot.orcamento[c.id]; const real = porCat[c.id] || 0; const pct = Math.round(real / o * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${c.cor}"></span> ${esc(c.nome)}</span><span class="muted">${fmtMoneyShort(real)} / ${fmtMoneyShort(o)} · ${pct}%</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Defina o orçamento por categoria para acompanhar aqui.</p>'}</div>`}
-    </div>
+    ${global ? '' : graficosCustos}
     <div class="chips">${[['all', 'Todos'], ['pendente', 'A pagar'], ['atrasado', 'Vencidos'], ['pago', 'Pagos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.custos.status='${k}';renderCustos()">${l}<span class="n">${k === 'all' ? all.length : all.filter(c => custoStatus(c) === k).length}</span></div>`).join('')}</div>
     <div class="filters">
       ${global && !escopo && vinc !== 'emps' && centros.length ? `<select aria-label="Centro de custo" onchange="state.filters.custos.centro=this.value;renderCustos()"><option value="">Todos os centros de custo</option>${[[CENTRO_ADM, 'Administração']].concat(centros.map(c => [c.id, c.nome])).map(([k, l]) => `<option value="${esc(k)}" ${centro === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : ''}
@@ -270,7 +303,8 @@ function renderCustos(alvo) {
       <button class="btn btn-primary btn-sm" onclick="abrirCustoForm(null, { emp: ${escopo ? `'${escopo}'` : vinc === 'emps' ? `'${(curLot() || {}).id || ''}'` : 'null'}${centro && centro !== CENTRO_ADM ? `, centro: '${esc(centro)}'` : ''} })"><i class=ico data-i=plus></i>Lançar</button>
     </div>
     <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
-    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}`;
+    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
+    ${global ? graficosCustos : ''}`;
   drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
 }
 function custoRowHtml(c) {
@@ -282,7 +316,7 @@ function custoRowHtml(c) {
     <div class="info"><div class="title">${esc(c.descricao)}${rotulo ? ` <span class="vinc ${vc.tipo}">${vc.tipo === 'empresa' ? '<i class=ico data-i=buildings></i>' : ''}${esc(rotulo)}</span>` : ''}</div>
       <div class="meta"><span class="badge neutral badge-cat"><span class="dot" style="background:${cat ? cat.cor : '#94a3b8'}"></span>${cat ? esc(cat.nome) : 'Sem categoria'}</span>${c.fornecedor ? `<span>· ${esc(c.fornecedor)}</span>` : ''}<span>· ${fmtDate(c.dataCompetencia)}</span>${c.vencimento && st !== 'pago' ? `<span ${st === 'atrasado' ? 'style="color:var(--danger)"' : ''}>· vence ${fmtDate(c.vencimento)}</span>` : ''}${st === 'pago' && c.dataPagamento ? `<span>· pago em ${fmtDate(c.dataPagamento)}</span>` : ''}</div></div>
     <div class="side"><div class="value">${fmtMoney(c.valor)}</div><span class="badge ${st}">${statusLabel(st)}</span>
-      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')"><i class=ico data-i=money></i></button>` : ''}<button class="btn-icon del" onclick="excluirCusto('${c.id}')" title="Excluir" aria-label="Excluir"><i class=ico data-i=trash></i></button></div></div></div>`;
+      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')"><i class=ico data-i=money></i></button>` : ''}</div></div></div>`;
 }
 /* Mantido para chamadas antigas: agora o formulário já pergunta de quem é a despesa */
 function novoCustoEscolhendoEmp() { abrirCustoForm(null, { emp: escopoAtual() || null }); }
@@ -365,7 +399,7 @@ function renderComissoes(v, f) {
   const porCorretor = {};
   vendas.forEach(x => { const k = x.corretor.nome || 'Venda direta'; porCorretor[k] = porCorretor[k] || { n: 0, tot: 0, pago: 0 }; porCorretor[k].n++; porCorretor[k].tot += num(x.comissaoValor); if (x.comissaoPaga) porCorretor[k].pago += num(x.comissaoValor); });
   v.innerHTML = `
-    <div class="subtabs"><div class="chip" onclick="state.filters.avendas.sub='vendas';renderAVendas()">Vendas</div><div class="chip active">Comissões</div></div>
+    ${tituloTela('Contratos')}<div class="subtabs"><div class="chip" onclick="state.filters.avendas.sub='vendas';renderAVendas()">Contratos</div><div class="chip active">Comissões</div></div>
     <div class="kpi-grid cols3"><div class="kpi c-primary"><div class="lbl">Total de comissões</div><div class="val">${fmtMoneyShort(tot)}</div></div><div class="kpi c-green"><div class="lbl">Pagas</div><div class="val">${fmtMoneyShort(pago)}</div></div><div class="kpi c-amber"><div class="lbl">A pagar</div><div class="val">${fmtMoney(tot - pago)}</div></div></div>
     <div class="card"><h2>Por corretor</h2><div class="table-wrap"><table class="tbl"><thead><tr><th>Corretor</th><th class="num">Vendas</th><th class="num">Comissões</th><th class="num">Pagas</th><th class="num">A pagar</th></tr></thead><tbody>${Object.entries(porCorretor).sort((a, b) => b[1].tot - a[1].tot).map(([k, s]) => `<tr><td>${esc(k)}</td><td class="num">${s.n}</td><td class="num">${fmtMoney(s.tot)}</td><td class="num">${fmtMoney(s.pago)}</td><td class="num"><b>${fmtMoney(s.tot - s.pago)}</b></td></tr>`).join('') || '<tr><td colspan="5" class="muted">Sem vendas.</td></tr>'}</tbody></table></div></div>
     ${vendas.map(x => { const r = vendaResumo(x); return `<div class="item ${x.comissaoPaga ? 'pago' : 'pendente'}" onclick="abrirVendaAdmin('${x.id}')"><div class="info"><div class="title">${esc(x.corretor.nome)} <span class="tiny muted">· ${esc(imovelShort(x))} · ${esc(x.cliente.nome)}</span></div><div class="meta"><span>Venda ${fmtDate(x.dataVenda)} · ${fmtMoney(x.valorTotal)}</span><span>· ${fmtNum(x.comissaoPct, 1)}%</span><span>· cliente já pagou ${fmtMoney(r.pago)}</span>${x.comissaoPaga && x.comissaoData ? `<span>· paga em ${fmtDate(x.comissaoData)}</span>` : ''}</div></div>
