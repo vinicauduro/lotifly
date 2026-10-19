@@ -187,7 +187,8 @@ function renderPainel() {
     </div>
     <div class="grid2">
       <div class="card"><h2>Fluxo previsto (12 meses)</h2><canvas class="chart" id="chartFluxo" height="220"></canvas>
-        <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos previstos</div><div><span class="dot" style="background:#f97316"></span>Despesas previstas</div><div class="muted">tom mais escuro: mês atual</div></div></div>
+        <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos</div><div><span class="dot" style="background:#f97316"></span>Despesas</div><div class="muted">tom mais escuro: mês atual</div></div>
+        <p class="tiny muted">O que já foi pago conta no mês do pagamento (parcela antecipada inclusive); o que falta, no mês do vencimento.</p></div>
       <div class="card"><h2>Recebido × inadimplência (12 meses)</h2>
         <p class="help" style="margin-top:-4px">Parcelas que venceram em cada mês. Inadimplência nos 12 meses: <b>${tot.vencido ? fmtNum(tot.atraso / tot.vencido * 100, 1) : '0,0'}%</b> (${fmtMoneyShort(tot.atraso)} em atraso).</p>
         <div style="position:relative"><canvas class="chart" id="chartReceb" height="220"></canvas><div class="chart-tip" id="chartRecebTip"></div></div>
@@ -197,7 +198,7 @@ function renderPainel() {
         </tbody></table></div></details></div>
     </div>
 `;
-  drawFluxoChart($('#chartFluxo'), db.recebiveis, db.custos);
+  drawFluxoChart($('#chartFluxo'), recebiveisDo(''), db.custos);
   drawRecebimentosChart($('#chartReceb'), $('#chartRecebTip'), serie);
 }
 

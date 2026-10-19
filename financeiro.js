@@ -385,12 +385,24 @@ function setupCanvas(cv) {
   cv.width = w * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); return { ctx, w, h };
 }
+/* O dinheiro de cada mês: o que já foi pago conta no mês em que entrou ou saiu; o que falta,
+   no mês do vencimento. Assim a parcela antecipada sai do mês em que venceria e aparece no
+   mês em que o cliente pagou, e o que falta de um pagamento parcial continua previsto. */
+function fluxoPorMes(meses, recs, custos) {
+  const entra = {}, sai = {}; meses.forEach(m => { entra[m] = 0; sai[m] = 0; });
+  const soma = (alvo, data, v) => { const m = monthKey(data); if (m in alvo && v > 0.005) alvo[m] += v; };
+  recs.forEach(r => {
+    if (num(r.valorPago) > 0) soma(entra, r.dataPagamento || r.vencimento, num(r.valorPago));
+    soma(entra, r.vencimento, recRestante(r));
+  });
+  custos.forEach(c => soma(sai, c.status === 'pago' ? (c.dataPagamento || c.vencimento || c.dataCompetencia) : (c.vencimento || c.dataCompetencia), num(c.valor)));
+  return { entra: meses.map(m => entra[m]), sai: meses.map(m => sai[m]) };
+}
 function drawFluxoChart(cv, recs, custos) {
   if (!cv) return; const { ctx, w, h } = setupCanvas(cv);
   const months = []; const now = new Date();
   for (let i = -1; i < 11; i++) { const d = new Date(now.getFullYear(), now.getMonth() + i, 1); months.push(d.getFullYear() + '-' + pad2(d.getMonth() + 1)); }
-  const rIn = months.map(m => recs.filter(r => monthKey(r.vencimento) === m).reduce((s, r) => s + recValor(r), 0));
-  const cOut = months.map(m => custos.filter(c => monthKey(c.vencimento || c.dataCompetencia) === m).reduce((s, c) => s + num(c.valor), 0));
+  const fluxo = fluxoPorMes(months, recs, custos), rIn = fluxo.entra, cOut = fluxo.sai;
   const max = Math.max(...rIn, ...cOut, 1);
   const padL = 56, padR = 8, padB = 22, padT = 14; const cw = w - padL - padR, ch = h - padB - padT; const gw = cw / months.length; const bw = gw * 0.34;
   ctx.clearRect(0, 0, w, h);
