@@ -1,4 +1,4 @@
-const CACHE = 'lotifly-v74';
+const CACHE = 'lotifly-v75';
 const FILES = ['./', './index.html', './style.css', './icones.css', './fonts/Geist-Variable.woff2', './config.js', './erros.js', './vendor/supabase.js', './core.js', './gestos.js', './permissoes.js', './planta.js', './planta-pdf.js', './planta-dxf.js', './admin-pdf.js', './corretor.js', './admin.js', './indices.js', './antecipacao.js', './cobranca.js', './financeiro.js', './banco.js', './cnab.js', './relatorios.js', './docs.js', './tabela.js', './vendor/jspdf.umd.min.js', './vendor/jspdf.plugin.autotable.min.js', './clientes.js', './contrato.js', './cessao.js', './distrato.js', './auth.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

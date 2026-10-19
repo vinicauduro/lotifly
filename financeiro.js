@@ -389,16 +389,18 @@ function setupCanvas(cv) {
    no mês do vencimento. Assim a parcela antecipada sai do mês em que venceria e aparece no
    mês em que o cliente pagou, e o que falta de um pagamento parcial continua previsto. */
 function fluxoPorMes(meses, recs, custos) {
-  const entra = {}, sai = {}; meses.forEach(m => { entra[m] = 0; sai[m] = 0; });
+  const zero = () => Object.fromEntries(meses.map(m => [m, 0]));
+  const recebido = zero(), aReceber = zero(), pago = zero(), aPagar = zero();
   const soma = (alvo, data, v) => { const m = monthKey(data); if (m in alvo && v > 0.005) alvo[m] += v; };
   recs.forEach(r => {
-    if (num(r.valorPago) > 0) soma(entra, r.dataPagamento || r.vencimento, num(r.valorPago));
-    soma(entra, r.vencimento, recRestante(r));
+    if (num(r.valorPago) > 0) soma(recebido, r.dataPagamento || r.vencimento, num(r.valorPago));
+    soma(aReceber, r.vencimento, recRestante(r));
   });
-  custos.forEach(c => soma(sai, c.status === 'pago' ? (c.dataPagamento || c.vencimento || c.dataCompetencia) : (c.vencimento || c.dataCompetencia), num(c.valor)));
-  return { entra: meses.map(m => entra[m]), sai: meses.map(m => sai[m]) };
+  custos.forEach(c => { if (c.status === 'pago') soma(pago, c.dataPagamento || c.vencimento || c.dataCompetencia, num(c.valor)); else soma(aPagar, c.vencimento || c.dataCompetencia, num(c.valor)); });
+  const lista = o => meses.map(m => o[m]);
+  return { entra: meses.map(m => recebido[m] + aReceber[m]), sai: meses.map(m => pago[m] + aPagar[m]), recebido: lista(recebido), aReceber: lista(aReceber), pago: lista(pago), aPagar: lista(aPagar) };
 }
-function drawFluxoChart(cv, recs, custos) {
+function drawFluxoChart(cv, recs, custos, tip) {
   if (!cv) return; const { ctx, w, h } = setupCanvas(cv);
   const months = []; const now = new Date();
   for (let i = -1; i < 11; i++) { const d = new Date(now.getFullYear(), now.getMonth() + i, 1); months.push(d.getFullYear() + '-' + pad2(d.getMonth() + 1)); }
@@ -422,6 +424,26 @@ function drawFluxoChart(cv, recs, custos) {
       if (h2 >= 14) ctx.fillText(fmtMoneyShort(cOut[i]).replace('R$ ', ''), x + bw / 2 + 1, padT + ch - h2 - 3);
     }
   });
+  /* Passando o mouse (ou tocando, no celular) em cima de um mês: os valores daquele mês */
+  if (!tip) return;
+  const linha = (cor, rot, v, forte) => `<div><span class="dot" style="background:${cor}"></span>${rot} <span>${forte ? '<b>' + fmtMoney(v) + '</b>' : fmtMoney(v)}</span></div>`;
+  const mostrar = ev => {
+    const rect = cv.getBoundingClientRect(); const px = ev.clientX - rect.left;
+    const i = Math.floor((px - padL) / gw);
+    if (i < 0 || i >= months.length) { tip.style.display = 'none'; return; }
+    const saldo = rIn[i] - cOut[i];
+    tip.innerHTML = `<b>${monthLabel(months[i])}</b>
+      ${linha('#2563eb', 'Recebimentos', rIn[i], true)}
+      ${fluxo.recebido[i] > 0.005 && fluxo.aReceber[i] > 0.005 ? `<div class="tip-sub">já recebido ${fmtMoney(fluxo.recebido[i])} · a receber ${fmtMoney(fluxo.aReceber[i])}</div>` : fluxo.recebido[i] > 0.005 ? '<div class="tip-sub">tudo já recebido</div>' : ''}
+      ${linha('#f97316', 'Despesas', cOut[i], true)}
+      ${fluxo.pago[i] > 0.005 && fluxo.aPagar[i] > 0.005 ? `<div class="tip-sub">já pago ${fmtMoney(fluxo.pago[i])} · a pagar ${fmtMoney(fluxo.aPagar[i])}</div>` : fluxo.pago[i] > 0.005 ? '<div class="tip-sub">tudo já pago</div>' : ''}
+      <div class="tip-total">Saldo do mês <span style="color:${saldo < -0.005 ? 'var(--danger)' : 'inherit'}">${fmtMoney(saldo)}</span></div>`;
+    tip.style.display = 'block';
+    const cx = padL + i * gw + gw / 2; const tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(rect.width - tw, cx - tw / 2)) + 'px'; tip.style.top = '4px';
+  };
+  cv.onmousemove = mostrar; cv.onmouseleave = () => { tip.style.display = 'none'; };
+  cv.onclick = mostrar;   // no celular, tocar mostra os valores
 }
 /* De quantos em quantos meses escrever o rótulo para que nenhum encoste no vizinho:
    1 no computador, 2 no celular, 3 em telas de 320 px. */

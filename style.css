@@ -717,6 +717,7 @@ details.qualif[open] > summary, details.ver-tabela[open] > summary { margin-bott
 .chart-tip div { display: flex; align-items: center; gap: 6px; }
 .chart-tip div span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
 .chart-tip .tip-total { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); color: #52514e; }
+.chart-tip .tip-sub { display: block; padding-left: 14px; margin-bottom: 2px; font-size: 0.72rem; color: #6b6a65; }
 /* ===== página do contrato ===== */
 .ct-acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .ct-acoes .btn { flex: none; }

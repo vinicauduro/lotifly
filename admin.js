@@ -186,7 +186,7 @@ function renderPainel() {
       <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
     </div>
     <div class="grid2">
-      <div class="card"><h2>Fluxo previsto (12 meses)</h2><canvas class="chart" id="chartFluxo" height="220"></canvas>
+      <div class="card"><h2>Fluxo previsto (12 meses)</h2><div style="position:relative"><canvas class="chart" id="chartFluxo" height="220"></canvas><div class="chart-tip" id="chartFluxoTip"></div></div>
         <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos</div><div><span class="dot" style="background:#f97316"></span>Despesas</div><div class="muted">tom mais escuro: mês atual</div></div>
         <p class="tiny muted">O que já foi pago conta no mês do pagamento (parcela antecipada inclusive); o que falta, no mês do vencimento.</p></div>
       <div class="card"><h2>Recebido × inadimplência (12 meses)</h2>
@@ -198,7 +198,7 @@ function renderPainel() {
         </tbody></table></div></details></div>
     </div>
 `;
-  drawFluxoChart($('#chartFluxo'), recebiveisDo(''), db.custos);
+  drawFluxoChart($('#chartFluxo'), recebiveisDo(''), db.custos, $('#chartFluxoTip'));
   drawRecebimentosChart($('#chartReceb'), $('#chartRecebTip'), serie);
 }
 
