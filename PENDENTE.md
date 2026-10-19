@@ -760,6 +760,24 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z29. Fluxo previsto: os valores do mês ao passar o mouse (19/10)
+
+No Início › Fluxo previsto, passando o mouse em cima de um mês (no celular, tocando), aparece um
+quadro com os valores daquele mês:
+
+- **Recebimentos**, com quanto **já foi recebido** e quanto **falta receber**;
+- **Despesas**, com quanto **já foi pago** e quanto **falta pagar**;
+- **Saldo do mês** (recebimentos menos despesas), em vermelho quando negativo.
+
+Para você fazer:
+
+- [ ] Passar o mouse sobre os meses do gráfico e conferir os valores.
+
+`testes/fluxo-previsto.test.js` ganhou 2 casos (o quadro de outubro e de dezembro, com o mouse de
+verdade em cima do gráfico).
+
+---
+
 ## 7z28. Fluxo previsto: parcela antecipada no mês em que foi paga (19/10)
 
 Você viu no Início › Fluxo previsto uma parcela de novembro que o cliente pagou em outubro

@@ -13,6 +13,9 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
   const page = await ctx.newPage(); page.setDefaultTimeout(8000);
   page.on('pageerror', e => erros.push(`pageerror: ${e.message}`));
+  // O gráfico mostra do mês passado até 10 meses à frente: o relógio fica em outubro de 2026
+  // para os meses do teste caberem na janela em qualquer dia que ele rode.
+  await page.clock.setFixedTime(new Date('2026-10-19T12:00:00'));
   await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
   await page.evaluate(() => {
     sessionStorage.setItem('gl_admin', '1'); startRole('admin'); document.querySelectorAll('#devDados,.toast').forEach(e => e.remove());
@@ -55,6 +58,31 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     });
     if (r.chamado !== 'dez,jan,nov,out') throw new Error('recebíveis usados: ' + r.chamado);
     if (!/mês do pagamento/.test(r.txt)) throw new Error(r.txt);
+  });
+  await passo('passar o mouse num mês mostra os valores dele (recebimentos, despesas, o que já foi pago e o saldo)', async () => {
+    const meses = await page.evaluate(() => { const ms = []; const now = new Date(); for (let i = -1; i < 11; i++) { const d = new Date(now.getFullYear(), now.getMonth() + i, 1); ms.push(d.getFullYear() + '-' + pad2(d.getMonth() + 1)); } return ms; });
+    const i = meses.indexOf('2026-10'); if (i !== 1) throw new Error('janela do gráfico: ' + meses.join());
+    await page.evaluate(() => document.getElementById('chartFluxo').scrollIntoView());
+    const box = await page.locator('#chartFluxo').boundingBox();
+    const gw = (box.width - 56 - 8) / 12;
+    await page.mouse.move(box.x + 56 + gw * i + gw / 2, box.y + box.height / 2);
+    const tip = page.locator('#chartFluxoTip');
+    await tip.waitFor({ state: 'visible' });
+    const t = (await tip.innerText()).replace(/\s+/g, ' ');
+    // outubro: entra 2.400 (tudo já recebido); sai 300 (paga em outubro); saldo 2.100
+    for (const s of ['out/26', 'Recebimentos R$ 2.400,00', 'tudo já recebido', 'Despesas R$ 300,00', 'tudo já pago', 'Saldo do mês R$ 2.100,00'])
+      if (!t.includes(s)) throw new Error(`faltou "${s}" em: ${t}`);
+    const i2 = meses.indexOf('2026-12');
+    await page.mouse.move(box.x + 56 + gw * i2 + gw / 2, box.y + box.height / 2);
+    await page.waitForFunction(() => /dez\/26/.test(document.getElementById('chartFluxoTip').innerText));
+    const t2 = (await tip.innerText()).replace(/\s+/g, ' ');
+    for (const s of ['Recebimentos R$ 600,00', 'Despesas R$ 50,00', 'Saldo do mês R$ 550,00']) if (!t2.includes(s)) throw new Error(`dezembro: faltou "${s}" em: ${t2}`);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height + 60);
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('chartFluxoTip')).display === 'none');
+  });
+  await passo('mês com parte paga e parte a pagar mostra as duas partes', async () => {
+    const r = await page.evaluate(() => { const f = fluxoPorMes(['2026-11'], recebiveisDo(''), db.custos.concat([{ id: 'c4', valor: 100, status: 'pago', dataPagamento: '2026-11-02', vencimento: '2026-11-02' }])); return [f.pago[0], f.aPagar[0], f.sai[0]].join(); });
+    if (r !== '100,200,300') throw new Error(r);
   });
   await browser.close();
   if (erros.length) { console.log('\nERROS:\n' + erros.join('\n')); process.exit(1); }
