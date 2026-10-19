@@ -90,7 +90,7 @@ function renderEmpreendimentos() {
    de venda dele é a informação principal e fica à vista. */
 function listaEmpreendimentosHtml() {
   const podeCriar = pode('config.editar') || pode('lotes.editar');
-  return `<div class="card"><h2>Imóveis ${podeCriar ? '<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span>' : ''}</h2>
+  return `<div class="card"><h2>Imóveis <span class="h-actions">${db.loteamentos.length ? '<button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Gerar tabela</button>' : ''}${podeCriar ? '<button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button>' : ''}</span></h2>
     <p class="help mb">Os empreendimentos, com planta e lotes, e cada imóvel avulso que você vende — apartamento, casa, lote, sala… Abra um para ver preços e situação. Contratos, recebíveis e relatórios ficam no menu, com todos juntos.</p>
     ${db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)).map(l => {
       if (ehCarteira(l)) {
@@ -1298,7 +1298,9 @@ function abrirLoteamentoForm(id, opc) {
         <div class="hint">Só a declaração fiscal usa. Se não souber agora, deixe em branco e preencha depois.</div></div></details>
     <details class="qualif" id="lmCondBox" ${terc ? '' : 'open'}><summary>Condições de pagamento padrão <span class="tiny muted" id="lmCondOpc">${terc ? '— opcional' : ''}</span></summary>
       <div class="frow"><div class="fg"><label>Entrada mínima (%)</label><input type="number" id="lmEntrada" step="0.1" value="${c.entradaMinPct ?? 10}"></div><div class="fg"><label>Máximo de parcelas</label><input type="number" id="lmMaxP" value="${c.maxParcelas ?? 120}"></div></div>
-      <div class="frow"><div class="fg"><label>Juros do parcelamento (% a.m.)</label><input type="number" id="lmJuros" step="0.01" value="${c.jurosMes ?? 0}"><div class="hint">0 = sem juros (parcelas lineares)</div></div><div class="fg"><label>Desconto à vista (%)</label><input type="number" id="lmDesc2" step="0.1" value="${c.descontoVistaPct ?? 0}"></div></div></details>`;
+      <div class="frow"><div class="fg"><label>Juros do parcelamento (% a.m.)</label><input type="number" id="lmJuros" step="0.01" value="${c.jurosMes ?? 0}"><div class="hint">0 = sem juros (parcelas lineares)</div></div><div class="fg"><label>Desconto à vista (%)</label><input type="number" id="lmDesc2" step="0.1" value="${c.descontoVistaPct ?? 0}"></div></div>
+      <div class="fg"><label for="lmObsTab">Condições na tabela de preços</label><textarea id="lmObsTab" rows="3" placeholder="Ex.: Saldo em até 120 parcelas corrigidas pelo INPC. Desconto de 5% à vista. Esta tabela substitui as anteriores.">${esc(c.obsTabela || '')}</textarea>
+        <div class="hint">Sai embaixo da tabela que vai para os corretores. Em branco, o app escreve um resumo das condições acima.</div></div></details>`;
   openModal({ title: l ? `Editar ${empLabel(l).toLowerCase()}` : 'Novo imóvel', body, footer: `${l && db.loteamentos.length > 1 ? `<button class="btn btn-outline-danger" onclick="excluirLoteamento('${l.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="${opc.paraContrato ? 'novaVendaEscolhendoEmp()' : 'closeModal()'}">${opc.paraContrato ? '‹ Voltar' : 'Cancelar'}</button><button class="btn btn-primary" onclick="salvarLoteamento('${l ? l.id : ''}')">${opc.paraContrato ? 'Salvar e abrir o contrato' : 'Salvar'}</button>` });
   lmTipoChange(true);
   focarSeLivre('lmNome');
@@ -1389,7 +1391,7 @@ function salvarLoteamento(id) {
   const rec = Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString(), orcamento: {} }, { tipo: terc ? 'carteira' : 'loteamento', nome, cidade: val('lmCidade'), endereco: val('lmEnd'), descricao: val('lmDesc'),
     cep: val('lmCep'), logradouro: val('lmLogr'), numeroEnd: val('lmNum'), bairro: val('lmBairro'), uf: val('lmUf'),
     cartorio: val('lmCartorio'), matriculaMae: val('lmMatMae'), codigoIbge: onlyDigits(val('lmIbge')),
-    ...(terc ? { categoria: sel.cat[0], preco: num(val('lmPreco')), matricula: val('lmMat'), area: num(val('lmArea')) || null, descricaoMatricula: val('lmDescMat') } : {}), cond: terc && !$('#lmCondBox').open ? ((prev && prev.cond) || {}) : { entradaMinPct: num(val('lmEntrada')), maxParcelas: Math.round(num(val('lmMaxP'))) || 120, jurosMes: num(val('lmJuros')), descontoVistaPct: num(val('lmDesc2')) } });
+    ...(terc ? { categoria: sel.cat[0], preco: num(val('lmPreco')), matricula: val('lmMat'), area: num(val('lmArea')) || null, descricaoMatricula: val('lmDescMat') } : {}), cond: terc && !$('#lmCondBox').open ? ((prev && prev.cond) || {}) : { entradaMinPct: num(val('lmEntrada')), maxParcelas: Math.round(num(val('lmMaxP'))) || 120, jurosMes: num(val('lmJuros')), descontoVistaPct: num(val('lmDesc2')), obsTabela: val('lmObsTab') } });
   const paraContrato = !prev && val('lmParaContrato') === '1';
   upsert('loteamentos', rec);
   if (paraContrato) {

@@ -760,6 +760,48 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z27. Tabela de preços em PDF para os corretores (19/10)
+
+Botão **Gerar tabela** em Imóveis (administração) e **Tabela de preços** na lista de lotes do
+corretor. Monta a tabela do mês, no padrão das tabelas das construtoras, pronta para mandar ao
+grupo ou à lista de transmissão dos corretores.
+
+- **Tabela de:** um empreendimento, **Imóveis de terceiros** ou **Todos** (um PDF só, uma parte
+  por empreendimento e os imóveis de terceiros no fim). O corretor começa no empreendimento que
+  está vendo.
+- **Quais lotes:** os disponíveis com valor. Os **reservados** entram marcados "Reservado" (em
+  amarelo), se a caixa estiver marcada, como vem de fábrica. Vendido e bloqueado nunca aparecem.
+  Imóvel de terceiro vendido também não.
+- **Colunas:** quadra, lote, área, frente × fundos, valor em **CUB** (quando o CUB do mês está
+  em Índices), valor de tabela, **entrada** mínima, **parcela** no maior prazo do empreendimento
+  (tabela Price com os juros dele, ou sem juros) e **à vista** com o desconto. Coluna sem
+  informação (sem desconto, sem medidas) não aparece.
+- **Cabeçalho:** nome, endereço e registro do empreendimento, vigência (mês), data de emissão e
+  o CUB do mês.
+- **Embaixo:** as condições. Escreva o texto no cadastro do empreendimento, em Condições de
+  pagamento › **Condições na tabela de preços**. Em branco, o app monta um resumo das condições.
+- **Rodapé de todas as páginas:** o contato **da empresa** (nome, telefone, WhatsApp e e-mail de
+  Configurações › Dados da empresa e Geral), mesmo quando quem gera é um corretor, e a
+  numeração das páginas. Muitas páginas repetem o cabeçalho.
+- **Enviar pelo WhatsApp:** no celular, abre o compartilhamento com o **PDF anexado**: é só
+  escolher o WhatsApp e o grupo ou a lista de transmissão. No computador, baixa o PDF e abre o
+  WhatsApp com a mensagem, e você arrasta o arquivo para a conversa.
+- **Baixar PDF**, para guardar ou imprimir.
+- Funciona sem internet: o gerador de PDF fica dentro do app.
+
+Para você fazer:
+
+- [ ] Conferir em Configurações › Dados da empresa o **telefone** e o **e-mail**, e em Geral o
+      **WhatsApp da administração**: são eles que saem no rodapé.
+- [ ] Cadastrar o **CUB do mês** em Índices, se quiser a coluna em CUB.
+- [ ] Escrever as **Condições na tabela de preços** de cada empreendimento.
+- [ ] Gerar a tabela de um empreendimento e mandar no grupo dos corretores, pelo celular.
+
+`testes/tabela-precos.test.js` (11 casos: o PDF é lido de volta e conferido, com as contas
+feitas à mão).
+
+---
+
 ## 7z26. Financeiro: plano de contas e centros de custo (18/10)
 
 Primeira etapa do financeiro único. Antes havia uma lista solta de "categorias"; agora o
