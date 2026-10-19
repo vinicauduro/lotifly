@@ -760,6 +760,29 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z28. Fluxo previsto: parcela antecipada no mês em que foi paga (19/10)
+
+Você viu no Início › Fluxo previsto uma parcela de novembro que o cliente pagou em outubro
+aparecendo ainda em novembro. O gráfico somava cada parcela no mês do vencimento, paga ou não.
+
+Agora:
+
+- **O que já foi pago** conta no mês em que o dinheiro entrou (ou saiu, no caso das despesas).
+  A parcela antecipada sai de novembro e aparece em outubro.
+- **O que falta** conta no mês do vencimento. Pagamento parcial deixa previsto só o que falta.
+- Parcela de **contrato distratado** não entra mais no gráfico (ela já ficava fora dos outros
+  números do Início).
+- Despesa paga antes do vencimento também conta no mês em que foi paga.
+- Uma linha embaixo do gráfico explica a regra.
+
+Para você fazer:
+
+- [ ] Abrir o Início e conferir que novembro não mostra mais a parcela antecipada.
+
+`testes/fluxo-previsto.test.js` (3 casos, com o caso da parcela antecipada).
+
+---
+
 ## 7z27. Tabela de preços em PDF para os corretores (19/10)
 
 Botão **Gerar tabela** em Imóveis (administração) e **Tabela de preços** na lista de lotes do
