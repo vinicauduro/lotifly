@@ -21,7 +21,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       upsert('loteamentos', { id: 'cart1', nome: 'Imóveis de terceiros', tipo: 'carteira', criadoEm: new Date().toISOString() });
       const base = db.vendas.find(v => v.status === 'ativa');
       upsert('vendas', Object.assign(JSON.parse(JSON.stringify(base)), { id: 'vc1', loteamentoId: 'cart1', loteId: null, imovel: { descricao: 'Apartamento 302 do Edifício Atlântico' } }));
-      state.escopo = ''; switchTab('custos');
+      /* No celular os filtros ficam atrás do botão "Filtros": aqui ficam abertos. */
+      state.escopo = ''; switchTab('custos'); state.filters.custos.abertos = true; renderCustos();
     });
     await page.waitForTimeout(300);
     const lista = page.locator('#av-custos');

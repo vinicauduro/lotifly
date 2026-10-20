@@ -1044,6 +1044,22 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 .st-item.st-leve .st-n { color: var(--warn); }
 /* Faixa: contagem zerada fica neutra, a cor só aparece quando há o que olhar. */
 .st-item.st-zero .st-n { color: var(--muted); }
+/* Configurações: primeiro o assunto (Empresa, Equipe, Financeiro, Sistema), depois a tela. */
+.cfg-grupos { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; margin-bottom: 12px; max-width: 640px; }
+.cfg-grupo { background: none; border: 0; border-left: 1px solid var(--border); padding: 10px 8px; font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--muted); cursor: pointer; min-height: 44px; }
+.cfg-grupo:first-child { border-left: 0; }
+.cfg-grupo.active { color: var(--text-strong); background: var(--bg); box-shadow: inset 0 -3px 0 var(--primary); }
+.cfg-grupo:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) { .cfg-grupo:not(.active):hover { color: var(--text); } }
+/* A pagar: no computador os filtros ficam à vista; no celular, atrás do botão "Filtros". */
+.filtros-bloco { display: flex; flex-direction: column; }
+.filtros-btn { display: none; }
+@media (max-width: 899px) {
+  .filtros-linha { order: -1; }
+  .filtros-btn { display: inline-flex; flex: none; }
+  .filtros-btn[aria-expanded="true"] .ico { transform: rotate(180deg); }
+  .filtros-mais:not(.aberto) { display: none; }
+}
 /* Aviso com botão (Desfazer): aceita clique, mesmo com os outros avisos deixando passar. */
 .toast.com-acao { pointer-events: auto; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center; }
 .toast.com-acao .t, .toast.com-acao .b { grid-column: 1; }
