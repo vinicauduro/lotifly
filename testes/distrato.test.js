@@ -121,7 +121,7 @@ const r2 = x => Math.round(x * 100) / 100;
       await abrir(); await registrar(); await page.evaluate(() => closeModal());
       const c = await page.evaluate((vid) => { const d = getVenda(vid).distrato; return { n: d.parcelas.length, forma: d.forma, dev: d.devolucao, esperado: Math.round(PAGO * 75) / 100, custo: d.custoIds[0] }; }, vid);
       if (c.n !== 1 || c.forma !== 'vista' || c.dev !== c.esperado) throw new Error(JSON.stringify(c));
-      await page.evaluate((id) => { pagarCusto(id); }, c.custo); await page.waitForTimeout(200);
+      await page.evaluate((id) => { pagarCusto(id); salvarPagamentoCusto(id); }, c.custo); await page.waitForTimeout(200);
       await page.evaluate((vid) => { abrirContrato(vid, 'resumo'); }, vid); await page.waitForTimeout(200);
       if (await page.locator('.ct-distrato').getByRole('button', { name: 'Desfazer' }).count()) throw new Error('Desfazer aparece com devolução paga');
       await page.evaluate((vid) => desfazerDistrato(vid), vid); await page.waitForTimeout(150);

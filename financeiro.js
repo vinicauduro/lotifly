@@ -47,8 +47,8 @@ function renderRecebiveis() {
   const somaLista = list.reduce((s, r) => s + (f.status === 'pago' ? num(r.valorPago) : recRestante(r)), 0);
   v.innerHTML = `
     ${avisoRemessaHtml(esc0)}
-    ${faixaHtml(REC_FAIXA.map(([k, l, sub]) => { const cs = all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)); return { k, l, n: cs.length, v: cs.length ? fmtMoneyShort(cs.reduce((t, r) => t + (k === 'pago' ? num(r.valorPago) : k === 'all' ? recValor(r) : recRestante(r)), 0)) + ' ' + sub : '—', ativo: f.status === k, acao: `mostrarRecebiveis('${k}')` }; }), 'Situação das parcelas')}
-    <div class="ct-resumo">${f.mes === 'all' ? 'Todos os meses' : monthLabel(f.mes)}${f.status === 'atrasado' ? ' (atrasos: de todos os meses)' : ''} · Carteira: <b>${fmtMoney(tot - pago)}</b> a receber de ${fmtMoneyShort(tot)} contratado · ${fmtMoneyShort(pago)} já recebido (${fmtMoneyShort(recMes)} neste mês) · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
+    ${faixaHtml(REC_FAIXA.map(([k, l, sub]) => { const cs = all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)); return { k, l, n: cs.length, v: (cs.length ? fmtMoneyShort(cs.reduce((t, r) => t + (k === 'pago' ? num(r.valorPago) : k === 'all' ? recValor(r) : recRestante(r)), 0)) + ' ' + sub : '—') + (k === 'atrasado' ? ' · todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}` : ''), ativo: f.status === k, acao: `mostrarRecebiveis('${k}')` }; }), 'Situação das parcelas')}
+    <div class="ct-resumo">${f.mes === 'all' ? 'Todos os meses' : `${monthLabel(f.mes)} (atrasadas: de todos os meses)`} · Carteira: <b>${fmtMoney(tot - pago)}</b> a receber de ${fmtMoneyShort(tot)} contratado · ${fmtMoneyShort(pago)} já recebido (${fmtMoneyShort(recMes)} neste mês) · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
     <div class="filters">
       ${escopoSelectHtml('renderRecebiveis()')}
       <select aria-label="Mês" onchange="filtroRec().mes=this.value;renderRecebiveis()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}${m === mesAtual() ? ' (mês atual)' : ''}</option>`).join('')}</select>
@@ -100,7 +100,7 @@ function barraMesHtml(escopo) {
   const leg = (cls, rot, v, n, st, extra) => `<button type="button" class="bm-leg" onclick="verParcelasDoMes('${st}')"><span class="dot ${cls}"></span><span class="bm-rot">${rot}</span><b>${fmtMoney(v)}</b><span class="bm-n">${n} parcela${n === 1 ? '' : 's'}${extra || ''}</span></button>`;
   return `<div class="card bm"><div class="bm-cab"><h2>Parcelas de ${monthLabel(c.mes)}</h2><span class="bm-total">${fmtMoney(c.total)}</span></div>
     <div class="bm-barra">${seg('rec', c.recebido, 'Recebido', 'pago')}${seg('ven', c.aVencer, 'A vencer', 'avencer')}${seg('atr', c.atraso, 'Em atraso', 'atrasadoMes')}</div>
-    <div class="bm-legenda">${leg('rec', 'Recebido', c.recebido, c.nRec, 'pago', ` · ${pct(c.recebido)}`)}${leg('ven', 'A vencer', c.aVencer, c.nVen, 'avencer')}${leg('atr', 'Em atraso', c.atraso, c.nAtr, 'atrasadoMes', ` · ${inadimplenciaTexto(inadimplenciaDoMes(escopo, c.mes)).replace(/ \(.*\)$/, '')}`)}</div></div>`;
+    <div class="bm-legenda">${leg('rec', 'Recebido', c.recebido, c.nRec, 'pago', ` · ${pct(c.recebido)}`)}${leg('ven', 'A vencer', c.aVencer, c.nVen, 'avencer')}${leg('atr', 'Em atraso no mês', c.atraso, c.nAtr, 'atrasadoMes', ` · ${inadimplenciaTexto(inadimplenciaDoMes(escopo, c.mes)).replace(/ \(.*\)$/, '')}`)}</div></div>`;
 }
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
 /* Faixa de situação no alto das listas: cada número é o filtro dele, como em Contratos. */
@@ -395,11 +395,30 @@ function salvarCusto(id) {
   if (!prev) logAct(`Despesa lançada: ${rec.descricao} — ${fmtMoney(rec.valor)} (${vinculoDoCusto(rec).rotulo})`);
   closeModal(); renderCurrent(); toast('✅', 'Despesa salva', `${rec.descricao} · ${vinculoDoCusto(rec).rotulo}`);
 }
+/* Pagar uma conta: a mesma janela do recebimento de parcela (data, forma e observação), com o
+   valor e o vencimento à vista; depois, "Desfazer" no aviso volta a conta para em aberto. */
 function pagarCusto(id) {
   const c = db.custos.find(x => x.id === id); if (!c) return;
-  const data = prompt('Data do pagamento (AAAA-MM-DD):', todayStr()); if (data === null) return;
-  upsert('custos', Object.assign({}, c, { status: 'pago', dataPagamento: /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : todayStr() }));
-  logAct(`Custo pago: ${c.descricao} — ${fmtMoney(c.valor)}`); renderCurrent(); toast('✅', 'Marcado como pago', '');
+  const cat = getCategoria(c.categoriaId);
+  const body = `<p class="small mb"><b>${esc(c.descricao)}</b>${c.fornecedor ? ` · ${esc(c.fornecedor)}` : ''}${cat ? ` · ${esc(cat.nome)}` : ''}</p>
+    <div class="detail-grid"><div><div class="k">Valor</div><div class="v">${fmtMoney(c.valor)}</div></div><div><div class="k">Vencimento</div><div class="v">${c.vencimento ? fmtDate(c.vencimento) : '—'}</div></div></div>
+    <div class="frow"><div class="fg"><label for="cpData">Data do pagamento *</label><input type="date" id="cpData" value="${todayStr()}" max="${todayStr()}"></div><div class="fg"><label for="cpForma">Forma</label><select id="cpForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
+    <div class="fg"><label for="cpObs">Observação</label><input type="text" id="cpObs" value="${esc(c.obs || '')}"></div>`;
+  openModal({ title: 'Pagar conta', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="salvarPagamentoCusto('${c.id}')">Confirmar pagamento</button>` });
+}
+function salvarPagamentoCusto(id) {
+  if (!pode('custos.editar')) { toast('🔒', 'Sem permissão', 'Seu perfil não paga contas.', true); return; }
+  const c = db.custos.find(x => x.id === id); if (!c) return;
+  const data = val('cpData');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) { toast('⚠️', 'Informe a data do pagamento', 'Use o calendário do campo "Data do pagamento".', true); return; }
+  if (data > todayStr()) { toast('⚠️', 'Data no futuro', 'Uma conta só é paga hoje ou antes. Para agendar, deixe em aberto com o vencimento.', true); return; }
+  const antes = Object.assign({}, c);
+  upsert('custos', Object.assign({}, c, { status: 'pago', dataPagamento: data, formaPagamento: val('cpForma'), obs: val('cpObs') }));
+  logAct(`Custo pago: ${c.descricao} — ${fmtMoney(c.valor)}`);
+  closeModal(); renderCurrent();
+  toast('✅', 'Conta paga', `${c.descricao} · ${fmtMoney(c.valor)} em ${fmtDate(data)}`, false, { rotulo: 'Desfazer', fn: () => {
+    upsert('custos', antes); logAct(`Pagamento desfeito: ${c.descricao}`); renderCurrent(); toast('↩️', 'Pagamento desfeito', `${c.descricao} voltou para em aberto.`);
+  } });
 }
 function excluirCusto(id) {
   const c = db.custos.find(x => x.id === id); if (!c) return;

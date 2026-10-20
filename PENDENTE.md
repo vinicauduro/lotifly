@@ -786,6 +786,36 @@ Para você fazer:
 
 ---
 
+## 7z34. Cada número diz de quando é, e pagar conta numa janela do app (20/10)
+
+Da avaliação de design (nota 28/40): os dois primeiros pontos.
+
+- **Pagar conta (A pagar):** o botão de pagar abria uma caixinha do navegador pedindo a data em
+  "AAAA-MM-DD". Agora abre uma janela igual à do recebimento de parcela: a conta, o fornecedor,
+  o valor e o vencimento no alto; **data do pagamento** (calendário, hoje já preenchido), **forma**
+  (vem a da conta) e **observação**. Data no futuro é recusada.
+- Depois de pagar, o aviso traz o botão **Desfazer** (fica 8 segundos): a conta volta para em
+  aberto, como estava.
+- **Bloquear lote** também deixou a caixinha do navegador: o motivo é pedido numa janela do app e
+  fica nas observações do lote.
+- **Números com o escopo escrito:**
+  - Início: na barra "Parcelas de out/26", o atrasado virou **"Em atraso no mês"** (o cartão
+    "Em atraso" ao lado continua sendo de todos os meses, e diz isso).
+  - A receber: cada número da faixa diz o mês ("· out/26"); as **Atrasadas** dizem "· todos os
+    meses". A linha de baixo também avisa: "out/26 (atrasadas: de todos os meses)".
+  - Cobrança: **saiu a barra do mês**, que mostrava "Em atraso R$ 0,00" numa tela sobre o atraso
+    da carteira. A linha de resumo diz "Em atraso, somando todos os meses, R$ …", o recuperado
+    em out/26 e a inadimplência de out/26.
+
+Para você fazer:
+
+- [ ] Pagar uma conta pelo A pagar, conferir a data e a forma, e testar o Desfazer.
+- [ ] Bloquear e liberar um lote.
+
+`testes/pagar-conta.test.js` (5 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z33. Início sem aviso repetido (20/10)
 
 Regra combinada: **uma faixa de aviso só aparece no Início se aquela informação não estiver em outro

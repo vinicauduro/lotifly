@@ -34,7 +34,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.evaluate(() => switchTab('recebiveis'));
     const f = await page.evaluate(() => [...document.querySelectorAll('#av-recebiveis .st-item')].map(b => b.innerText.replace(/\s+/g, ' ').trim()).join(' | '));
     // outubro: p2 paga; p3 a vencer 1000; p4 parcial (resta 600); p1 atrasada (setembro)
-    if (f !== '2 Em aberto R$ 1.600,00 a receber | 2 A vencer R$ 1.600,00 a receber | 1 Atrasadas R$ 1.000,00 em atraso | 1 Pagas R$ 1.000,00 recebido | 3 Todas R$ 3.000,00 no total') throw new Error(f);
+    if (f !== '2 Em aberto R$ 1.600,00 a receber · out/26 | 2 A vencer R$ 1.600,00 a receber · out/26 | 1 Atrasadas R$ 1.000,00 em atraso · todos os meses | 1 Pagas R$ 1.000,00 recebido · out/26 | 3 Todas R$ 3.000,00 no total · out/26') throw new Error(f);
     if (await page.locator('#av-recebiveis .kpi').count()) throw new Error('os cartões antigos continuam');
   });
   await passo('A receber: linha com vencimento e selo, cliente, contrato e parcela, imóvel, valor e ações', async () => {
