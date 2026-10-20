@@ -1377,7 +1377,14 @@ function renderCadastros() {
   const tabs = todasTabs.filter(t => !t[2] || pode(t[2])).map(t => [t[0], t[1]]);
   if (!tabs.find(t => t[0] === state.sub.cad)) state.sub.cad = tabs.length ? tabs[0][0] : 'config';
   const sub = state.sub.cad;
-  let html = `<div class="subtabs">${tabs.map(([k, l]) => `<div class="chip ${sub === k ? 'active' : ''}" onclick="state.sub.cad='${k}';renderCurrent()">${l}</div>`).join('')}</div>`;
+  /* As abas em quatro grupos: primeiro escolhe o assunto, depois a tela (no máximo quatro por
+     grupo). Grupo sem nenhuma aba permitida não aparece. */
+  const GRUPOS_CAD = [['empresa', 'Empresa', ['empresa', 'documentos', 'config']], ['equipe', 'Equipe', ['corretores', 'permissoes']],
+    ['financeiro', 'Financeiro', ['categorias', 'centros', 'banco', 'cobranca']], ['sistema', 'Sistema', ['nuvem', 'backup', 'erros']]]
+    .map(([k, l, ks]) => [k, l, ks.filter(x => tabs.some(t => t[0] === x))]).filter(g => g[2].length);
+  const grupo = GRUPOS_CAD.find(g => g[2].includes(sub)) || GRUPOS_CAD[0];
+  let html = GRUPOS_CAD.length > 1 ? `<div class="cfg-grupos" role="group" aria-label="Assunto" style="--n:${GRUPOS_CAD.length}">${GRUPOS_CAD.map(([k, l, ks]) => `<button type="button" class="cfg-grupo ${grupo[0] === k ? 'active' : ''}" aria-pressed="${grupo[0] === k}" onclick="state.sub.cad='${ks[0]}';renderCurrent()">${l}</button>`).join('')}</div>` : '';
+  if (grupo && grupo[2].length > 1) html += `<div class="subtabs cfg-telas">${grupo[2].map(k => tabs.find(t => t[0] === k)).map(([k, l]) => `<div class="chip ${sub === k ? 'active' : ''}" onclick="state.sub.cad='${k}';renderCurrent()">${l}</div>`).join('')}</div>`;
   if (sub === 'corretores') html += cadEquipeHtml();
   else if (sub === 'empresa') html += cadEmpresaHtml();
   else if (sub === 'categorias') html += cadCategoriasHtml();
