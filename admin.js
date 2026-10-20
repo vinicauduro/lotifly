@@ -245,13 +245,16 @@ function renderPainel() {
   const resVencendo = db.reservas.filter(r => reservaStatus(r) === 'aprovada' && daysBetween(todayStr(), r.validade) <= 2);
   const custosAtr = db.custos.filter(c => custoStatus(c) === 'atrasado');
 
+  /* Aviso só para o que não aparece em outro lugar da tela: o atraso já está no cartão "Em atraso"
+     e no número vermelho da Cobrança no menu; a conta vencida, no número do A pagar; a reserva
+     a aprovar, no número de Reservas (para quem pode aprovar). Reserva vencida ou vencendo não
+     aparece em nenhum outro lugar, então fica. */
+  const s = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
   let alerts = '';
-  if (resPend.length) alerts += `<div class="alert warn" onclick="switchTab('reservas')"><span><b>${resPend.length} reserva(s) aguardando aprovação</b></span><i class=ico data-i=caret-right></i></div>`;
-  if (resExp.length) alerts += `<div class="alert" onclick="aSetFiltroRes('expirada')"><span><b>${resExp.length} reserva(s) vencida(s)</b> — libere o lote ou renove</span><i class=ico data-i=caret-right></i></div>`;
-  if (resVencendo.length) alerts += `<div class="alert info" onclick="switchTab('reservas')"><span><b>${resVencendo.length} reserva(s) vencem em até 2 dias</b></span><i class=ico data-i=caret-right></i></div>`;
-  if (k.nAtrasados) alerts += `<div class="alert" onclick="abrirPainelCobranca()"><span><b>${k.nAtrasados} parcela(s) em atraso</b> — ${fmtMoney(k.atrasado)} · cobrar</span><i class=ico data-i=caret-right></i></div>`;
-  if (custosAtr.length) alerts += `<div class="alert" onclick="aSetFiltroCusto('atrasado')"><span><b>${custosAtr.length} conta(s) a pagar vencida(s)</b> — ${fmtMoney(custosAtr.reduce((s, c) => s + num(c.valor), 0))}</span><i class=ico data-i=caret-right></i></div>`;
-  if (!alerts) alerts = `<div class="alert ok"><span>Tudo em dia. <i class=ico data-i=thumbs-up></i></span></div>`;
+  if (resPend.length && !pode('reservas.aprovar')) alerts += `<div class="alert warn" onclick="switchTab('reservas')"><span><b>${s(resPend.length, 'reserva aguardando', 'reservas aguardando')} aprovação</b></span><i class=ico data-i=caret-right></i></div>`;
+  if (resExp.length) alerts += `<div class="alert" onclick="aSetFiltroRes('expirada')"><span><b>${s(resExp.length, 'reserva vencida', 'reservas vencidas')}</b> — libere o lote ou renove</span><i class=ico data-i=caret-right></i></div>`;
+  if (resVencendo.length) alerts += `<div class="alert info" onclick="switchTab('reservas')"><span><b>${s(resVencendo.length, 'reserva vence', 'reservas vencem')} em até 2 dias</b></span><i class=ico data-i=caret-right></i></div>`;
+  if (!alerts && !k.nAtrasados && !custosAtr.length && !resPend.length) alerts = `<div class="alert ok"><span>Tudo em dia. <i class=ico data-i=thumbs-up></i></span></div>`;
 
   const serie = recebimentosPorMes(12);
   const tot = serie.reduce((a, x) => ({ vencido: a.vencido + x.vencido, atraso: a.atraso + x.atraso }), { vencido: 0, atraso: 0 });

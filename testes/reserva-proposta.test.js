@@ -48,7 +48,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   await passo('desmarcada: reserva vencida continua, lote reservado, e o início avisa para liberar ou renovar', async () => {
     const ids = await page.evaluate(() => cenario());
     await page.evaluate(() => { switchTab('painel'); });
-    const r = await page.evaluate(ids => ({ s: situacao(ids), aviso: $('#av-painel').textContent.includes('reserva(s) vencida(s)') }), ids);
+    const r = await page.evaluate(ids => ({ s: situacao(ids), aviso: $('#av-painel').textContent.match(/reservas? vencidas?/) !== null }), ids);
     if (r.s !== 'tv1:aprovada/reservado tv2:pendente/reservado tv3:aprovada/reservado tv4:aprovada/reservado' || !r.aviso) throw new Error(JSON.stringify(r));
   });
   await passo('marcada: as vencidas viram expiradas e os lotes voltam a disponível; a que vence hoje fica; lote de outra reserva não é solto', async () => {

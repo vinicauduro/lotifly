@@ -760,6 +760,28 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z33. Início sem aviso repetido (20/10)
+
+Regra combinada: **uma faixa de aviso só aparece no Início se aquela informação não estiver em outro
+lugar da tela**.
+
+- Saíram as faixas de **parcelas em atraso** (já estão no cartão "Em atraso" e no número vermelho da
+  Cobrança no menu), de **contas a pagar vencidas** (número do A pagar no menu) e de **reserva
+  aguardando aprovação** (número de Reservas no menu). Quem não vê esse número no menu, porque
+  não pode aprovar, continua vendo a faixa.
+- Ficaram as faixas de **reserva vencida** ("libere o lote ou renove") e de **reserva que vence em
+  até 2 dias**, que não aparecem em nenhum outro lugar.
+- Os textos ficaram no plural certo ("1 reserva vencida", "2 reservas vencidas"), sem "(s)".
+- "Tudo em dia" só aparece quando não há atraso, conta vencida nem reserva pendente.
+
+Para você fazer:
+
+- [ ] Abrir o Início no computador e no celular.
+
+`testes/inicio-avisos.test.js` (3 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z32. Cobrança, Clientes e Reservas no mesmo desenho (20/10)
 
 Com isso, todas as listas do escritório ficaram iguais à de Contratos:
