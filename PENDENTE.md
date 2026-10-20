@@ -760,6 +760,35 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z36. Caminho do corretor no celular (20/10)
+
+Da avaliação de design: o corretor não chegava em "disponíveis + mandar a tabela" em dois toques.
+
+- **Planta:**
+  - logo abaixo dos contadores, o botão verde **"Enviar tabela de preços"**, que abre a tabela
+    em PDF para mandar no WhatsApp;
+  - os contadores (disponíveis, reservados, vendidos) viraram botões: tocar em "23 disponíveis"
+    abre a lista só com os disponíveis.
+- **Lista de lotes:** abre em **Disponíveis**, não mais em "Todos" (vendido misturado com o que
+  dá para vender). Os outros filtros continuam ali.
+- **Ficha do lote:**
+  - o **resultado do simulador** (entrada + parcelas) vem antes dos campos e aparece sem rolar;
+  - saiu o selo "Disponível" repetido ao lado do preço; o aviso verde no alto já diz isso;
+  - "Compartilhar" ficou branco, com o ícone do WhatsApp, para não brigar com "Solicitar
+    reserva", que é a ação principal.
+- **Números da planta:** com a planta inteira na tela do celular, a área ("337 m²") ficava com uns
+  6 px, ilegível. Agora ela some nesse tamanho e volta quando o corretor aproxima com os dedos. O
+  número do lote fica sempre.
+
+Para você fazer:
+
+- [ ] No celular, entrar como corretor: tocar em "Enviar tabela de preços" e em "disponíveis".
+- [ ] Abrir um lote e conferir o simulador; aproximar a planta e ver a área aparecer.
+
+`testes/corretor-caminho.test.js` (5 casos).
+
+---
+
 ## 7z34. Cada número diz de quando é, e pagar conta numa janela do app (20/10)
 
 Da avaliação de design (nota 28/40): os dois primeiros pontos.

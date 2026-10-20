@@ -1049,3 +1049,11 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 .toast.com-acao .t, .toast.com-acao .b { grid-column: 1; }
 .toast-acao { grid-column: 2; grid-row: 1 / span 2; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font: inherit; font-weight: 600; color: var(--primary); cursor: pointer; min-height: 32px; }
 .toast-acao:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* Corretor: os contadores da planta abrem a lista filtrada; o botão da tabela fica logo abaixo. */
+.status-strip button.pill { font: inherit; font-size: 0.8rem; text-align: left; cursor: pointer; min-height: 44px; }
+.status-strip button.pill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .status-strip button.pill:hover { border-color: var(--primary-light); } }
+.c-enviar-tabela { margin-bottom: 12px; min-height: 44px; }
+.sim-box .sim-result { margin: 0 0 10px; }
+/* Planta: a área do lote some quando ficaria pequena demais para ler (volta ao aproximar). */
+svg.area-miuda .lote-area { display: none; }
