@@ -137,8 +137,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.click('#av-painel .bm-seg.atr');
     l = await page.evaluate(() => ({ n: document.querySelectorAll('#av-recebiveis .item').length, txt: document.querySelector('#av-recebiveis p.small').textContent.replace(/\s+/g, ' ') }));
     if (l.n !== 1 || !/R\$ 1\.000,00 · vencidas em out\/26 e não pagas/.test(l.txt)) throw new Error('atraso do mês: ' + JSON.stringify(l));
-    const cob = await page.evaluate(() => { switchTab('cobranca'); return !!document.querySelector('#av-cobranca .bm') && [...document.querySelectorAll('#av-cobranca .chips .chip')].map(c => c.textContent.replace(/\d+$/, '').trim()); });
-    if (!cob || cob.join() !== 'Todas as faixas,31-60 dias') throw new Error('cobrança: ' + JSON.stringify(cob));
+    const cob = await page.evaluate(() => { switchTab('cobranca'); return !!document.querySelector('#av-cobranca .bm') && [...document.querySelectorAll('#av-cobranca .st-item:not(.st-zero) .st-l')].map(c => c.textContent.trim()); });
+    if (!cob || cob.join() !== 'Todos,31-60 dias') throw new Error('cobrança: ' + JSON.stringify(cob));
   });
   await passo('A pagar: a lista vem antes do gráfico; sem lixeira na linha; excluir fica dentro da despesa', async () => {
     const r = await page.evaluate(() => {
