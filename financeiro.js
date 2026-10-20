@@ -30,6 +30,7 @@ function renderRecebiveis() {
   const grupos = { aberto: r => recStatus(r) !== 'pago', atrasado: r => recStatus(r) === 'atrasado', pago: r => recStatus(r) === 'pago', all: () => true,
     avencer: r => recStatus(r) !== 'pago' && r.vencimento >= todayStr(), atrasadoMes: r => recStatus(r) === 'atrasado' };
   if (!grupos[f.status]) f.status = 'aberto';
+  const REC_FAIXA = [['aberto', 'Em aberto', 'a receber'], ['avencer', 'A vencer', 'a receber'], ['atrasado', 'Atrasadas', 'em atraso'], ['pago', 'Pagas', 'recebido'], ['all', 'Todas', 'no total']];
   const meses = [...new Set(all.map(r => monthKey(r.vencimento)).concat([mesAtual()]))].sort();
   /* Atraso não é do mês: parcela vencida em julho continua atrasada em setembro. Nesse
      filtro o mês é ignorado, senão o que a empresa mais precisa ver ficaria escondido. */
@@ -46,15 +47,8 @@ function renderRecebiveis() {
   const somaLista = list.reduce((s, r) => s + (f.status === 'pago' ? num(r.valorPago) : recRestante(r)), 0);
   v.innerHTML = `
     ${avisoRemessaHtml(esc0)}
-    ${barraMesHtml(esc0)}
-    <div class="kpi-grid">
-      <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(tot - pago)}</div><div class="sub">de ${fmtMoneyShort(tot)} contratado</div></div>
-      <div class="kpi c-blue"><div class="lbl">Recebido</div><div class="val">${fmtMoney(pago)}</div><div class="sub">${fmtMoneyShort(recMes)} neste mês</div></div>
-      <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(atr)}</div><div class="sub">${all.filter(r => recStatus(r) === 'atrasado').length} parcela(s)</div></div>
-      <div class="kpi c-primary"><div class="lbl">Vence este mês</div><div class="val">${fmtMoney(mes)}</div><div class="sub">${monthLabel(mesKey)}</div></div>
-    </div>
-    <div class="chips">${[['aberto', 'Em aberto'], ['atrasado', 'Atrasados'], ['pago', 'Pagos'], ['all', 'Todos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="mostrarRecebiveis('${k}')">${l}<span class="n">${all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)).length}</span></div>`).join('')}
-</div>
+    ${faixaHtml(REC_FAIXA.map(([k, l, sub]) => { const cs = all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)); return { k, l, n: cs.length, v: cs.length ? fmtMoneyShort(cs.reduce((t, r) => t + (k === 'pago' ? num(r.valorPago) : k === 'all' ? recValor(r) : recRestante(r)), 0)) + ' ' + sub : '—', ativo: f.status === k, acao: `mostrarRecebiveis('${k}')` }; }), 'Situação das parcelas')}
+    <div class="ct-resumo">${f.mes === 'all' ? 'Todos os meses' : monthLabel(f.mes)}${f.status === 'atrasado' ? ' (atrasos: de todos os meses)' : ''} · Carteira: <b>${fmtMoney(tot - pago)}</b> a receber de ${fmtMoneyShort(tot)} contratado · ${fmtMoneyShort(pago)} já recebido (${fmtMoneyShort(recMes)} neste mês) · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
     <div class="filters">
       ${escopoSelectHtml('renderRecebiveis()')}
       <select aria-label="Mês" onchange="filtroRec().mes=this.value;renderRecebiveis()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}${m === mesAtual() ? ' (mês atual)' : ''}</option>`).join('')}</select>
@@ -64,7 +58,7 @@ function renderRecebiveis() {
       <button class="btn btn-secondary btn-sm" onclick="abrirRetorno()">Retorno</button>` : ''}
     </div>
     <p class="small muted mb">${list.length} parcela(s) · ${fmtMoney(somaLista)}${f.status === 'avencer' ? ` · a vencer em ${monthLabel(f.mes)}` : f.status === 'atrasadoMes' ? ` · vencidas em ${monthLabel(f.mes)} e não pagas. <a href="#" onclick="mostrarRecebiveis('atrasado');return false">Ver os atrasos de todos os meses</a>` : f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
-    ${list.length ? list.map(r => recRowHtml(r)).join('')
+    ${list.length ? `<div class="lista">${list.map(r => recRowHtml(r)).join('')}</div>`
       : !all.length ? `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Ainda não há parcelas a receber.</p><p>Elas aparecem aqui quando você registra um contrato com parcelas.</p></div>`
       : f.busca ? `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhuma parcela de “${esc(f.busca)}” nesta lista.</p><p><button class="btn btn-secondary btn-sm" onclick="filtroRec().busca='';renderRecebiveis()">Limpar busca</button></p></div>`
       : f.status === 'atrasado' ? `<div class="empty"><div class="ic"><i class=ico data-i=check-circle></i></div><p>Nenhuma parcela em atraso.</p></div>`
@@ -109,13 +103,32 @@ function barraMesHtml(escopo) {
     <div class="bm-legenda">${leg('rec', 'Recebido', c.recebido, c.nRec, 'pago', ` · ${pct(c.recebido)}`)}${leg('ven', 'A vencer', c.aVencer, c.nVen, 'avencer')}${leg('atr', 'Em atraso', c.atraso, c.nAtr, 'atrasadoMes', ` · ${inadimplenciaTexto(inadimplenciaDoMes(escopo, c.mes)).replace(/ \(.*\)$/, '')}`)}</div></div>`;
 }
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
+/* Faixa de situação no alto das listas: cada número é o filtro dele, como em Contratos. */
+function faixaHtml(itens, rotulo) {
+  return `<div class="st-faixa" style="--n:${itens.length}" role="group" aria-label="${esc(rotulo)}">${itens.map(it => `<button type="button" class="st-item st-${it.k} ${it.ativo ? 'active' : ''}" aria-pressed="${!!it.ativo}" onclick="${it.acao}"><span class="st-n">${it.n}</span><span class="st-l">${it.l}</span><span class="st-v">${it.v}</span></button>`).join('')}</div>`;
+}
+/* Quando vence e o selo, só na exceção: atrasada ou vence em até 5 dias. Paga mostra a data. */
+function prazoHtml(venc, st, dataPg, rotAtraso = 'Atrasada') {
+  const hoje = todayStr();
+  if (st === 'pago') return `<div class="ct-data"><span class="tiny muted">paga em</span> ${fmtDate(dataPg || venc)}</div>`;
+  if (!venc) return '<div class="ct-data muted">sem vencimento</div>';
+  if (venc < hoje) { const d = daysBetween(venc, hoje); return `<div class="ct-data"><span class="tiny muted">venceu</span> ${fmtDate(venc)}</div><span class="pill atrasado">${rotAtraso} há ${d} dia${d === 1 ? '' : 's'}</span>`; }
+  const d = daysBetween(hoje, venc);
+  return `<div class="ct-data"><span class="tiny muted">vence</span> ${fmtDate(venc)}</div>${d <= 5 ? `<span class="pill vence">${d === 0 ? 'Vence hoje' : d === 1 ? 'Vence amanhã' : `Vence em ${d} dias`}</span>` : ''}`;
+}
+/* Uma linha por parcela: quando vence, de quem é (cliente, contrato, imóvel), quanto falta e
+   as ações. */
 function recRowHtml(r) {
   const v = getVenda(r.vendaId); const st = recStatus(r);
-  const rest = recRestante(r);
-  return `<div class="item ${st}" data-st="p:${r.id}" onclick="abrirVendaAdmin('${r.vendaId}')">
-    <div class="info"><div class="title">${v ? esc(v.cliente.nome) : '—'} <span class="tiny muted">· ${v ? esc(imovelShort(v)) : ''}</span></div>
-      <div class="meta"><span>${esc(r.descricao)}</span><span>· vence ${fmtDate(r.vencimento)}</span>${recCorrecao(r) > 0.005 && st !== 'pago' ? `<span title="Correção pelo índice do contrato">· base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</span>` : ''}${st === 'atrasado' ? `<span style="color:var(--danger)">· ${daysBetween(r.vencimento, todayStr())} dias · atualizado ${fmtMoney(recAtualizado(r))}</span>` : ''}${st === 'pago' && r.dataPagamento ? `<span>· pago em ${fmtDate(r.dataPagamento)}${r.forma ? ' (' + esc(r.forma) + ')' : ''}</span>` : ''}${st === 'parcial' ? `<span>· pago ${fmtMoney(r.valorPago)}, resta ${fmtMoney(rest)}</span>` : ''}</div></div>
-    <div class="side"><div class="value">${fmtMoney(st === 'pago' ? r.valorPago : rest)}</div><span class="badge ${st}">${statusLabel(st)}</span>
+  const rest = recRestante(r), emp = v && !escopoAtual() ? (getLoteamento(v.loteamentoId) || {}).nome || '' : '';
+  const im = v ? imovelLabel(v) : '';
+  return `<div class="item linha ${st}" data-st="p:${r.id}" onclick="abrirVendaAdmin('${r.vendaId}')">
+    <div class="ct-venc">${prazoHtml(r.vencimento, st, r.dataPagamento)}${st === 'parcial' ? '<span class="pill vence">Pago em parte</span>' : ''}</div>
+    <div class="info"><div class="title">${v ? esc(v.cliente.nome) : '—'}</div>
+      <div class="ct-pessoa"><i class=ico data-i=file-text></i>${v && v.numeroContrato ? `Contrato ${esc(v.numeroContrato)} · ` : ''}${esc(r.descricao)}</div>
+      <div class="meta"><span>${esc(im)}${emp && im.indexOf(emp) < 0 ? ` — ${esc(emp)}` : ''}</span>${st === 'pago' && r.forma ? `<span>· ${esc(r.forma)}</span>` : ''}</div></div>
+    <div class="side"><div class="value">${fmtMoney(st === 'pago' ? r.valorPago : rest)}</div>
+      ${st === 'parcial' ? `<div class="tiny muted">pago ${fmtMoney(r.valorPago)}</div>` : ''}${recCorrecao(r) > 0.005 && st !== 'pago' ? `<div class="tiny muted" title="Correção pelo índice do contrato">base ${fmtMoney(r.valor)} + correção</div>` : ''}${st === 'atrasado' ? `<div class="tiny ct-atraso">atualizado ${fmtMoney(recAtualizado(r))}</div>` : ''}
       <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && v && v.status !== 'distrato' && pode('financeiro.baixar') ? `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${r.id}')"><i class=ico data-i=money></i></button>` : ''}${num(r.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${r.id}')"><i class=ico data-i=receipt></i></button>` : ''}${pode('financeiro.baixar') ? `<button class="btn-icon" title="Editar" onclick="editarRecebivel('${r.id}')"><i class=ico data-i=pencil-simple></i></button>` : ''}</div></div></div>`;
 }
 function abrirPagamento(id, voltarVendaId) {
@@ -284,17 +297,13 @@ function renderCustos(alvo) {
       ${!lot ? `<div class="card"><h2>Orçado × realizado</h2><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h2>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></span></h2>
         ${db.categorias.filter(c => num((lot.orcamento || {})[c.id]) > 0).map(c => { const o = lot.orcamento[c.id]; const real = porCat[c.id] || 0; const pct = Math.round(real / o * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${c.cor}"></span> ${esc(c.nome)}</span><span class="muted">${fmtMoneyShort(real)} / ${fmtMoneyShort(o)} · ${pct}%</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Defina o orçamento por categoria para acompanhar aqui.</p>'}</div>`}
     </div>`;
+  const CUSTO_FAIXA = [['all', 'Todas', c => true], ['pendente', 'A vencer', c => custoStatus(c) === 'pendente'], ['atrasado', 'Vencidas', c => custoStatus(c) === 'atrasado'], ['pago', 'Pagas', c => c.status === 'pago']];
   v.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi c-primary"><div class="lbl">Total de custos</div><div class="val">${fmtMoney(tot)}</div><div class="sub">${orcTotal ? Math.round(tot / orcTotal * 100) + '% do orçamento (' + fmtMoneyShort(orcTotal) + ')' : all.length + ' lançamento(s)'}</div></div>
-      <div class="kpi c-green"><div class="lbl">Pago</div><div class="val">${fmtMoney(pago)}</div></div>
-      <div class="kpi c-amber"><div class="lbl">A pagar</div><div class="val">${fmtMoney(tot - pago)}</div><div class="sub">${fmtMoneyShort(prox)} nos próximos 30 dias</div></div>
-      <div class="kpi c-red"><div class="lbl">Vencidos</div><div class="val">${fmtMoney(atr)}</div><div class="sub">${all.filter(c => custoStatus(c) === 'atrasado').length} conta(s)</div></div>
-    </div>
+    ${faixaHtml(CUSTO_FAIXA.map(([k, l, fn]) => { const cs = all.filter(fn); return { k, l, n: cs.length, v: cs.length ? fmtMoneyShort(cs.reduce((t, c) => t + num(c.valor), 0)) : '—', ativo: f.status === k, acao: `state.filters.custos.status='${k}';renderCustos()` }; }), 'Situação das contas')}
+    <div class="ct-resumo">Total <b>${fmtMoney(tot)}</b>${orcTotal ? ` · ${Math.round(tot / orcTotal * 100)}% do orçamento (${fmtMoneyShort(orcTotal)})` : ''} · em aberto ${fmtMoney(tot - pago)}${prox ? ` · ${fmtMoneyShort(prox)} vencem nos próximos 30 dias` : ''}</div>
     ${global ? `<div class="filters">${escopoSelectHtml('renderCustos()')}</div>` : ''}
     ${global && !escopo ? `<div class="chips chips-vinc" role="group" aria-label="De quem é a despesa">${[['todos', 'Todas as despesas'], ['empresa', 'Só da empresa'], ['emps', 'Só de empreendimentos']].map(([k, l]) => `<div class="chip ${vinc === k ? 'active' : ''}" onclick="state.filters.custos.vinc='${k}';renderCustos()">${l}<span class="n">${k === 'todos' ? doEscopo.length : k === 'empresa' ? doEscopo.filter(c => !c.loteamentoId).length : doEscopo.filter(c => c.loteamentoId).length}</span></div>`).join('')}</div>` : ''}
     ${global ? '' : graficosCustos}
-    <div class="chips">${[['all', 'Todos'], ['pendente', 'A pagar'], ['atrasado', 'Vencidos'], ['pago', 'Pagos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.custos.status='${k}';renderCustos()">${l}<span class="n">${k === 'all' ? all.length : all.filter(c => custoStatus(c) === k).length}</span></div>`).join('')}</div>
     <div class="filters">
       ${global && !escopo && vinc !== 'emps' && centros.length ? `<select aria-label="Centro de custo" onchange="state.filters.custos.centro=this.value;renderCustos()"><option value="">Todos os centros de custo</option>${[[CENTRO_ADM, 'Administração']].concat(centros.map(c => [c.id, c.nome])).map(([k, l]) => `<option value="${esc(k)}" ${centro === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : ''}
       <select aria-label="Conta do plano de contas" onchange="state.filters.custos.cat=this.value;renderCustos()"><option value="all">Todas as contas</option>${opcoesContasHtml(f.cat, db.categorias)}</select>
@@ -303,20 +312,23 @@ function renderCustos(alvo) {
       <button class="btn btn-primary btn-sm" onclick="abrirCustoForm(null, { emp: ${escopo ? `'${escopo}'` : vinc === 'emps' ? `'${(curLot() || {}).id || ''}'` : 'null'}${centro && centro !== CENTRO_ADM ? `, centro: '${esc(centro)}'` : ''} })"><i class=ico data-i=plus></i>Lançar</button>
     </div>
     <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
-    ${list.length ? list.map(c => custoRowHtml(c)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
+    ${list.length ? `<div class="lista">${list.map(c => custoRowHtml(c)).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
     ${global ? graficosCustos : ''}`;
   drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
 }
+/* Uma linha por conta: quando vence (ou quando foi paga), o que é e de quem, a conta do plano e
+   o fornecedor, o valor e o botão de pagar. */
 function custoRowHtml(c) {
   const st = custoStatus(c); const cat = getCategoria(c.categoriaId);
   /* De quem é: na lista da empresa aparece sempre; dentro do empreendimento, só o imóvel */
   const vc = vinculoDoCusto(c), naEmpresa = state.tab === 'custos' && !escopoAtual();
   const rotulo = naEmpresa ? vc.rotulo : vc.tipo === 'imovel' ? vc.rotulo.split(' · ').pop() : '';
-  return `<div class="item ${st}" data-vinculo="${vc.tipo}" onclick="abrirCustoForm('${c.id}')">
+  return `<div class="item linha ${st}" data-vinculo="${vc.tipo}" onclick="abrirCustoForm('${c.id}')">
+    <div class="ct-venc">${prazoHtml(c.vencimento, st, c.dataPagamento, 'Vencida')}</div>
     <div class="info"><div class="title">${esc(c.descricao)}${rotulo ? ` <span class="vinc ${vc.tipo}">${vc.tipo === 'empresa' ? '<i class=ico data-i=buildings></i>' : ''}${esc(rotulo)}</span>` : ''}</div>
-      <div class="meta"><span class="badge neutral badge-cat"><span class="dot" style="background:${cat ? cat.cor : '#94a3b8'}"></span>${cat ? esc(cat.nome) : 'Sem categoria'}</span>${c.fornecedor ? `<span>· ${esc(c.fornecedor)}</span>` : ''}<span>· ${fmtDate(c.dataCompetencia)}</span>${c.vencimento && st !== 'pago' ? `<span ${st === 'atrasado' ? 'style="color:var(--danger)"' : ''}>· vence ${fmtDate(c.vencimento)}</span>` : ''}${st === 'pago' && c.dataPagamento ? `<span>· pago em ${fmtDate(c.dataPagamento)}</span>` : ''}</div></div>
-    <div class="side"><div class="value">${fmtMoney(c.valor)}</div><span class="badge ${st}">${statusLabel(st)}</span>
-      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')"><i class=ico data-i=money></i></button>` : ''}</div></div></div>`;
+      <div class="meta"><span class="badge neutral badge-cat"><span class="dot" style="background:${cat ? cat.cor : '#94a3b8'}"></span>${cat ? esc(cat.nome) : 'Sem categoria'}</span>${c.fornecedor ? `<span>· ${esc(c.fornecedor)}</span>` : ''}<span>· competência ${monthLabel(monthKey(c.dataCompetencia))}</span>${c.formaPagamento && st === 'pago' ? `<span>· ${esc(c.formaPagamento)}</span>` : ''}</div></div>
+    <div class="side"><div class="value">${fmtMoney(c.valor)}</div>
+      <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && pode('custos.editar') ? `<button class="btn-icon ok" title="Marcar como pago" onclick="pagarCusto('${c.id}')"><i class=ico data-i=money></i></button>` : ''}</div></div></div>`;
 }
 /* Mantido para chamadas antigas: agora o formulário já pergunta de quem é a despesa */
 function novoCustoEscolhendoEmp() { abrirCustoForm(null, { emp: escopoAtual() || null }); }

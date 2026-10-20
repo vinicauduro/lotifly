@@ -1787,13 +1787,13 @@ function renderCurrent() {
   marcarMudancas();
   if (kpisAntes) marcarKpisMudados(kpisAntes);
 }
-/* Cartões de total que mudaram de valor na mesma tela por causa de uma mudança pequena (um
+/* Cartões de total (e números da faixa de situação) que mudaram de valor na mesma tela por causa de uma mudança pequena (um
    pagamento muda "Recebido" e "A receber") ganham o mesmo tom passageiro. Filtro, troca de
    tela e carga de dados não marcam nada. */
 function lerKpis() {
   const v = document.querySelector('.screen.active .view.active') || document.querySelector('.view.active');
   const m = new Map(); if (!v) return { tela: '', m };
-  v.querySelectorAll('.kpi').forEach(k => { const l = k.querySelector('.lbl'), x = k.querySelector('.val'); if (l && x) m.set(l.textContent.trim(), x.textContent.trim()); });
+  v.querySelectorAll('.kpi, .st-item').forEach(k => { const l = k.querySelector('.lbl, .st-l'), x = k.querySelector('.val, .st-v'); if (l && x) m.set(l.textContent.trim(), x.textContent.trim()); });
   return { tela: state.role + '|' + state.tab + '|' + (v.id || ''), m };
 }
 function marcarKpisMudados(antes) {
@@ -1802,9 +1802,9 @@ function marcarKpisMudados(antes) {
   const mudados = [...depois.m].filter(([l, x]) => antes.m.has(l) && antes.m.get(l) !== x).map(([l]) => l);
   if (!mudados.length || mudados.length > 3) return;
   const v = document.querySelector('.screen.active .view.active') || document.querySelector('.view.active');
-  v.querySelectorAll('.kpi').forEach(k => {
-    const l = k.querySelector('.lbl'); if (!l || !mudados.includes(l.textContent.trim())) return;
-    k.style.setProperty('--destaque', k.classList.contains('c-green') ? 'var(--success-bg)' : k.classList.contains('c-red') ? 'var(--danger-bg)' : k.classList.contains('c-amber') ? 'var(--warn-bg)' : 'var(--primary-soft)');
+  v.querySelectorAll('.kpi, .st-item').forEach(k => {
+    const l = k.querySelector('.lbl, .st-l'); if (!l || !mudados.includes(l.textContent.trim())) return;
+    k.style.setProperty('--destaque', k.matches('.c-green, .st-pago, .st-quitado') ? 'var(--success-bg)' : k.matches('.c-red, .st-atrasado') ? 'var(--danger-bg)' : k.matches('.c-amber') ? 'var(--warn-bg)' : 'var(--primary-soft)');
     tingir(k);
   });
 }

@@ -573,7 +573,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
    fica tingida da cor nova e volta ao normal em pouco mais de um segundo. O selo se acomoda. */
 .st-mudou { animation: linha-mudou 1.4s ease-out; }
 @keyframes linha-mudou { from { background-color: var(--destaque, var(--primary-soft)); } }
-.st-mudou .badge { animation: selo-mudou 320ms var(--ease-out); }
+.st-mudou .badge, .st-mudou .pill { animation: selo-mudou 320ms var(--ease-out); }
 @keyframes selo-mudou { from { transform: scale(0.88); opacity: 0.4; } }
 .muted { color: var(--muted); }
 .small { font-size: 0.82rem; }
@@ -837,7 +837,7 @@ button.link.perigo { color: var(--danger); text-decoration-color: rgba(180, 35, 
   .toast { animation: aparecer 150ms ease-out; }
   .toast.saindo { animation: sumir 120ms ease-out forwards; }
   /* o tom da linha e a troca de cor na planta ficam (são cor, não movimento); o selo e o contorno não */
-  .st-mudou .badge, .lote-shape.mudou { animation: none; }
+  .st-mudou .badge, .st-mudou .pill, .lote-shape.mudou { animation: none; }
   /* sem giro: o indicador pulsa devagar */
   .spinner, .btn.ocupado::before { animation: pulsar 1.2s ease-in-out infinite alternate; border-right-color: currentColor; }
   .spinner { border-top-color: var(--border-strong); background: var(--primary-light); }
@@ -920,7 +920,7 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 .pg-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- faixa de situação: o número é o filtro ---------- */
-.st-faixa { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+.st-faixa { display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
 .st-item { appearance: none; border: 0; border-right: 1px solid var(--border); background: transparent; padding: 12px 14px 11px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 1px; font: inherit; color: var(--text); position: relative; min-height: 44px; }
 .st-item:last-child { border-right: 0; }
 .st-item .st-n { font-size: 1.35rem; font-weight: 650; color: var(--text-strong); font-variant-numeric: tabular-nums; line-height: 1.15; }
@@ -951,7 +951,21 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 .pill.distrato { background: #f1f0ec; color: #5f5e5a; }
 
 /* ---------- lista de contratos: uma lista contínua, uma linha por contrato ---------- */
-.ct-lista { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.ct-lista, .lista { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+/* Linha de lista (A receber, A pagar, despesas do imóvel): quando vence · o que é · valor e ações */
+.item.linha { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 6px 18px; align-items: start; margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 13px 16px; }
+.item.linha:last-child { border-bottom: 0; }
+.item.linha.atrasado { box-shadow: inset 3px 0 0 var(--danger); }
+.item.linha .side { gap: 3px; }
+.item.linha .side .btns { margin-top: 4px; }
+.item.linha .ct-pessoa { font-size: 0.84rem; color: var(--muted); }
+@media (max-width: 899px) {
+  .item.linha { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "venc side" "id side"; gap: 6px 12px; padding: 12px 14px; }
+  .item.linha .ct-venc { grid-area: venc; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .item.linha .ct-venc .ct-data .tiny { display: inline; }
+  .item.linha .info { grid-area: id; }
+  .item.linha .side { grid-area: side; }
+}
 .item.ct-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 180px 170px; gap: 6px 18px; align-items: start; margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 14px 16px; }
 .item.ct-row:last-child { border-bottom: 0; }
 .item.ct-row.st-atrasado { box-shadow: inset 3px 0 0 var(--danger); }
