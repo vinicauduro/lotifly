@@ -18,7 +18,7 @@ function renderAdminTab() {
   else if (tab === 'corretores') renderCorretoresAdmin();
   else if (tab === 'clientes') { if (!abaPermitida('clientes')) $('#av-clientes').innerHTML = semPermissaoHtml('clientes'); else { renderClientes(); if (podeEditarClientes()) fabShow('abrirClienteForm()'); } }
   else if (tab === 'contrato') { if (!abaPermitida('vendas')) $('#av-contrato').innerHTML = semPermissaoHtml('contratos'); else renderContrato(); }
-  else if (tab === 'vendas') { if (!bloqueia('vendas.criar', 'contratos')) { renderAVendas(); if (pode('vendas.criar')) fabShow('novaVendaEscolhendoEmp()'); } }
+  else if (tab === 'vendas') { if (!bloqueia('vendas.criar', 'contratos')) renderAVendas(); }
   else if (tab === 'recebiveis') { if (!bloqueia('financeiro.ver', 'recebíveis')) renderRecebiveis(); }
   else if (tab === 'cobranca') { if (!bloqueia('cobranca.ver', 'cobrança')) renderCobranca(); }
   else if (tab === 'boletos') { if (!bloqueia('financeiro.ver', 'boletos')) renderBoletos(); }
@@ -26,7 +26,86 @@ function renderAdminTab() {
   else if (tab === 'indices') { if (!bloqueia('indices.editar', 'índices')) $('#av-indices').innerHTML = cadIndicesHtml(); }
   else if (tab === 'relatorios') renderRelatorios();
   else if (tab === 'cadastros') renderCadastros();
+  colocarTituloTela(tab);
 }
+/* Toda tela do menu diz onde você está. Contratos e Imóveis montam o título com as ações
+   deles; as outras ganham só o nome, em cima de tudo. */
+const TITULOS_TELA = { reservas: 'Reservas', corretores: 'Corretores', clientes: 'Clientes', recebiveis: 'A receber', cobranca: 'Cobrança', boletos: 'Boletos e banco', custos: 'A pagar', indices: 'Índices', relatorios: 'Relatórios', cadastros: 'Configurações' };
+function colocarTituloTela(tab) {
+  const v = $('#av-' + tab), t = TITULOS_TELA[tab];
+  if (!v || !t || v.querySelector(':scope > .pg-head')) return;
+  v.insertAdjacentHTML('afterbegin', tituloTela(t));
+}
+
+// ================================================================ BUSCA GERAL
+/* "O que você procura?": de qualquer tela, achar o contrato (pelo número, comprador, imóvel ou
+   corretor), o cliente, o lote, o imóvel ou a própria tela do menu, e abrir direto.
+   Ctrl+K (ou Cmd+K, ou "/" fora de um campo) abre; setas escolhem; Enter abre. */
+function semAcento(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function resultadosBusca(q) {
+  const termos = semAcento(q).split(/\s+/).filter(Boolean);
+  if (!termos.length) return [];
+  /* Letra ou número curto ("b", "3") vale como palavra inteira: "quadra b" não acha o Roberto */
+  const casa = txt => { const t = semAcento(txt), palavras = new Set(t.split(/[^a-z0-9]+/)); return termos.every(x => x.length <= 2 ? palavras.has(x) : t.includes(x)); };
+  const out = [];
+  const grupo = (nome, itens, max) => itens.slice(0, max).forEach(i => out.push(Object.assign({ grupo: nome }, i)));
+  if (abaPermitida('vendas')) grupo('Contratos', db.vendas.filter(v => casa([v.numeroContrato, v.cliente.nome, (v.compradoresExtras || []).map(c => c.nome).join(' '), imovelLabel(v), imovelShort(v), (getLoteamento(v.loteamentoId) || {}).nome, (v.corretor || {}).nome].join(' ')))
+    .sort((a, b) => (b.dataVenda || '').localeCompare(a.dataVenda || ''))
+    .map(v => ({ titulo: `${v.numeroContrato ? 'Contrato ' + v.numeroContrato : 'Contrato sem nº'} · ${v.cliente.nome}`, sub: `${imovelLabel(v)}${(getLoteamento(v.loteamentoId) || {}).nome ? ' — ' + getLoteamento(v.loteamentoId).nome : ''}${v.status === 'distrato' ? ' · distrato' : ''}`, icone: 'file-text', acao: () => abrirVendaAdmin(v.id) })), 6);
+  if (abaPermitida('clientes')) grupo('Clientes', db.clientes.filter(c => casa([c.nome, c.cpf, onlyDigits(c.cpf), c.telefone, c.email, c.cidade].join(' ')))
+    .sort((a, b) => naturalCmp(a.nome || '', b.nome || ''))
+    .map(c => ({ titulo: c.nome, sub: [c.cpf, c.cidade].filter(Boolean).join(' · '), icone: 'user', acao: () => abrirClienteForm(c.id) })), 5);
+  grupo('Lotes', db.lotes.filter(l => { const e = getLoteamento(l.loteamentoId); return casa([loteLabel(l), loteShort(l), `q${l.quadra} l${l.numero}`, e ? e.nome : ''].join(' ')); })
+    .sort(cmpLote).map(l => ({ titulo: `${loteLabel(l)}`, sub: `${(getLoteamento(l.loteamentoId) || {}).nome || ''} · ${statusLabel(l.status)}${num(l.preco) ? ' · ' + fmtMoney(l.preco) : ''}`, icone: 'ruler', acao: () => abrirLoteAdmin(l.id) })), 6);
+  grupo('Imóveis', db.loteamentos.filter(l => casa([l.nome, l.cidade, empLabel(l)].join(' ')))
+    .map(l => ({ titulo: l.nome, sub: [empLabel(l), l.cidade].filter(Boolean).join(' · '), icone: ehCarteira(l) ? 'house' : 'buildings', acao: () => abrirEmpreendimento(l.id) })), 4);
+  grupo('Telas', $$('#screen-admin .aside .tab').filter(t => t.style.display !== 'none' && casa(t.textContent))
+    .map(t => ({ titulo: t.textContent.replace(/\d+$/, '').trim(), sub: 'Ir para a tela', icone: 'list', acao: () => switchTab(t.dataset.tab) })), 4);
+  return out;
+}
+function abrirBusca() {
+  if (state.role !== 'admin') return;
+  openModal({ title: 'O que você procura?', body: `<input type="search" id="buscaGeral" class="busca-geral" placeholder="Nº do contrato, cliente, CPF, lote (ex.: quadra B lote 3), imóvel ou tela…" aria-label="Buscar" aria-controls="buscaRes" autocomplete="off" oninput="mostrarBusca()" onkeydown="teclaBusca(event)">
+      <div id="buscaRes" class="busca-res" role="listbox" aria-label="Resultados"></div>
+      <p class="tiny muted mt">Setas para escolher, Enter para abrir. Atalho: Ctrl+K.</p>` });
+  state.buscaSel = 0; mostrarBusca();
+  setTimeout(() => { const i = $('#buscaGeral'); if (i) i.focus(); }, 30);
+}
+function mostrarBusca() {
+  const i = $('#buscaGeral'), box = $('#buscaRes'); if (!i || !box) return;
+  const res = resultadosBusca(i.value); window.__busca = res;
+  if (state.buscaSel >= res.length) state.buscaSel = 0;
+  let grupoAnt = '';
+  box.innerHTML = !i.value.trim() ? '<p class="help">Comece a digitar. Ex.: <b>0012/2026</b>, <b>Roberto</b>, <b>quadra B lote 3</b>, <b>a pagar</b>.</p>'
+    : res.length ? res.map((r, k) => { const cab = r.grupo !== grupoAnt ? `<div class="busca-grupo" role="presentation">${r.grupo}</div>` : ''; grupoAnt = r.grupo;
+      return `${cab}<div class="busca-item ${k === state.buscaSel ? 'sel' : ''}" role="option" id="buscaOp${k}" aria-selected="${k === state.buscaSel}" onclick="abrirResultadoBusca(${k})" onmousemove="if(state.buscaSel!==${k}){state.buscaSel=${k};marcarBusca()}"><i class=ico data-i=${r.icone}></i><div><div class="busca-tit">${esc(r.titulo)}</div>${r.sub ? `<div class="busca-sub">${esc(r.sub)}</div>` : ''}</div></div>`; }).join('')
+    : '<p class="help">Nada encontrado com esse texto.</p>';
+  i.setAttribute('aria-activedescendant', res.length ? 'buscaOp' + state.buscaSel : '');
+}
+function marcarBusca() {
+  $$('#buscaRes .busca-item').forEach((el, k) => { el.classList.toggle('sel', k === state.buscaSel); el.setAttribute('aria-selected', k === state.buscaSel); });
+  const i = $('#buscaGeral'); if (i) i.setAttribute('aria-activedescendant', 'buscaOp' + state.buscaSel);
+  const el = $('#buscaOp' + state.buscaSel); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+}
+function teclaBusca(e) {
+  const n = (window.__busca || []).length;
+  if (e.key === 'ArrowDown' && n) { e.preventDefault(); state.buscaSel = (state.buscaSel + 1) % n; marcarBusca(); }
+  else if (e.key === 'ArrowUp' && n) { e.preventDefault(); state.buscaSel = (state.buscaSel - 1 + n) % n; marcarBusca(); }
+  else if (e.key === 'Enter' && n) { e.preventDefault(); abrirResultadoBusca(state.buscaSel); }
+}
+function abrirResultadoBusca(k) {
+  const r = (window.__busca || [])[k]; if (!r) return;
+  closeModal();
+  /* A ação abre a tela ou a janela do resultado; o que abre janela precisa da janela livre */
+  setTimeout(r.acao, 0);
+}
+document.addEventListener('keydown', e => {
+  if (state.role !== 'admin') return;
+  const noCampo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '') || (e.target && e.target.isContentEditable);
+  if (((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) || (e.key === '/' && !noCampo && !$('#modalOverlay').classList.contains('open'))) {
+    e.preventDefault(); abrirBusca();
+  }
+});
 
 /* Números ao lado dos itens do menu: o que está esperando alguém. Só aparece para quem pode
    agir sobre aquilo. */
@@ -180,11 +259,12 @@ function renderPainel() {
     ${alerts}
     <div class="kpi-grid inicio">
       <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
-      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>${inadimplenciaTexto(k.inadMes)} ›</div></div>
+      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>somando todos os meses ›</div></div>
       <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
       <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
       <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
     </div>
+    ${barraMesHtml('')}
     <div class="grid2">
       <div class="card"><h2>Fluxo previsto (12 meses)</h2><div style="position:relative"><canvas class="chart" id="chartFluxo" height="220"></canvas><div class="chart-tip" id="chartFluxoTip"></div></div>
         <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos</div><div><span class="dot" style="background:#f97316"></span>Despesas</div><div class="muted">tom mais escuro: mês atual</div></div>
@@ -691,36 +771,91 @@ function salvarReservaAdminNova() {
   closeModal(); renderCurrent(); toast('✅', 'Reserva registrada', '');
 }
 
-// ================================================================ VENDAS
+// ================================================================ CONTRATOS
+/* Título de cada tela do menu, com as ações dela à direita: responde "onde estou" no conteúdo. */
+function tituloTela(titulo, acoes, sub) {
+  return `<div class="pg-head"><div><h2 class="pg-tit">${titulo}</h2>${sub ? `<div class="pg-sub">${sub}</div>` : ''}</div>${acoes ? `<div class="pg-acoes">${acoes}</div>` : ''}</div>`;
+}
+/* A situação de um contrato do ponto de vista de quem cobra: atrasado (há parcela vencida em
+   aberto), em dia, quitado ou distrato; e a próxima parcela em aberto. */
+function situacaoContrato(x) {
+  const r = vendaResumo(x), hoje = todayStr();
+  if (x.status === 'distrato') return { tipo: 'distrato', r, prox: null };
+  const abertas = recebiveisDe(x.id).filter(p => recRestante(p) > 0.005);
+  const prox = abertas[0] || null;
+  if (!abertas.length) return { tipo: r.n || x.status === 'quitada' ? 'quitado' : 'emdia', r, prox: null };
+  const vencida = abertas.find(p => p.vencimento < hoje);
+  if (vencida) return { tipo: 'atrasado', r, prox, dias: daysBetween(vencida.vencimento, hoje) };
+  return { tipo: 'emdia', r, prox, diasPara: daysBetween(hoje, prox.vencimento) };
+}
+/* O selo só aparece quando há o que avisar: no parcelamento mensal todo contrato vence em até
+   um mês, então "vence em breve" é só até 5 dias. */
+function seloContrato(sit) {
+  if (sit.tipo === 'atrasado') return `<span class="pill atrasado">Atrasado há ${sit.dias} dia${sit.dias === 1 ? '' : 's'}</span>`;
+  if (sit.tipo === 'quitado') return '<span class="pill quitado">Quitado</span>';
+  if (sit.tipo === 'distrato') return '<span class="pill distrato">Distrato</span>';
+  if (sit.prox && sit.diasPara <= 5) return `<span class="pill vence">${sit.diasPara <= 0 ? 'Vence hoje' : sit.diasPara === 1 ? 'Vence amanhã' : `Vence em ${sit.diasPara} dias`}</span>`;
+  return '';
+}
+const CT_FILTROS = [['all', 'Todos'], ['emdia', 'Em dia'], ['atrasado', 'Atrasados'], ['quitado', 'Quitados'], ['distrato', 'Distratos']];
+const CT_ORDENS = [['urgencia', 'Atrasados e próximos vencimentos primeiro'], ['recentes', 'Vendidos mais recentemente'], ['valor', 'Maior valor'], ['numero', 'Nº do contrato']];
 function renderAVendas() {
   const esc0 = escopoAtual(); const v = $('#av-vendas');
   const f = state.filters.avendas = state.filters.avendas || { sub: 'vendas', status: 'all', busca: '' };
   if (f.sub === 'comissoes') { renderComissoes(v, f); return; }
-  const all = vendasDo(esc0).sort((a, b) => (b.dataVenda || '').localeCompare(a.dataVenda || ''));
+  if (!CT_FILTROS.some(c => c[0] === f.status) && f.status !== 'semnum') f.status = 'all';
+  if (!CT_ORDENS.some(o => o[0] === f.ordem)) f.ordem = 'urgencia';
+  const all = vendasDo(esc0).map(x => ({ x, sit: situacaoContrato(x) }));
   const b = (f.busca || '').toLowerCase();
-  const list = all.filter(x => (f.status === 'all' || x.status === f.status) && (!b || x.cliente.nome.toLowerCase().includes(b) || imovelLabel(x).toLowerCase().includes(b) || String(x.numeroContrato || '').includes(b)));
-  const nSemNumero = all.filter(x => !x.numeroContrato).length;
-  const ativas = all.filter(x => x.status !== 'distrato');
-  const tot = ativas.reduce((s, x) => s + num(x.valorTotal), 0);
+  const doFiltro = c => f.status === 'all' || (f.status === 'semnum' ? !c.x.numeroContrato : c.sit.tipo === f.status);
+  const list = all.filter(c => doFiltro(c) && (!b || c.x.cliente.nome.toLowerCase().includes(b) || imovelLabel(c.x).toLowerCase().includes(b) || String(c.x.numeroContrato || '').includes(b) || ((c.x.corretor || {}).nome || '').toLowerCase().includes(b)));
+  const peso = { atrasado: 0, emdia: 1, quitado: 2, distrato: 3 };
+  const ordens = {
+    urgencia: (a, z) => peso[a.sit.tipo] - peso[z.sit.tipo] || (a.sit.tipo === 'atrasado' ? z.sit.dias - a.sit.dias : 0) || ((a.sit.prox || {}).vencimento || '9999').localeCompare((z.sit.prox || {}).vencimento || '9999') || (z.x.dataVenda || '').localeCompare(a.x.dataVenda || ''),
+    recentes: (a, z) => (z.x.dataVenda || '').localeCompare(a.x.dataVenda || ''),
+    valor: (a, z) => num(z.x.valorTotal) - num(a.x.valorTotal),
+    numero: (a, z) => (a.x.numeroContrato ? 0 : 1) - (z.x.numeroContrato ? 0 : 1) || naturalCmp(String(a.x.numeroContrato || '').split('/').reverse().join('/'), String(z.x.numeroContrato || '').split('/').reverse().join('/'))
+  };
+  list.sort(ordens[f.ordem]);
+  const nSemNumero = all.filter(c => !c.x.numeroContrato).length;
+  const conta = k => all.filter(c => k === 'all' || c.sit.tipo === k);
+  const soma = (cs, fn) => cs.reduce((s, c) => s + fn(c), 0);
+  const mes = mesAtual(), doMes = all.filter(c => monthKey(c.x.dataVenda) === mes && c.x.status !== 'distrato');
+  const distMes = all.filter(c => c.x.status === 'distrato' && monthKey(c.x.distratoEm || '') === mes).length;
+  const novo = pode('vendas.criar') ? '<button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()"><i class=ico data-i=plus></i>Novo contrato</button>' : '';
   v.innerHTML = `
-    ${nSemNumero && (pode('vendas.editar') || pode('vendas.criar')) ? `<div class="alert info" onclick="numerarContratosAntigos()"><span><b>${nSemNumero} contrato(s) sem número.</b> Numerar na ordem da data da venda? <u>Numerar agora</u></span><i class=ico data-i=caret-right></i></div>` : ''}
-    <div class="subtabs"><div class="chip active">Vendas</div><div class="chip" onclick="state.filters.avendas.sub='comissoes';renderAVendas()">Comissões</div></div>
-    <div class="kpi-grid cols3">
-      <div class="kpi c-blue"><div class="lbl">Vendas</div><div class="val">${ativas.length}</div><div class="sub">${fmtMoneyShort(tot)}</div></div>
-      <div class="kpi c-green"><div class="lbl">Quitadas</div><div class="val">${all.filter(x => x.status === 'quitada').length}</div></div>
-      <div class="kpi c-primary"><div class="lbl">Ticket médio</div><div class="val">${fmtMoneyShort(ativas.length ? tot / ativas.length : 0)}</div></div>
-    </div>
-    <div class="chips">${[['all', 'Todas'], ['ativa', 'Ativas'], ['quitada', 'Quitadas'], ['distrato', 'Distratos']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.avendas.status='${k}';renderAVendas()">${l}<span class="n">${k === 'all' ? all.length : all.filter(x => x.status === k).length}</span></div>`).join('')}</div>
-    <div class="filters">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="Cliente, imóvel ou nº do contrato…" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)"><button class="btn btn-primary btn-sm" onclick="novaVendaEscolhendoEmp()"><i class=ico data-i=plus></i>Nova venda</button></div>
-    ${list.length ? list.map(x => vendaCardHtml(x)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=coins></i></div><p>Nenhuma venda registrada.<br>Converta uma reserva ou registre uma venda direta.</p></div>`}`;
+    ${tituloTela('Contratos', novo)}
+    <div class="subtabs"><div class="chip active">Contratos</div><div class="chip" onclick="state.filters.avendas.sub='comissoes';renderAVendas()">Comissões</div></div>
+    <div class="st-faixa" role="group" aria-label="Situação dos contratos">${CT_FILTROS.map(([k, l]) => {
+      const cs = conta(k); const valor = k === 'atrasado' ? soma(cs, c => c.sit.r.atrasado) : k === 'distrato' ? soma(cs, c => num(c.x.valorTotal)) : soma(cs, c => k === 'quitado' ? num(c.x.valorTotal) : c.sit.tipo === 'distrato' ? 0 : c.sit.r.restante);
+      const sub = k === 'atrasado' ? 'em atraso' : k === 'quitado' || k === 'distrato' ? 'vendido' : 'a receber';
+      return `<button type="button" class="st-item st-${k} ${f.status === k ? 'active' : ''}" aria-pressed="${f.status === k}" onclick="state.filters.avendas.status='${k}';renderAVendas()"><span class="st-n">${cs.length}</span><span class="st-l">${l}</span><span class="st-v">${cs.length ? fmtMoneyShort(valor) + ' ' + sub : '—'}</span></button>`;
+    }).join('')}</div>
+    <div class="ct-resumo">${nSemNumero ? `<button type="button" class="st-semnum ${f.status === 'semnum' ? 'active' : ''}" onclick="state.filters.avendas.status='${f.status === 'semnum' ? 'all' : 'semnum'}';renderAVendas()">${nSemNumero} sem número</button>${(pode('vendas.editar') || pode('vendas.criar')) ? ' <a href="#" onclick="numerarContratosAntigos();return false">Numerar agora</a>' : ''} · ` : ''}Em ${monthLabel(mes)}: <b>${doMes.length}</b> contrato${doMes.length === 1 ? '' : 's'} novo${doMes.length === 1 ? '' : 's'}${doMes.length ? ` (${fmtMoneyShort(soma(doMes, c => num(c.x.valorTotal)))})` : ''} · <b>${distMes}</b> distrato${distMes === 1 ? '' : 's'}</div>
+    <div class="filters ct-filtros">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="Cliente, imóvel, nº do contrato ou corretor…" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)">
+      <select aria-label="Ordem da lista" onchange="state.filters.avendas.ordem=this.value;renderAVendas()">${CT_ORDENS.map(([k, l]) => `<option value="${k}" ${f.ordem === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    ${list.length ? `<p class="small muted mb">${list.length} contrato${list.length === 1 ? '' : 's'} · ${fmtMoney(soma(list, c => num(c.x.valorTotal)))} vendido${list.some(c => c.sit.r.restante > 0.005) ? ` · ${fmtMoney(soma(list, c => c.x.status === 'distrato' ? 0 : c.sit.r.restante))} a receber` : ''}</p>
+      <div class="ct-lista">${list.map(c => vendaCardHtml(c.x, c.sit)).join('')}</div>`
+      : `<div class="empty"><div class="ic"><i class=ico data-i=file-text></i></div><p>${all.length ? 'Nenhum contrato nesta situação.' : 'Nenhum contrato ainda.<br>Converta uma reserva ou registre um contrato novo.'}</p></div>`}`;
 }
-function vendaCardHtml(x) {
-  const r = vendaResumo(x); const pct = r.total ? Math.round(r.pago / r.total * 100) : 0;
-  return `<div class="item ${x.status === 'distrato' ? 'cancelada' : x.status}" onclick="abrirVendaAdmin('${x.id}')">
-    <div class="info"><div class="title">${x.numeroContrato ? `<span class="ct-nº">Nº ${esc(x.numeroContrato)}</span> ` : ''}${esc(imovelLabel(x))} · ${esc(x.cliente.nome)}${!escopoAtual() ? ` <span class="tiny muted">· ${esc((getLoteamento(x.loteamentoId) || {}).nome || '')}</span>` : ''}</div>
-      <div class="meta"><span>${fmtDate(x.dataVenda)}</span>${x.corretor && x.corretor.nome ? `<span>· ${esc(x.corretor.nome)}</span>` : ''}<span>· ${x.nParcelas ? `${x.nParcelas}× ${fmtMoney(x.valorParcela)}` : 'à vista'}</span>${r.atrasado ? `<span style="color:var(--danger)">· ${fmtMoney(r.atrasado)} em atraso</span>` : ''}</div>
-      ${x.status !== 'distrato' ? `<div class="progress"><div style="width:${pct}%"></div></div><div class="tiny muted">${r.nPagas}/${r.n} parcelas · ${fmtMoney(r.pago)} recebido (${pct}%)</div>` : ''}</div>
-    <div class="side"><div class="value">${fmtMoney(x.valorTotal)}</div><span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${statusLabel(x.status)}</span></div></div>`;
+/* Uma linha por contrato: quando vence e se está atrasado; qual é o contrato, de quem e do
+   quê; quantas parcelas já foram pagas; e o valor do contrato, com o saldo embaixo. */
+function vendaCardHtml(x, sit) {
+  sit = sit || situacaoContrato(x);
+  const r = sit.r, pct = r.total ? Math.round(r.pago / r.total * 100) : 0;
+  const emp = !escopoAtual() ? (getLoteamento(x.loteamentoId) || {}).nome || '' : '';
+  const imovel = imovelLabel(x);
+  const extras = (x.compradoresExtras || []).length;
+  return `<div class="item ct-row st-${sit.tipo}" onclick="abrirVendaAdmin('${x.id}')">
+    <div class="ct-venc">${sit.prox ? `<div class="ct-data"><span class="tiny muted">${sit.tipo === 'atrasado' ? 'venceu' : 'próxima'}</span> ${fmtDate(sit.tipo === 'atrasado' ? recebiveisDe(x.id).find(p => recRestante(p) > 0.005 && p.vencimento < todayStr()).vencimento : sit.prox.vencimento)}</div>` : '<div class="ct-data muted">—</div>'}${seloContrato(sit)}</div>
+    <div class="ct-id info">
+      <div class="title">${x.numeroContrato ? `<span class="ct-num">Contrato ${esc(x.numeroContrato)}</span>` : '<span class="ct-num sem">Sem nº</span>'} <span class="ct-imovel"><i class=ico data-i=house></i>${esc(imovel)}${emp && imovel.indexOf(emp) < 0 ? ` — ${esc(emp)}` : ''}</span></div>
+      <div class="ct-pessoa"><i class=ico data-i=user></i>${esc(x.cliente.nome)}${extras ? ` <span class="tiny muted">+${extras}</span>` : ''}</div>
+      <div class="meta">${x.corretor && x.corretor.nome ? `<span>${esc(x.corretor.nome)}</span><span>·</span>` : ''}<span>vendido em ${fmtDate(x.dataVenda)}</span></div>
+    </div>
+    <div class="ct-parc">${x.status === 'distrato' ? '<span class="tiny muted">desfeito</span>' : r.n ? `<div class="small"><b>${r.nPagas}</b> de ${r.n} parcela${r.n === 1 ? '' : 's'}</div><div class="progress" aria-hidden="true"><div style="width:${pct}%"></div></div><div class="tiny muted">${x.nParcelas ? `${x.nParcelas}× ${fmtMoney(x.valorParcela)}` : 'à vista'}</div>` : '<span class="tiny muted">sem parcelas</span>'}</div>
+    <div class="ct-valor side"><div class="value">${fmtMoney(x.valorTotal)}</div>${x.status !== 'distrato' && r.restante > 0.005 ? `<div class="tiny muted">saldo ${fmtMoney(r.restante)}</div>` : ''}${r.atrasado > 0.005 && x.status !== 'distrato' ? `<div class="tiny ct-atraso">${fmtMoney(r.atrasado)} em atraso</div>` : ''}</div>
+  </div>`;
 }
 /* Venda nova a partir da aba global: primeiro o empreendimento, depois o formulário. */
 /* No banco, imóvel e lote novos são do dono e do administrador; o financeiro registra a

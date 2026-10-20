@@ -68,7 +68,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 
     await passo('Início: % em atraso do mês = atraso das parcelas do mês ÷ valor de todas as parcelas do mês', async () => {
       await page.evaluate(() => { const m = todayStr().slice(0, 7); const r = recebiveisDo('').find(r => monthKey(r.vencimento) === m && !r.valorPago); upsert('recebiveis', Object.assign({}, r, { vencimento: addDays(todayStr(), -1).slice(0, 7) === m ? addDays(todayStr(), -1) : r.vencimento })); switchTab('painel'); });
-      const r = await page.evaluate(() => { const m = todayStr().slice(0, 7); const rs = recebiveisDo('').filter(r => monthKey(r.vencimento) === m); const prev = rs.reduce((s, r) => s + recValor(r), 0), atr = rs.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0); return { esperado: fmtNum(atr / prev * 100, 1) + '% das parcelas do mês em atraso', txt: document.querySelector('#av-painel .kpi.c-red .sub').textContent }; });
+      const r = await page.evaluate(() => { const m = todayStr().slice(0, 7); const rs = recebiveisDo('').filter(r => monthKey(r.vencimento) === m); const prev = rs.reduce((s, r) => s + recValor(r), 0), atr = rs.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0); return { esperado: fmtNum(atr / prev * 100, 1) + '% das parcelas do mês em atraso', txt: document.querySelector('#av-painel .bm').textContent }; });
       if (!r.txt.includes(r.esperado)) throw new Error(r.txt + ' ≠ ' + r.esperado);
     });
 
@@ -77,7 +77,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       await page.evaluate(() => { const m = todayStr().slice(0, 7), ontem = addDays(todayStr(), -1); const r = recebiveisDo('').find(r => monthKey(r.vencimento) === m && !r.valorPago); if (r && ontem.slice(0, 7) === m) upsert('recebiveis', Object.assign({}, r, { vencimento: ontem })); state.escopo = ''; });
       const r = await page.evaluate(() => {
         const im = inadimplenciaDoMes(''); const pct = fmtNum(im.pct, 1) + '%';
-        switchTab('painel'); const inicio = document.querySelector('#av-painel .kpi.c-red').textContent;
+        switchTab('painel'); const inicio = document.querySelector('#av-painel .bm').textContent;
         switchTab('cobranca'); const cob = document.querySelector('#av-cobranca .kpi.c-amber .val').textContent.trim(), cobAtraso = document.querySelector('#av-cobranca .kpi.c-red .val').textContent.trim();
         const rel = relInadimplencia('').kpis;
         return { pct, inicio, cob, cobAtraso, inicioAtraso: document.querySelector('#av-painel .kpi.c-red .val').textContent.trim(), rel };

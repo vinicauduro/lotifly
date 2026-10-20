@@ -72,6 +72,7 @@ function renderCobranca() {
 
   v.innerHTML = `
     ${db.loteamentos.length > 1 ? `<div class="filters">${escopoSelectHtml('renderCobranca()')}</div>` : ''}
+    ${barraMesHtml(esc0)}
     <div class="kpi-grid">
       <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(total)}</div><div class="sub">${todos.length} contrato(s)${totalCorrigido > total + 0.005 ? ` · com multa e juros ${fmtMoneyShort(totalCorrigido)}` : ''}</div></div>
       <div class="kpi c-amber"><div class="lbl">Inadimplência do mês</div><div class="val">${fmtNum(im.pct, 1)}%</div><div class="sub">${im.previsto ? `${fmtMoneyShort(im.atraso)} em atraso de ${fmtMoneyShort(im.previsto)} que vence em ${monthLabel(im.mesKey)}` : 'nenhuma parcela vence este mês'}</div></div>
@@ -80,6 +81,8 @@ function renderCobranca() {
     </div>
     <div class="chips">${[['todas', 'Todas as faixas']].concat(FAIXAS_DIAS.map(x => [x[0], x[0] + ' dias'])).map(([k, l]) => {
       const n = k === 'todas' ? todos.length : todos.filter(it => { const fx = FAIXAS_DIAS.find(x => x[0] === k); return it.dias >= fx[1] && it.dias <= fx[2]; }).length;
+      /* Faixa vazia não é escolha: some, a não ser a que está escolhida */
+      if (!n && k !== 'todas' && f.faixa !== k) return '';
       return `<div class="chip ${f.faixa === k ? 'active' : ''}" onclick="state.filters.cob.faixa='${k}';renderCobranca()">${l}<span class="n">${n}</span></div>`;
     }).join('')}</div>
     <div class="filters">

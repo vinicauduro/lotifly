@@ -760,6 +760,62 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z30. Lista de contratos, busca geral e barra das parcelas do mês (19/10)
+
+Depois da comparação com o Superlógica: a **lista de contratos** ficou parecida com a dele, o
+**menu** continuou o nosso (com nome em cada item), e veio a **busca geral**.
+
+**Contratos (era "Todos os contratos"):**
+
+- Uma linha por contrato, numa lista contínua:
+  - **quando vence** (a próxima parcela, ou a que venceu) e um selo **só quando há o que
+    avisar**: "Atrasado há 48 dias" (vermelho), "Vence em 2 dias" (amarelo, até 5 dias),
+    "Quitado" ou "Distrato";
+  - **Contrato 0012/2026** (ou "Sem nº"), o **imóvel** por extenso, o **comprador** e, em cinza,
+    o corretor e a data da venda;
+  - **parcelas pagas** ("2 de 13") com a barrinha e o valor da parcela;
+  - o **valor do contrato** em destaque, com o **saldo** embaixo e o **atraso** em vermelho.
+- **Ordem:** atrasados primeiro (o mais antigo no topo), depois quem vence antes; dá para trocar
+  para "vendidos mais recentemente", "maior valor" ou "nº do contrato".
+- No alto, uma **faixa de situação** em que o número é o filtro: Todos · Em dia · **Atrasados**
+  · Quitados · Distratos, com o valor de cada um. Embaixo, "N sem número" (filtra) e o resumo
+  do mês. Substitui os cartões e os chips, que repetiam a mesma coisa.
+- "Venda" virou **Contrato** na tela, no botão (**Novo contrato**) e na aba (Contratos ·
+  Comissões). O botão + flutuante saiu desta tela (o botão do título faz o mesmo).
+
+**Busca geral ("O que você procura?")** no alto de todas as telas, ou **Ctrl+K** (ou "/"):
+contrato pelo número, comprador, imóvel ou corretor; cliente pelo nome ou CPF; lote ("quadra b
+lote 3"); imóvel; e as próprias telas ("a pagar"). Setas escolhem, Enter abre.
+
+**Títulos:** cada tela do menu diz onde você está (A receber, Cobrança, A pagar, Clientes…).
+
+**Menu:** saiu o "Novo contrato" (é ação, não tela; está no título de Contratos e na busca).
+O contador de Reservas e de Boletos ficou neutro; vermelho só para Cobrança e A pagar, que são
+urgência.
+
+**Barra "Parcelas de outubro"** no Início, em A receber e em Cobrança: das parcelas que vencem no
+mês, quanto já foi **recebido**, quanto ainda **vai vencer** e quanto **venceu e não foi pago**, em
+R$, com o número de parcelas. Cada parte abre a lista dela. O cartão "Em atraso" do Início
+agora diz que soma todos os meses, e a % do mês foi para a barra (antes os dois recortes
+ficavam juntos e confundiam). "Recebido" ficou azul em todo lugar.
+
+**A receber:** "Gerar cobranças" e "Retorno" viraram botões (pareciam filtros).
+
+**A pagar:** a lista vem **antes** do gráfico e do orçado (no celular a primeira conta só
+aparecia depois de rolar uma tela inteira). Saiu a lixeira de cada linha, que ficava colada no
+botão de pagar: excluir fica dentro da despesa. Etiquetas um pouco maiores.
+
+**Cobrança:** faixas de dias sem ninguém somem.
+
+Para você fazer:
+
+- [ ] Abrir Contratos e ver se a ordem "atrasados primeiro" serve como tela da carteira.
+- [ ] Testar a busca (Ctrl+K) com um nome, um nº de contrato e um lote.
+
+`testes/lista-contratos.test.js` (10 casos, com relógio fixo em 19/10/2026).
+
+---
+
 ## 7z29. Fluxo previsto: os valores do mês ao passar o mouse (19/10)
 
 No Início › Fluxo previsto, passando o mouse em cima de um mês (no celular, tocando), aparece um
