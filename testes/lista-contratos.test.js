@@ -128,7 +128,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     // outubro: e1 pago 1000; a2 (15/10) 1000 atrasado; v1 (21/10) 2000 a vencer; d1 é de distrato e não entra
     if (c !== '1000,2000,1000,1,1,1') throw new Error(c);
     const t = (await page.locator('#av-painel .bm').innerText()).replace(/\s+/g, ' ');
-    for (const s of ['Parcelas de out/26', 'R$ 4.000,00', 'Recebido R$ 1.000,00 1 parcela · 25,0%', 'A vencer R$ 2.000,00 1 parcela', 'Em atraso R$ 1.000,00 1 parcela · 25,0% das parcelas do mês em atraso'])
+    for (const s of ['Parcelas de out/26', 'R$ 4.000,00', 'Recebido R$ 1.000,00 1 parcela · 25,0%', 'A vencer R$ 2.000,00 1 parcela', 'Em atraso no mês R$ 1.000,00 1 parcela · 25,0% das parcelas do mês em atraso'])
       if (!t.includes(s)) throw new Error(`faltou "${s}" em ${t}`);
     await page.click('#av-painel .bm-leg:has-text("A vencer")');
     let l = await page.evaluate(() => ({ tab: state.tab, ids: [...document.querySelectorAll('#av-recebiveis .item')].length, txt: document.querySelector('#av-recebiveis p.small').textContent.replace(/\s+/g, ' ') }));
@@ -137,7 +137,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.click('#av-painel .bm-seg.atr');
     l = await page.evaluate(() => ({ n: document.querySelectorAll('#av-recebiveis .item').length, txt: document.querySelector('#av-recebiveis p.small').textContent.replace(/\s+/g, ' ') }));
     if (l.n !== 1 || !/R\$ 1\.000,00 · vencidas em out\/26 e não pagas/.test(l.txt)) throw new Error('atraso do mês: ' + JSON.stringify(l));
-    const cob = await page.evaluate(() => { switchTab('cobranca'); return !!document.querySelector('#av-cobranca .bm') && [...document.querySelectorAll('#av-cobranca .st-item:not(.st-zero) .st-l')].map(c => c.textContent.trim()); });
+    const cob = await page.evaluate(() => { switchTab('cobranca'); return !document.querySelector('#av-cobranca .bm') && [...document.querySelectorAll('#av-cobranca .st-item:not(.st-zero) .st-l')].map(c => c.textContent.trim()); });
     if (!cob || cob.join() !== 'Todos,31-60 dias') throw new Error('cobrança: ' + JSON.stringify(cob));
   });
   await passo('A pagar: a lista vem antes do gráfico; sem lixeira na linha; excluir fica dentro da despesa', async () => {
