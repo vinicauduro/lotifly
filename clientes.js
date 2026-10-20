@@ -83,10 +83,13 @@ function registrarClientesDaVenda(compradores) {
 // ================================================================ TELA: CONTRATOS › CLIENTES
 function renderClientes() {
   const v = $('#av-clientes'); if (!v) return;
-  const f = state.filters.clientes = state.filters.clientes || { busca: '' };
+  const f = state.filters.clientes = Object.assign({ busca: '', grupo: 'all' }, state.filters.clientes || {});
   const edita = podeEditarClientes();
   const b = f.busca.trim().toLowerCase(), bd = onlyDigits(f.busca);
-  const lista = db.clientes.filter(c => !b
+  /* A faixa no alto: o número é o filtro, como nas outras listas */
+  const GRUPOS = [['all', 'Todos', () => true], ['com', 'Com contrato', c => contratosDoCliente(c).length > 0], ['sem', 'Sem contrato', c => !contratosDoCliente(c).length], ['incompleto', 'Falta dado para contrato', c => faltaQualificacao(c).length > 0]];
+  const doGrupo = (GRUPOS.find(g => g[0] === f.grupo) || GRUPOS[0])[2];
+  const lista = db.clientes.filter(doGrupo).filter(c => !b
       || String(c.nome || '').toLowerCase().includes(b)
       || String(c.cidade || '').toLowerCase().includes(b)
       || String(c.email || '').toLowerCase().includes(b)
@@ -96,23 +99,21 @@ function renderClientes() {
   const incompletos = db.clientes.filter(c => faltaQualificacao(c).length).length;
   v.innerHTML = `
     ${fora.length ? `<div class="alert info" onclick="importarCompradores()"><span><b>${fora.length} comprador(es) dos contratos ainda sem ficha.</b> Trazer para o cadastro? Quem já tem ficha, pelo CPF, não é duplicado. <u>Trazer agora</u></span><i class=ico data-i=caret-right></i></div>` : ''}
-    <div class="kpi-grid cols3">
-      <div class="kpi c-blue"><div class="lbl">Clientes</div><div class="val">${db.clientes.length}</div><div class="sub">no cadastro</div></div>
-      <div class="kpi c-green"><div class="lbl">Com contrato</div><div class="val">${db.clientes.filter(c => contratosDoCliente(c).length).length}</div><div class="sub">comprador em ao menos um</div></div>
-      <div class="kpi ${incompletos ? 'c-amber' : 'c-green'}"><div class="lbl">Qualificação incompleta</div><div class="val">${incompletos}</div><div class="sub">${incompletos ? 'falta dado para o contrato' : 'todos prontos para contrato'}</div></div>
-    </div>
+    ${faixaHtml(GRUPOS.map(([k, l, fn]) => { const n = db.clientes.filter(fn).length; return { k: k === 'incompleto' ? 'aguardando' : k, l, n, v: k === 'incompleto' ? (n ? 'precisa completar' : 'todos prontos') : k === 'com' ? 'comprador em contrato' : k === 'sem' ? 'só no cadastro' : 'no cadastro', ativo: f.grupo === k, acao: `state.filters.clientes.grupo='${k}';renderClientes()` }; }), 'Clientes por situação')}
     <div class="filters"><input type="text" placeholder="Nome, CPF, telefone, e-mail ou cidade…" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
       ${edita ? '<button class="btn btn-primary btn-sm" onclick="abrirClienteForm()"><i class=ico data-i=plus></i>Novo cliente</button>' : ''}</div>
-    ${lista.length ? lista.map(clienteItemHtml).join('')
+    ${lista.length ? `<div class="lista">${lista.map(clienteItemHtml).join('')}</div>`
       : `<div class="empty"><div class="ic"><i class=ico data-i=users></i></div><p><b>${db.clientes.length ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}</b></p><p class="small">${db.clientes.length ? 'Tente outro nome ou parte do CPF.' : 'Cadastre aqui ou registre um contrato: o comprador entra no cadastro sozinho.'}</p></div>`}`;
 }
+/* Uma linha por cliente: quem é (e o cônjuge), documento e contato, se a qualificação está
+   completa para o contrato, e quantos contratos tem. */
 function clienteItemHtml(c) {
   const n = contratosDoCliente(c).length; const falta = faltaQualificacao(c);
-  return `<div class="item" onclick="abrirClienteForm('${esc(c.id)}')"><div class="info">
+  return `<div class="item linha linha2" onclick="abrirClienteForm('${esc(c.id)}')"><div class="info">
       <div class="title">${esc(c.nome)}${ehPJ(c) ? ' <span class="badge neutral">PJ</span>' : ''}${temConjuge(c) && (c.conjuge || {}).nome ? ` <span class="tiny muted">e ${esc(c.conjuge.nome)}</span>` : ''}</div>
-      <div class="meta"><span>${esc(fmtCPF(c.cpf)) || 'sem CPF'}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.cidade ? `<span>· ${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</span>` : ''}<span>· ${n ? n + ' contrato(s)' : 'sem contrato'}</span></div>
-      ${falta.length ? `<div class="tiny muted">Falta para o contrato: ${esc(falta.join(', '))}</div>` : '<div class="tiny ok">Qualificação completa</div>'}</div>
-    <div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`;
+      <div class="meta"><span>${esc(fmtCPF(c.cpf)) || 'sem CPF'}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.cidade ? `<span>· ${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</span>` : ''}</div>
+      ${falta.length ? `<div class="tiny cli-falta">Falta para o contrato: ${esc(falta.join(', '))}</div>` : ''}</div>
+    <div class="side"><div class="small"><b>${n}</b> contrato${n === 1 ? '' : 's'}</div>${c.telefone ? `<div class="btns"><a class="btn-icon wa" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp de ${esc(c.nome)}"><i class=ico data-i=whatsapp-logo></i></a></div>` : ''}</div></div>`;
 }
 function abrirClienteForm(id) {
   const c = id ? db.clientes.find(x => x.id === id) : null;
