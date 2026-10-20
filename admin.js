@@ -472,12 +472,23 @@ function abrirLoteAdmin(id) {
   else if (l.status === 'reservado' && r) footer += `<button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}','${r.id}')">Converter em venda</button>`;
   openModal({ title: `${esc(loteLabel(l))}`, body, footer });
 }
+/* Bloquear pede o motivo numa janela do app (fica nas observações do lote); liberar é direto. */
 function bloquearLote(id, bloquear) {
   const l = getLote(id); if (!l) return;
-  const obs = bloquear ? (prompt('Motivo (opcional): área institucional, permuta, uso próprio…', l.obs || '') ?? null) : l.obs;
-  if (bloquear && obs === null) return;
-  upsert('lotes', Object.assign({}, l, { status: bloquear ? 'bloqueado' : 'disponivel', obs: bloquear ? obs : l.obs }));
-  logAct(`${loteLabel(l)} ${bloquear ? 'bloqueado' : 'liberado para venda'}`);
+  if (bloquear) {
+    openModal({ title: `Bloquear ${esc(loteLabel(l))}`, body: `<p class="help mb">O lote sai da venda: o corretor deixa de vê-lo como disponível. Dá para liberar depois.</p>
+      <div class="fg"><label for="blMotivo">Motivo (opcional)</label><input type="text" id="blMotivo" value="${esc(l.obs || '')}" placeholder="Área institucional, permuta, uso próprio…"></div>`,
+      footer: `<button class="btn btn-secondary" onclick="abrirLoteAdmin('${l.id}')">Cancelar</button><button class="btn btn-danger" onclick="confirmarBloqueio('${l.id}')">Bloquear lote</button>` });
+    return;
+  }
+  upsert('lotes', Object.assign({}, l, { status: 'disponivel' }));
+  logAct(`${loteLabel(l)} liberado para venda`);
+  closeModal(); renderCurrent();
+}
+function confirmarBloqueio(id) {
+  const l = getLote(id); if (!l) return;
+  upsert('lotes', Object.assign({}, l, { status: 'bloqueado', obs: val('blMotivo') }));
+  logAct(`${loteLabel(l)} bloqueado`);
   closeModal(); renderCurrent();
 }
 function abrirLoteForm(id) {

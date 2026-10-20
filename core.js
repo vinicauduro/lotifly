@@ -99,7 +99,9 @@ function pmt(rateMonth, n, pv) { // parcela Price
   return pv * i / (1 - Math.pow(1 + i, -n));
 }
 
-function toast(icon, title, body, isErr) {
+/* acao (opcional): { rotulo, fn } vira um botão no aviso, como o "Desfazer" depois de pagar uma
+   conta. Com botão, o aviso fica mais tempo e aceita clique. */
+function toast(icon, title, body, isErr, acao) {
   const c = $('#toastContainer');
   const t = document.createElement('div');
   t.className = 'toast' + (isErr ? ' err' : icon === '✅' ? ' ok' : '');
@@ -107,10 +109,16 @@ function toast(icon, title, body, isErr) {
   const ICONES_TOAST = { '✅': 'check-circle', '⚠️': 'warning', '⛔': 'prohibit', '🔒': 'lock', '🗑️': 'trash', '↩️': 'arrow-u-up-left' };
   const nomeIco = isErr ? 'warning-circle' : (ICONES_TOAST[icon] || 'info');
   t.innerHTML = `<div class="t"><i class=ico data-i=${nomeIco}></i><span>${esc(title)}</span></div>${body ? `<div class="b">${esc(body)}</div>` : ''}`;
+  if (acao) {
+    t.classList.add('com-acao');
+    const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'toast-acao'; bt.textContent = acao.rotulo;
+    bt.onclick = () => { t.remove(); acao.fn(); };
+    t.appendChild(bt);
+  }
   c.appendChild(t);
   /* Sai com uma animação curta; o remove() de garantia cobre aba em segundo plano, onde a
      animação não termina. */
-  setTimeout(() => { t.classList.add('saindo'); t.addEventListener('animationend', () => t.remove(), { once: true }); setTimeout(() => t.remove(), 400); }, 4200);
+  setTimeout(() => { t.classList.add('saindo'); t.addEventListener('animationend', () => t.remove(), { once: true }); setTimeout(() => t.remove(), 400); }, acao ? 8000 : 4200);
 }
 
 /* Esperando algo (nuvem, arquivo): um indicador que gira, diferente da tela vazia (que não

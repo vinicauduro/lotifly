@@ -78,7 +78,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       const r = await page.evaluate(() => {
         const im = inadimplenciaDoMes(''); const pct = fmtNum(im.pct, 1) + '%';
         switchTab('painel'); const inicio = document.querySelector('#av-painel .bm').textContent;
-        switchTab('cobranca'); const cob = document.querySelector('#av-cobranca .bm').textContent, cobAtraso = document.querySelector('#av-cobranca .cob-total').textContent.trim();
+        switchTab('cobranca'); const cob = document.querySelector('#av-cobranca .ct-resumo').textContent, cobAtraso = document.querySelector('#av-cobranca .cob-total').textContent.trim();
         const rel = relInadimplencia('').kpis;
         return { pct, inicio, cob, cobAtraso, inicioAtraso: document.querySelector('#av-painel .kpi.c-red .val').textContent.trim(), rel };
       });

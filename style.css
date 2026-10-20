@@ -1044,3 +1044,8 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 .st-item.st-leve .st-n { color: var(--warn); }
 /* Faixa: contagem zerada fica neutra, a cor só aparece quando há o que olhar. */
 .st-item.st-zero .st-n { color: var(--muted); }
+/* Aviso com botão (Desfazer): aceita clique, mesmo com os outros avisos deixando passar. */
+.toast.com-acao { pointer-events: auto; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center; }
+.toast.com-acao .t, .toast.com-acao .b { grid-column: 1; }
+.toast-acao { grid-column: 2; grid-row: 1 / span 2; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font: inherit; font-weight: 600; color: var(--primary); cursor: pointer; min-height: 32px; }
+.toast-acao:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
