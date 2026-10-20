@@ -623,10 +623,30 @@ function renderAReservas(alvo) {
   const all = db.reservas.filter(r => noEscopo(r, escopo));
   const grupos = { ativas: r => ['pendente', 'aprovada'].includes(reservaStatus(r)), pendente: r => r.status === 'pendente', aprovada: r => reservaStatus(r) === 'aprovada', expirada: r => reservaStatus(r) === 'expirada', historico: r => ['recusada', 'cancelada', 'convertida', 'expirada'].includes(r.status) || (reservaStatus(r) === 'expirada') };
   const list = all.filter(grupos[f.status] || (() => true)).sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+  const soma = cs => cs.reduce((t, r) => t + num((r.proposta || {}).valor), 0);
   v.innerHTML = `
     ${db.loteamentos.length > 1 ? `<div class="filters">${escopoSelectHtml('renderAReservas()')}</div>` : ''}
-    <div class="chips">${[['ativas', 'Ativas'], ['pendente', 'Aguardando'], ['aprovada', 'Aprovadas'], ['expirada', 'Vencidas'], ['historico', 'Histórico']].map(([k, l]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="state.filters.ares.status='${k}';renderAReservas()">${l}<span class="n">${all.filter(grupos[k]).length}</span></div>`).join('')}</div>
-    ${list.length ? list.map(r => reservaCardHtml(r, true)).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Nenhuma reserva nesta lista.</p></div>`}`;
+    ${faixaHtml([['ativas', 'Ativas'], ['pendente', 'Aguardando'], ['aprovada', 'Aprovadas'], ['expirada', 'Vencidas'], ['historico', 'Histórico']].map(([k, l]) => { const cs = all.filter(grupos[k]); return { k: k === 'expirada' ? 'atrasado' : k === 'pendente' && cs.length ? 'aguardando' : k, l, n: cs.length, v: cs.length && soma(cs) ? fmtMoneyShort(soma(cs)) + ' em propostas' : k === 'historico' ? 'encerradas' : '—', ativo: f.status === k, acao: `state.filters.ares.status='${k}';renderAReservas()` }; }), 'Reservas por situação')}
+    ${list.length ? `<div class="lista">${list.map(reservaLinhaHtml).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Nenhuma reserva nesta lista.</p></div>`}`;
+}
+/* Uma linha por reserva: até quando vale (e o aviso se vence ou venceu), o lote e o cliente, o
+   corretor, e a proposta. Aguardando aprovação vem destacada: é o que espera o escritório. */
+function reservaLinhaHtml(r) {
+  const l = getLote(r.loteId); const st = reservaStatus(r), hoje = todayStr();
+  const emp = !escopoAtual() ? (getLoteamento(r.loteamentoId) || {}).nome || '' : '';
+  const dias = r.validade ? daysBetween(hoje, r.validade) : null;
+  const prazo = st === 'pendente' ? `<div class="ct-data"><span class="tiny muted">pedida em</span> ${fmtDate(r.dataReserva)}</div><span class="pill vence">Aguardando aprovação</span>`
+    : st === 'aprovada' ? `<div class="ct-data"><span class="tiny muted">vale até</span> ${fmtDate(r.validade)}</div>${dias !== null && dias <= 2 ? `<span class="pill vence">${dias <= 0 ? 'Vence hoje' : dias === 1 ? 'Vence amanhã' : 'Vence em 2 dias'}</span>` : ''}`
+    : st === 'expirada' ? `<div class="ct-data"><span class="tiny muted">venceu</span> ${fmtDate(r.validade)}</div><span class="pill atrasado">Vencida há ${-dias} dia${-dias === 1 ? '' : 's'}</span>`
+    : `<div class="ct-data"><span class="tiny muted">${statusLabel(st).toLowerCase()}</span> ${fmtDate(r.encerradaEm || r.validade || r.dataReserva)}</div>`;
+  const p = r.proposta;
+  return `<div class="item linha reserva-linha st-${st}" onclick="abrirReservaAdmin('${r.id}')">
+    <div class="ct-venc">${prazo}</div>
+    <div class="info"><div class="title">${l ? esc(loteLabel(l)) : 'Lote removido'}</div>
+      <div class="ct-pessoa"><i class=ico data-i=user></i>${esc(r.cliente.nome)}</div>
+      <div class="meta">${emp ? `<span>${esc(emp)} ·</span>` : ''}<span>corretor ${esc(r.corretor.nome)}${r.corretor.imobiliaria ? ' (' + esc(r.corretor.imobiliaria) + ')' : ''}</span>${['pendente', 'aprovada', 'expirada'].includes(st) ? '' : `<span>· pedida em ${fmtDate(r.dataReserva)}</span>`}</div></div>
+    <div class="side">${p ? `<div class="value">${fmtMoney(p.valor)}</div><div class="tiny muted">${num(p.entrada) ? fmtMoney(p.entrada) + ' + ' : ''}${p.nParcelas ? p.nParcelas + '×' : 'à vista'}</div>` : '<div class="tiny muted">sem proposta</div>'}</div>
+  </div>`;
 }
 /* Janela da reserva no escritório. Pendente: o par Recusar / Aprovar é a decisão; o resto fica
    numa linha de "outras ações". Aprovada: a ação principal vira Converter em venda. Recusar,

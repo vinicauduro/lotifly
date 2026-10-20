@@ -105,7 +105,7 @@ function barraMesHtml(escopo) {
 function clienteDe(r) { const v = getVenda(r.vendaId); if (!v) return ''; return v.cliente.nome + ' ' + imovelLabel(v); }
 /* Faixa de situação no alto das listas: cada número é o filtro dele, como em Contratos. */
 function faixaHtml(itens, rotulo) {
-  return `<div class="st-faixa" style="--n:${itens.length}" role="group" aria-label="${esc(rotulo)}">${itens.map(it => `<button type="button" class="st-item st-${it.k} ${it.ativo ? 'active' : ''}" aria-pressed="${!!it.ativo}" onclick="${it.acao}"><span class="st-n">${it.n}</span><span class="st-l">${it.l}</span><span class="st-v">${it.v}</span></button>`).join('')}</div>`;
+  return `<div class="st-faixa" style="--n:${itens.length}" role="group" aria-label="${esc(rotulo)}">${itens.map(it => `<button type="button" class="st-item st-${it.k} ${it.ativo ? 'active' : ''} ${+it.n === 0 ? 'st-zero' : ''}" aria-pressed="${!!it.ativo}" onclick="${it.acao}"><span class="st-n">${it.n}</span><span class="st-l">${it.l}</span><span class="st-v">${it.v}</span></button>`).join('')}</div>`;
 }
 /* Quando vence e o selo, só na exceção: atrasada ou vence em até 5 dias. Paga mostra a data. */
 function prazoHtml(venc, st, dataPg, rotAtraso = 'Atrasada') {

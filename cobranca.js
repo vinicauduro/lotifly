@@ -59,7 +59,8 @@ function renderCobranca() {
   const f = state.filters.cob = state.filters.cob || { faixa: 'todas', busca: '' };
   const todos = inadimplentes(esc0);
   const lista = todos.filter(it => {
-    if (f.faixa !== 'todas') { const [, min, max] = FAIXAS_DIAS.find(x => x[0] === f.faixa); if (it.dias < min || it.dias > max) return false; }
+    if (f.faixa === 'semcontato') { if (it.ultima) return false; }
+    else if (f.faixa !== 'todas') { const fx = FAIXAS_DIAS.find(x => x[0] === f.faixa); if (fx && (it.dias < fx[1] || it.dias > fx[2])) return false; }
     if (f.busca) { const alvo = (it.venda.cliente.nome + ' ' + imovelLabel(it.venda)).toLowerCase(); if (!alvo.includes(f.busca.toLowerCase())) return false; }
     return true;
   });
@@ -70,49 +71,39 @@ function renderCobranca() {
   const recuperado = recebiveisDo(esc0).filter(r => r.dataPagamento && monthKey(r.dataPagamento) === mesKey && r.vencimento < r.dataPagamento).reduce((s, r) => s + num(r.valorPago), 0);
   const semCobranca = todos.filter(x => !x.ultima).length;
 
+  const naFaixa = (it, k) => { if (k === 'todas') return true; if (k === 'semcontato') return !it.ultima; const fx = FAIXAS_DIAS.find(x => x[0] === k); return it.dias >= fx[1] && it.dias <= fx[2]; };
   v.innerHTML = `
     ${db.loteamentos.length > 1 ? `<div class="filters">${escopoSelectHtml('renderCobranca()')}</div>` : ''}
     ${barraMesHtml(esc0)}
-    <div class="kpi-grid">
-      <div class="kpi c-red"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(total)}</div><div class="sub">${todos.length} contrato(s)${totalCorrigido > total + 0.005 ? ` · com multa e juros ${fmtMoneyShort(totalCorrigido)}` : ''}</div></div>
-      <div class="kpi c-amber"><div class="lbl">Inadimplência do mês</div><div class="val">${fmtNum(im.pct, 1)}%</div><div class="sub">${im.previsto ? `${fmtMoneyShort(im.atraso)} em atraso de ${fmtMoneyShort(im.previsto)} que vence em ${monthLabel(im.mesKey)}` : 'nenhuma parcela vence este mês'}</div></div>
-      <div class="kpi c-green"><div class="lbl">Recuperado no mês</div><div class="val">${fmtMoneyShort(recuperado)}</div><div class="sub">pagamentos em atraso</div></div>
-      <div class="kpi c-blue"><div class="lbl">Sem contato</div><div class="val">${semCobranca}</div><div class="sub">nunca cobrados</div></div>
-    </div>
-    <div class="chips">${[['todas', 'Todas as faixas']].concat(FAIXAS_DIAS.map(x => [x[0], x[0] + ' dias'])).map(([k, l]) => {
-      const n = k === 'todas' ? todos.length : todos.filter(it => { const fx = FAIXAS_DIAS.find(x => x[0] === k); return it.dias >= fx[1] && it.dias <= fx[2]; }).length;
-      /* Faixa vazia não é escolha: some, a não ser a que está escolhida */
-      if (!n && k !== 'todas' && f.faixa !== k) return '';
-      return `<div class="chip ${f.faixa === k ? 'active' : ''}" onclick="state.filters.cob.faixa='${k}';renderCobranca()">${l}<span class="n">${n}</span></div>`;
-    }).join('')}</div>
+    ${faixaHtml([['todas', 'Todos']].concat(FAIXAS_DIAS.map(x => [x[0], x[0] + ' dias'])).map(([k, l]) => { const cs = todos.filter(it => naFaixa(it, k)); return { k: k === 'todas' ? 'all' : FAIXAS_DIAS.find(x => x[0] === k)[1] > 30 ? 'atrasado' : 'leve', l, n: cs.length, v: cs.length ? fmtMoneyShort(cs.reduce((t, it) => t + it.valorBase, 0)) : '—', ativo: f.faixa === k, acao: `state.filters.cob.faixa='${k}';renderCobranca()` }; }), 'Contratos em atraso por dias de atraso')}
+    <div class="ct-resumo">Em atraso <b class="cob-total">${fmtMoney(total)}</b> em ${todos.length} contrato${todos.length === 1 ? '' : 's'}${totalCorrigido > total + 0.005 ? ` (com multa e juros ${fmtMoney(totalCorrigido)})` : ''} · recuperado no mês ${fmtMoneyShort(recuperado)}${semCobranca ? ` · <button type="button" class="st-semnum ${f.faixa === 'semcontato' ? 'active' : ''}" onclick="state.filters.cob.faixa='${f.faixa === 'semcontato' ? 'todas' : 'semcontato'}';renderCobranca()">${semCobranca} nunca cobrado${semCobranca === 1 ? '' : 's'}</button>` : ''}</div>
     <div class="filters">
       <input type="text" placeholder="Cliente ou imóvel…" value="${esc(f.busca)}" oninput="aSetFiltro('cob','busca',this.value,renderCobranca,this)">
       <button class="btn btn-secondary btn-sm" onclick="state.sub.cad='cobranca';switchTab('cadastros')">Régua</button>
       <button class="btn btn-secondary btn-sm" onclick="exportarInadimplenciaCSV()">CSV</button>
     </div>
-    ${lista.length ? lista.map(cobrancaCardHtml).join('') : `<div class="empty"><div class="ic"><i class=ico data-i=confetti></i></div><p>Nenhum contrato em atraso nesta faixa.</p></div>`}`;
+    ${lista.length ? `<div class="lista">${lista.map(cobrancaCardHtml).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=confetti></i></div><p>${todos.length ? 'Nenhum contrato em atraso nesta faixa.' : 'Nenhum contrato em atraso.'}</p></div>`}`;
 }
 
+/* Uma linha por contrato em atraso: desde quando e há quantos dias; quem, qual contrato e
+   imóvel, e a última cobrança; quanto, com multa e juros; e as ações da cobrança. */
 function cobrancaCardHtml(it) {
   const c = it.venda.cliente;
-  const cor = it.dias > 60 ? 'atrasado' : it.dias > 30 ? 'pendente' : 'neutral';
-  return `<div class="card">
-    <div class="row-between">
-      <div><b>${esc(c.nome)}</b> <span class="tiny muted">· ${esc(imovelShort(it.venda))}</span>
-        <div class="small muted">${it.parcelas.length} parcela(s) · mais antiga venceu ${fmtDate(it.maisAntiga.vencimento)}</div></div>
-      <div style="text-align:right"><div class="value" style="font-weight:800;font-size:1.05rem">${fmtMoney(it.valor)}</div>
-        <span class="badge ${cor}">${it.dias} dias</span></div>
-    </div>
-    <div class="small mt">${it.valor > it.valorBase + 0.01 ? `Principal ${fmtMoney(it.valorBase)} + ${fmtMoney(it.valor - it.valorBase)} de multa e juros` : ''}</div>
-    <div class="small ${it.ultima ? 'muted' : ''}" style="margin-top:4px">${it.ultima
-      ? `Última cobrança em ${fmtDate(it.ultima.data)} (${esc((CANAIS.find(x => x[0] === it.ultima.canal) || [, it.ultima.canal])[1])})${it.nCobrancas > 1 ? ` · ${it.nCobrancas} no total` : ''}${it.ultima.obs ? ` — ${esc(it.ultima.obs)}` : ''}`
-      : '<b style="color:var(--danger)">Ainda não foi cobrado</b>'}</div>
-    <div class="btn-row mt">
-      ${c.telefone ? `<button class="btn btn-wa btn-sm" onclick="abrirCobranca('${it.venda.id}')">Cobrar</button>` : `<button class="btn btn-secondary btn-sm" onclick="abrirCobranca('${it.venda.id}')">Cobrar</button>`}
-      <button class="btn btn-secondary btn-sm" onclick="abrirVendaAdmin('${it.venda.id}')">Contrato</button>
-      <button class="btn btn-secondary btn-sm" onclick="abrirAntecipacao('${it.venda.id}')">Acordo</button>
-      ${it.nCobrancas ? `<button class="btn btn-secondary btn-sm" onclick="historicoCobranca('${it.venda.id}')">Histórico</button>` : ''}
-    </div></div>`;
+  const sel = it.dias > 30 ? 'atrasado' : 'vence';
+  const canal = it.ultima ? (CANAIS.find(x => x[0] === it.ultima.canal) || [, it.ultima.canal])[1] : '';
+  return `<div class="item linha cob-linha atrasado">
+    <div class="ct-venc"><div class="ct-data"><span class="tiny muted">venceu</span> ${fmtDate(it.maisAntiga.vencimento)}</div><span class="pill ${sel}">${it.dias} dia${it.dias === 1 ? '' : 's'} de atraso</span></div>
+    <div class="info"><div class="title">${esc(c.nome)}</div>
+      <div class="ct-pessoa"><i class=ico data-i=file-text></i>${it.venda.numeroContrato ? `Contrato ${esc(it.venda.numeroContrato)} · ` : ''}${it.parcelas.length} parcela${it.parcelas.length === 1 ? '' : 's'} em atraso · ${esc(imovelLabel(it.venda))}</div>
+      <div class="meta">${it.ultima ? `<span>Última cobrança em ${fmtDate(it.ultima.data)} (${esc(canal)})${it.nCobrancas > 1 ? ` · ${it.nCobrancas} no total` : ''}${it.ultima.obs ? ` — ${esc(it.ultima.obs)}` : ''}</span>` : '<span class="cob-nunca">Ainda não foi cobrado</span>'}</div>
+      <div class="btn-row cob-acoes">
+        ${c.telefone ? `<button class="btn btn-wa btn-sm" onclick="abrirCobranca('${it.venda.id}')">Cobrar</button>` : `<button class="btn btn-secondary btn-sm" onclick="abrirCobranca('${it.venda.id}')">Cobrar</button>`}
+        <button class="btn btn-secondary btn-sm" onclick="abrirVendaAdmin('${it.venda.id}')">Contrato</button>
+        <button class="btn btn-secondary btn-sm" onclick="abrirAntecipacao('${it.venda.id}')">Acordo</button>
+        ${it.nCobrancas ? `<button class="btn btn-secondary btn-sm" onclick="historicoCobranca('${it.venda.id}')">Histórico</button>` : ''}
+      </div></div>
+    <div class="side"><div class="value">${fmtMoney(it.valor)}</div>${it.valor > it.valorBase + 0.01 ? `<div class="tiny muted">principal ${fmtMoney(it.valorBase)}</div><div class="tiny muted">+ ${fmtMoney(it.valor - it.valorBase)} de multa e juros</div>` : ''}</div>
+  </div>`;
 }
 
 function cobrancaCtx(it) {

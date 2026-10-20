@@ -782,6 +782,33 @@ Para você fazer:
 
 ---
 
+## 7z32. Cobrança, Clientes e Reservas no mesmo desenho (20/10)
+
+Com isso, todas as listas do escritório ficaram iguais à de Contratos:
+
+- **Cobrança:** a barra "Parcelas do mês" continua no alto. Embaixo, a faixa por **dias de
+  atraso** (Todos · 1-15 · 16-30 · 31-60 · 61-90 · 90+), em que o número é o filtro, com o valor
+  de cada faixa. Uma linha resume o total em atraso (e com multa e juros), o recuperado no mês e
+  quantos **nunca foram cobrados** (clicar filtra só esses). Cada contrato em atraso é uma linha:
+  desde quando venceu e há quantos dias, o cliente, o contrato e o imóvel, a última cobrança (ou
+  "Ainda não foi cobrado"), o valor com multa e juros e os botões Cobrar, Contrato e Acordo.
+- **Clientes:** faixa Todos · Com contrato · Sem contrato · **Falta dado para contrato**. Cada
+  cliente é uma linha com CPF, telefone e cidade, o aviso do que falta para o contrato, quantos
+  contratos tem e o botão do WhatsApp.
+- **Reservas:** faixa Ativas · **Aguardando** · Aprovadas · Vencidas · Histórico, com a soma das
+  propostas de cada uma. Cada reserva é uma linha com até quando vale, o selo só na exceção
+  ("Aguardando aprovação", "Vence amanhã", "Vencida há 4 dias"), o lote, o cliente, o corretor
+  e a proposta. A que espera aprovação tem uma faixa amarela na borda.
+- Em todas as faixas, **número zero fica cinza**: a cor só aparece onde há o que olhar.
+
+Para você fazer:
+
+- [ ] Abrir Cobrança, Clientes e Reservas no computador e no celular.
+
+`testes/listas-telas.test.js` (5 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z31. A receber e A pagar no mesmo desenho da lista de contratos (20/10)
 
 As duas listas do financeiro ficaram iguais à de Contratos:
