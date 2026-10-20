@@ -177,7 +177,7 @@ function despesasDoImovelHtml(x) {
   const lancar = pode('custos.editar') ? `<button class="btn btn-secondary btn-sm" onclick="abrirCustoForm(null, { emp: '${x.loteamentoId}', imovel: '${imovel}' })"><i class=ico data-i=plus></i>Despesa</button>` : '';
   const tot = lista.reduce((s, c) => s + num(c.valor), 0), aPagar = lista.filter(c => c.status !== 'pago').reduce((s, c) => s + num(c.valor), 0);
   return `<div class="card"><h2>Despesas deste imóvel <span class="h-actions">${lancar}</span></h2>
-    ${lista.length ? `<p class="small muted mb">${lista.length} lançamento(s) · ${fmtMoney(tot)}${aPagar ? ` · ${fmtMoney(aPagar)} a pagar` : ''}</p>${lista.map(c => custoRowHtml(c)).join('')}`
+    ${lista.length ? `<p class="small muted mb">${lista.length} lançamento(s) · ${fmtMoney(tot)}${aPagar ? ` · ${fmtMoney(aPagar)} a pagar` : ''}</p><div class="lista">${lista.map(c => custoRowHtml(c)).join('')}</div>`
       : '<p class="help">Nenhuma despesa vinculada a este imóvel. Lance aqui o que for dele — IPTU, conserto, taxa de transferência — para saber o custo de cada imóvel.</p>'}</div>`;
 }
 function ctPartesHtml(x) {

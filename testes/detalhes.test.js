@@ -98,9 +98,9 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       if (!/st-mudou/.test(r.cls) || !/success/.test(r.cor)) throw new Error('linha: ' + JSON.stringify(r));
       if (!/\bok\b/.test(r.toast) || !/Parcela/.test(r.txt)) throw new Error('aviso: ' + JSON.stringify(r));
     });
-    await passo('pagamento: o cartão "Recebido" ganha o tom de mudança', async () => {
-      const k = await page.evaluate(() => [...document.querySelectorAll('.view.active .kpi.st-mudou .lbl')].map(l => l.textContent));
-      if (!k.includes('Recebido')) throw new Error('marcados: ' + k.join(', '));
+    await passo('pagamento: o número "Pagas" da faixa ganha o tom de mudança', async () => {
+      const k = await page.evaluate(() => [...document.querySelectorAll('.view.active .st-item.st-mudou .st-l')].map(l => l.textContent));
+      if (!k.includes('Pagas')) throw new Error('marcados: ' + k.join(', '));
     });
     await passo('o aviso sai animado e é removido', async () => {
       await page.waitForTimeout(4700);
@@ -148,7 +148,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; switchTab('recebiveis'); });
       const id = await page.evaluate(() => db.recebiveis.find(r => !r.valorPago && document.querySelector(`[data-st="p:${r.id}"]`)).id);
       await page.evaluate(id => { abrirPagamento(id); salvarPagamento(id); }, id); await page.waitForTimeout(60);
-      const r = await page.evaluate(id => { const el = document.querySelector(`[data-st="p:${id}"]`); return [getComputedStyle(el).animationName, getComputedStyle(el.querySelector('.badge')).animationName]; }, id);
+      /* Paga, a linha só mostra a data (selo é para exceção); se houver selo, ele fica parado */
+      const r = await page.evaluate(id => { const el = document.querySelector(`[data-st="p:${id}"]`); const selo = el.querySelector('.pill, .badge'); return [getComputedStyle(el).animationName, selo ? getComputedStyle(selo).animationName : 'none']; }, id);
       if (r[0] !== 'linha-mudou' || r[1] !== 'none') throw new Error(r.join(' / '));
     });
     await passo('reduzir movimento: o carregando pulsa em vez de girar', async () => {

@@ -760,6 +760,39 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z31. A receber e A pagar no mesmo desenho da lista de contratos (20/10)
+
+As duas listas do financeiro ficaram iguais à de Contratos:
+
+- **Faixa de situação no alto**, em que o número é o filtro, com o valor de cada um:
+  - **A receber:** Em aberto · A vencer · **Atrasadas** · Pagas · Todas (do mês escolhido;
+    atrasadas, de todos os meses). Embaixo, uma linha com a carteira inteira (a receber,
+    contratado, já recebido) e o link "ver a carteira inteira". Substitui os quatro cartões e
+    os chips.
+  - **A pagar:** Todas · A vencer · **Vencidas** · Pagas. Embaixo, o total, o que está em aberto,
+    o que vence nos próximos 30 dias e, dentro de um empreendimento, a % do orçamento.
+- **Lista contínua, uma linha por item:**
+  - à esquerda, **quando vence** (ou quando foi paga) e o selo **só na exceção**: "Atrasada há
+    39 dias" / "Vencida há 9 dias" em vermelho, "Vence em 2 dias" em amarelo; parcela paga em
+    parte ganha "Pago em parte";
+  - no meio, o que é: na parcela, o **cliente**, "Contrato 0007/2026 · Parcela 3/4" e o imóvel;
+    na conta, a **descrição**, de quem é, a conta do plano, o fornecedor e a competência;
+  - à direita, o **valor** e as ações (pagar, recibo, editar). Parcela atrasada mostra o valor
+    atualizado com multa e juros.
+- A barra "Parcelas do mês" saiu de A receber (a faixa já mostra o mesmo, para o mês escolhido);
+  continua no Início e em Cobrança.
+- As despesas do imóvel, dentro do contrato, usam a mesma linha.
+- Quando um pagamento muda os números, o número da faixa que mudou pisca de leve, como os cartões
+  faziam.
+
+Para você fazer:
+
+- [ ] Abrir A receber e A pagar no computador e no celular e ver se a leitura ficou mais rápida.
+
+`testes/listas-financeiro.test.js` (5 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z30. Lista de contratos, busca geral e barra das parcelas do mês (19/10)
 
 Depois da comparação com o Superlógica: a **lista de contratos** ficou parecida com a dele, o
