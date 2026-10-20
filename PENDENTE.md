@@ -760,6 +760,32 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z35. Configurações em quatro grupos e filtros do A pagar no celular (20/10)
+
+Da avaliação de design: telas com opções demais de uma vez.
+
+- **Configurações:** as 11 abas, que quebravam em duas linhas, viraram **4 grupos**. Primeiro você
+  escolhe o assunto e depois a tela, que são no máximo quatro por grupo:
+  - **Empresa:** Dados da empresa · Modelos de documento · Geral
+  - **Equipe:** Equipe · Permissões
+  - **Financeiro:** Plano de contas · Centros de custo · Contas bancárias · Régua de cobrança
+  - **Sistema:** Nuvem/Conta · Backup · Erros do app
+
+  Quem não tem permissão para uma tela não a vê, e o grupo que fica vazio some.
+- **A pagar no celular:** os filtros (empreendimento, "de quem é", centro de custo, conta e mês)
+  ocupavam metade da tela antes da primeira conta. Agora ficam atrás do botão **"Filtros"**, ao
+  lado da busca e do Lançar. O botão mostra quantos filtros estão ligados, por exemplo
+  "Filtros (2)". No computador nada muda: os filtros continuam à vista.
+
+Para você fazer:
+
+- [ ] Abrir Configurações e passar pelos quatro grupos.
+- [ ] No celular, abrir A pagar, ligar um filtro e ver o número no botão.
+
+`testes/config-filtros.test.js` (5 casos).
+
+---
+
 ## 7z33. Início sem aviso repetido (20/10)
 
 Regra combinada: **uma faixa de aviso só aparece no Início se aquela informação não estiver em outro

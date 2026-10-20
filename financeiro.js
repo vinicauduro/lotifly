@@ -297,19 +297,28 @@ function renderCustos(alvo) {
       ${!lot ? `<div class="card"><h2>Orçado × realizado</h2><p class="help">Escolha um empreendimento no filtro acima para comparar com o orçamento da obra dele.</p></div>` : `<div class="card"><h2>Orçado × realizado <span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="setCurLotSilencioso('${lot.id}');abrirOrcamentoForm()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></span></h2>
         ${db.categorias.filter(c => num((lot.orcamento || {})[c.id]) > 0).map(c => { const o = lot.orcamento[c.id]; const real = porCat[c.id] || 0; const pct = Math.round(real / o * 100); return `<div class="mb"><div class="row-between small"><span><span class="dot" style="background:${c.cor}"></span> ${esc(c.nome)}</span><span class="muted">${fmtMoneyShort(real)} / ${fmtMoneyShort(o)} · ${pct}%</span></div><div class="progress"><div class="${pct > 100 ? 'over' : pct >= 90 ? 'warn' : ''}" style="width:${Math.min(100, pct)}%"></div></div></div>`; }).join('') || '<p class="help">Defina o orçamento por categoria para acompanhar aqui.</p>'}</div>`}
     </div>`;
+  /* No celular os filtros ficam atrás do botão "Filtros (n)": o número diz quantos estão ligados. */
+  const nFiltros = [global && escopo, vinc !== 'todos', centro, f.cat !== 'all', f.mes !== 'all'].filter(Boolean).length;
   const CUSTO_FAIXA = [['all', 'Todas', c => true], ['pendente', 'A vencer', c => custoStatus(c) === 'pendente'], ['atrasado', 'Vencidas', c => custoStatus(c) === 'atrasado'], ['pago', 'Pagas', c => c.status === 'pago']];
   v.innerHTML = `
     ${faixaHtml(CUSTO_FAIXA.map(([k, l, fn]) => { const cs = all.filter(fn); return { k, l, n: cs.length, v: cs.length ? fmtMoneyShort(cs.reduce((t, c) => t + num(c.valor), 0)) : '—', ativo: f.status === k, acao: `state.filters.custos.status='${k}';renderCustos()` }; }), 'Situação das contas')}
     <div class="ct-resumo">Total <b>${fmtMoney(tot)}</b>${orcTotal ? ` · ${Math.round(tot / orcTotal * 100)}% do orçamento (${fmtMoneyShort(orcTotal)})` : ''} · em aberto ${fmtMoney(tot - pago)}${prox ? ` · ${fmtMoneyShort(prox)} vencem nos próximos 30 dias` : ''}</div>
-    ${global ? `<div class="filters">${escopoSelectHtml('renderCustos()')}</div>` : ''}
-    ${global && !escopo ? `<div class="chips chips-vinc" role="group" aria-label="De quem é a despesa">${[['todos', 'Todas as despesas'], ['empresa', 'Só da empresa'], ['emps', 'Só de empreendimentos']].map(([k, l]) => `<div class="chip ${vinc === k ? 'active' : ''}" onclick="state.filters.custos.vinc='${k}';renderCustos()">${l}<span class="n">${k === 'todos' ? doEscopo.length : k === 'empresa' ? doEscopo.filter(c => !c.loteamentoId).length : doEscopo.filter(c => c.loteamentoId).length}</span></div>`).join('')}</div>` : ''}
     ${global ? '' : graficosCustos}
-    <div class="filters">
-      ${global && !escopo && vinc !== 'emps' && centros.length ? `<select aria-label="Centro de custo" onchange="state.filters.custos.centro=this.value;renderCustos()"><option value="">Todos os centros de custo</option>${[[CENTRO_ADM, 'Administração']].concat(centros.map(c => [c.id, c.nome])).map(([k, l]) => `<option value="${esc(k)}" ${centro === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : ''}
-      <select aria-label="Conta do plano de contas" onchange="state.filters.custos.cat=this.value;renderCustos()"><option value="all">Todas as contas</option>${opcoesContasHtml(f.cat, db.categorias)}</select>
-      <select aria-label="Mês" onchange="state.filters.custos.mes=this.value;renderCustos()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}</option>`).join('')}</select>
-      <input type="text" placeholder="Descrição ou fornecedor…" value="${esc(f.busca)}" oninput="aSetFiltro('custos','busca',this.value,renderCustos,this)">
-      <button class="btn btn-primary btn-sm" onclick="abrirCustoForm(null, { emp: ${escopo ? `'${escopo}'` : vinc === 'emps' ? `'${(curLot() || {}).id || ''}'` : 'null'}${centro && centro !== CENTRO_ADM ? `, centro: '${esc(centro)}'` : ''} })"><i class=ico data-i=plus></i>Lançar</button>
+    <div class="filtros-bloco">
+      <div class="filtros-mais ${f.abertos ? 'aberto' : ''}" id="custosFiltros">
+        ${global ? `<div class="filters">${escopoSelectHtml('renderCustos()')}</div>` : ''}
+        ${global && !escopo ? `<div class="chips chips-vinc" role="group" aria-label="De quem é a despesa">${[['todos', 'Todas as despesas'], ['empresa', 'Só da empresa'], ['emps', 'Só de empreendimentos']].map(([k, l]) => `<div class="chip ${vinc === k ? 'active' : ''}" onclick="state.filters.custos.vinc='${k}';renderCustos()">${l}<span class="n">${k === 'todos' ? doEscopo.length : k === 'empresa' ? doEscopo.filter(c => !c.loteamentoId).length : doEscopo.filter(c => c.loteamentoId).length}</span></div>`).join('')}</div>` : ''}
+        <div class="filters">
+          ${global && !escopo && vinc !== 'emps' && centros.length ? `<select aria-label="Centro de custo" onchange="state.filters.custos.centro=this.value;renderCustos()"><option value="">Todos os centros de custo</option>${[[CENTRO_ADM, 'Administração']].concat(centros.map(c => [c.id, c.nome])).map(([k, l]) => `<option value="${esc(k)}" ${centro === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>` : ''}
+          <select aria-label="Conta do plano de contas" onchange="state.filters.custos.cat=this.value;renderCustos()"><option value="all">Todas as contas</option>${opcoesContasHtml(f.cat, db.categorias)}</select>
+          <select aria-label="Mês" onchange="state.filters.custos.mes=this.value;renderCustos()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="filters filtros-linha">
+          <input type="text" placeholder="Descrição ou fornecedor…" value="${esc(f.busca)}" oninput="aSetFiltro('custos','busca',this.value,renderCustos,this)">
+        <button type="button" class="btn btn-secondary btn-sm filtros-btn" aria-controls="custosFiltros" aria-expanded="${!!f.abertos}" onclick="state.filters.custos.abertos=!state.filters.custos.abertos;renderCustos()">Filtros${nFiltros ? ` (${nFiltros})` : ''}<i class=ico data-i=caret-down></i></button>
+          <button class="btn btn-primary btn-sm" onclick="abrirCustoForm(null, { emp: ${escopo ? `'${escopo}'` : vinc === 'emps' ? `'${(curLot() || {}).id || ''}'` : 'null'}${centro && centro !== CENTRO_ADM ? `, centro: '${esc(centro)}'` : ''} })"><i class=ico data-i=plus></i>Lançar</button>
+      </div>
     </div>
     <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
     ${list.length ? `<div class="lista">${list.map(c => custoRowHtml(c)).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
