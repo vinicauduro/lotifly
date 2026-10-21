@@ -37,8 +37,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     const f = await page.evaluate(() => [...document.querySelectorAll('#av-cobranca .st-item')].map(b => b.innerText.replace(/\s+/g, ' ').trim() + (b.classList.contains('st-zero') ? ' (zero)' : '')).join(' | '));
     if (!/^1 Todos R\$ 2\.000,00 \| 0 1-15 dias — \(zero\) \| 0 16-30 dias — \(zero\) \| 0 31-60 dias — \(zero\) \| 1 61-90 dias R\$ 2\.000,00 \| 0 90\+ dias — \(zero\)$/.test(f)) throw new Error(f);
     if (await page.locator('#av-cobranca .kpi').count()) throw new Error('os cartões antigos continuam');
-    const resumo = (await page.locator('#av-cobranca .ct-resumo').innerText()).replace(/\s+/g, ' ');
-    if (!/Em atraso, somando todos os meses, R\$ 2\.000,00 em 1 contrato/.test(resumo) || !/1 nunca cobrado/.test(resumo)) throw new Error(resumo);
+    const resumo = (await page.locator('#av-cobranca .ct-resumo:not(.ct-resumo-sub)').innerText()).replace(/\s+/g, ' ');
+    if (!/Em atraso \(todos os meses\): R\$ 2\.000,00 em 1 contrato/.test(resumo) || !/1 nunca cobrado/.test(resumo)) throw new Error(resumo);
   });
   await passo('Cobrança: linha com desde quando, dias de atraso, cliente, contrato, valor e as ações', async () => {
     const t = await page.evaluate(() => document.querySelector('#av-cobranca .item.linha').innerText.replace(/\s+/g, ' '));

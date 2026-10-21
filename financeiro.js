@@ -39,16 +39,12 @@ function renderRecebiveis() {
      todos os meses): o chip e a lista nunca discordam. */
   const list = all.filter(r => grupos[f.status](r) && porMes(r) && (!f.busca || clienteDe(r).toLowerCase().includes(f.busca.toLowerCase())))
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento) || a.numero - b.numero);
-  const tot = all.reduce((s, r) => s + recValor(r), 0), pago = all.reduce((s, r) => s + num(r.valorPago), 0);
-  const atr = all.filter(r => recStatus(r) === 'atrasado').reduce((s, r) => s + recRestante(r), 0);
   const mesKey = todayStr().slice(0, 7);
-  const mes = all.filter(r => monthKey(r.vencimento) === mesKey && recStatus(r) !== 'pago').reduce((s, r) => s + recRestante(r), 0);
-  const recMes = all.filter(r => r.dataPagamento && monthKey(r.dataPagamento) === mesKey).reduce((s, r) => s + num(r.valorPago), 0);
   const somaLista = list.reduce((s, r) => s + (f.status === 'pago' ? num(r.valorPago) : recRestante(r)), 0);
   v.innerHTML = `
     ${avisoRemessaHtml(esc0)}
     ${faixaHtml(REC_FAIXA.map(([k, l, sub]) => { const cs = all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)); return { k, l, n: cs.length, v: (cs.length ? fmtMoneyShort(cs.reduce((t, r) => t + (k === 'pago' ? num(r.valorPago) : k === 'all' ? recValor(r) : recRestante(r)), 0)) + ' ' + sub : '—') + (k === 'atrasado' ? ' · todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}` : ''), ativo: f.status === k, acao: `mostrarRecebiveis('${k}')` }; }), 'Situação das parcelas')}
-    <div class="ct-resumo">${f.mes === 'all' ? 'Todos os meses' : `${monthLabel(f.mes)} (atrasadas: de todos os meses)`} · Carteira: <b>${fmtMoney(tot - pago)}</b> a receber de ${fmtMoneyShort(tot)} contratado · ${fmtMoneyShort(pago)} já recebido (${fmtMoneyShort(recMes)} neste mês) · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
+    <div class="ct-resumo">${f.mes === 'all' ? 'Parcelas de todos os meses' : `Parcelas de ${monthLabel(f.mes)}; as atrasadas, de todos os meses`} · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
     <div class="filters">
       ${escopoSelectHtml('renderRecebiveis()')}
       <select aria-label="Mês" onchange="filtroRec().mes=this.value;renderRecebiveis()"><option value="all">Todos os meses</option>${meses.map(m => `<option value="${m}" ${f.mes === m ? 'selected' : ''}>${monthLabel(m)}${m === mesAtual() ? ' (mês atual)' : ''}</option>`).join('')}</select>
