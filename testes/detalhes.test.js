@@ -119,7 +119,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       if (!/bloqueado/.test(depois) || !/mudou/.test(depois) || /disponivel/.test(depois)) throw new Error('depois: ' + depois);
     });
     await passo('lote que muda de situação: a linha da lista do corretor é marcada', async () => {
-      const id = await page.evaluate(() => { const l = lotesDo(curLot().id).find(x => x.status === 'disponivel'); switchTab('lotes'); upsert('lotes', Object.assign({}, l, { status: 'reservado' })); renderCurrent(); return l.id; });
+      const id = await page.evaluate(() => { const l = lotesDo(curLot().id).find(x => x.status === 'disponivel'); state.filters.clotes = { quadra: 'all', status: 'all', ordem: 'quadra', busca: '' }; switchTab('lotes'); upsert('lotes', Object.assign({}, l, { status: 'reservado' })); renderCurrent(); return l.id; });
       const r = await page.evaluate(id => { const el = document.querySelector(`#cv-lotes [data-st="l:${id}"]`); return el && el.className + ' ' + el.style.getPropertyValue('--destaque'); }, id);
       if (!/st-mudou/.test(r) || !/warn/.test(r)) throw new Error(r);
     });

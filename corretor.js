@@ -23,10 +23,11 @@ function renderCPlanta() {
   if (!state.plantaCorretor || !v.querySelector('.planta-wrap')) {
     v.innerHTML = `
       <div class="status-strip">
-        <div class="pill"><span class="dot disponivel"></span><div><b id="cStDisp">0</b><br>disponíveis</div></div>
-        <div class="pill"><span class="dot reservado"></span><div><b id="cStRes">0</b><br>reservados</div></div>
-        <div class="pill"><span class="dot vendido"></span><div><b id="cStVend">0</b><br>vendidos</div></div>
+        <button type="button" class="pill" onclick="cVerLotes('disponivel')" aria-label="Ver a lista dos lotes disponíveis"><span class="dot disponivel"></span><div><b id="cStDisp">0</b><br>disponíveis</div></button>
+        <button type="button" class="pill" onclick="cVerLotes('reservado')" aria-label="Ver a lista dos lotes reservados"><span class="dot reservado"></span><div><b id="cStRes">0</b><br>reservados</div></button>
+        <button type="button" class="pill" onclick="cVerLotes('vendido')" aria-label="Ver a lista dos lotes vendidos"><span class="dot vendido"></span><div><b id="cStVend">0</b><br>vendidos</div></button>
       </div>
+      <button type="button" class="btn btn-wa btn-block c-enviar-tabela" onclick="abrirTabelaForm()"><i class=ico data-i=whatsapp-logo></i>Enviar tabela de preços</button>
       <div class="filters" style="margin-bottom:8px">
         <input type="text" id="cBuscaLote" placeholder="Ir para o lote (ex.: A 12)…" oninput="cBuscarLote(this.value)">
         <select id="cPlantaModo" onchange="cTrocarModo(this.value)" style="flex:0 0 150px"></select>
@@ -46,6 +47,11 @@ function renderCPlanta() {
   const semPos = hasImg && modo === 'imagem' ? ls.filter(l => !(l.pts && l.pts.length >= 3)).length : 0;
   $('#cPlantaInfo').innerHTML = `${esc(lot.nome)}${lot.cidade ? ' · ' + esc(lot.cidade) : ''} · ${ls.length} lotes${semPos ? ` · <span style="color:#b45309">${semPos} lote(s) ainda sem posição na planta real — veja na lista ou no modo esquemático</span>` : ''}`;
 }
+/* Tocar no contador da planta abre a lista já filtrada (ex.: só os disponíveis). */
+function cVerLotes(status) {
+  state.filters.clotes = Object.assign(state.filters.clotes || { quadra: 'all', ordem: 'quadra', busca: '' }, { status });
+  switchTab('lotes');
+}
 function cTrocarModo(m) { prefs.cModo = m; savePrefs(); renderCPlanta(); }
 function cBuscarLote(q) {
   const pv = state.plantaCorretor; if (!pv) return;
@@ -63,7 +69,7 @@ function cBuscarLote(q) {
 function renderCLotes() {
   const lot = curLot(); const v = $('#cv-lotes');
   if (!lot) { v.innerHTML = `<div class="empty"><div class="ic"><i class=ico data-i=buildings></i></div><p>Nenhum loteamento cadastrado.</p></div>`; return; }
-  const f = state.filters.clotes = state.filters.clotes || { quadra: 'all', status: 'all', ordem: 'quadra', busca: '' };
+  const f = state.filters.clotes = state.filters.clotes || { quadra: 'all', status: 'disponivel', ordem: 'quadra', busca: '' };
   const ls = lotesDo(lot.id);
   const quadras = quadrasDo(lot.id);
   let list = ls.filter(l => (f.quadra === 'all' || l.quadra === f.quadra) && (f.status === 'all' || l.status === f.status) && (!f.busca || loteLabel(l).toLowerCase().includes(f.busca.toLowerCase()) || String(l.numero) === f.busca.trim()));
@@ -128,7 +134,6 @@ function abrirLoteCorretor(id) {
     ${statusBox}
     <div class="row-between mb">
       <div><div class="price-big"${!num(l.preco) ? ' style="font-size:1.1rem;color:var(--muted)"' : ''}>${num(l.preco) ? fmtMoney(l.preco) : 'Preço sob consulta'}</div>${m2 ? `<div class="price-sub">${fmtMoney(m2)} por m²</div>` : ''}${num(l.preco) ? desc : ''}</div>
-      <span class="badge ${l.status}" style="font-size:0.75rem">${statusLabel(l.status)}</span>
     </div>
     <div class="detail-grid">
       <div><div class="k">Área</div><div class="v">${fmtNum(l.area, 2)} m²</div></div>
@@ -139,7 +144,7 @@ function abrirLoteCorretor(id) {
     </div>
     ${simuladorHtml(l, cond)}
     ${lot.descricao ? `<p class="small muted mt">${esc(lot.descricao)}</p>` : ''}`;
-  let footer = `<button class="btn btn-wa" onclick="compartilharLote('${l.id}')">Compartilhar</button>`;
+  let footer = `<button class="btn btn-secondary" onclick="compartilharLote('${l.id}')"><i class=ico data-i=whatsapp-logo></i>Compartilhar</button>`;
   if (l.status !== 'vendido' && l.status !== 'bloqueado') footer += `<button class="btn btn-outline" onclick="abrirPropostaForm('${l.id}')">Proposta</button>`;
   if (l.status === 'disponivel') footer += `<button class="btn btn-primary" onclick="abrirReservaForm('${l.id}')">Solicitar reserva</button>`;
   else if (minha && res && res.status === 'pendente') footer += `<button class="btn btn-outline-danger" onclick="cancelarMinhaReserva('${res.id}')">Cancelar pedido</button>`;
@@ -151,11 +156,11 @@ function simuladorHtml(l, cond) {
   const maxP = Number(cond.maxParcelas) || 120;
   return `<div class="sim-box">
     <div class="lg" style="font-size:0.78rem;font-weight:800;color:var(--primary);margin-bottom:8px">Simulador de pagamento</div>
+    <div class="sim-result" id="simResult"></div>
     <div class="frow">
       <div class="fg"><label>Entrada (R$)${cond.entradaMinPct ? ` · mín. ${fmtNum(cond.entradaMinPct, 0)}%` : ''}</label><input type="number" id="simEntrada" value="${entradaMin}" min="0" step="100" oninput="simular('${l.id}')"></div>
       <div class="fg"><label>Parcelas (até ${maxP}×)</label><input type="number" id="simParcelas" value="${Math.min(60, maxP)}" min="1" max="${maxP}" oninput="simular('${l.id}')"></div>
     </div>
-    <div class="sim-result" id="simResult"></div>
     <div class="tiny muted mt">${cond.jurosMes ? `Juros de ${fmtNum(cond.jurosMes, 2)}% ao mês (tabela Price).` : 'Parcelas sem juros.'} Valores para simulação; a proposta final é definida pela administração.</div>
   </div>`;
 }

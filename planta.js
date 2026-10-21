@@ -226,7 +226,7 @@ class PlantaView {
     }
 
     const opacity = this.mode === 'imagem' ? 0.5 : 0.92;
-    const fs = this.tamanhoDaNumeracao();
+    const fs = this.tamanhoDaNumeracao(); this.fsAtual = fs;
     this.desenharPadroes(fs);
     this.lotes.forEach(l => {
       const pts = this.absPts(l); if (!pts) return;
@@ -258,11 +258,12 @@ class PlantaView {
       this.gLotes.appendChild(t);
       if (this.mode === 'esquema') {
         const t2 = document.createElementNS(SVG_NS, 'text');
-        t2.setAttribute('class', 'lote-label'); t2.setAttribute('x', c.cx); t2.setAttribute('y', c.cy + fs * 0.55); t2.setAttribute('font-size', fs * 0.5); t2.setAttribute('font-weight', 500);
+        t2.setAttribute('class', 'lote-label lote-area'); t2.setAttribute('x', c.cx); t2.setAttribute('y', c.cy + fs * 0.55); t2.setAttribute('font-size', fs * 0.5); t2.setAttribute('font-weight', 500);
         t2.textContent = l.area ? `${fmtNum(l.area, 0)} m²` : '';
         this.gLotes.appendChild(t2);
       }
     });
+    this.ajustarArea();
     this.renderDraw();
   }
 
@@ -288,7 +289,13 @@ class PlantaView {
   setTool(t) { this.tool = t; this.drawPts = []; this.rectStart = null; this.render(); }
 
   // ------------------------------------------------ viewBox / zoom
-  applyVB() { const v = this.vb; this.svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); }
+  /* A área ("337 m²") é metade do número do lote: com a planta inteira na tela do celular ela
+     ficaria com uns 6 px, ilegível. Some abaixo de 9 px e volta quando a pessoa aproxima. */
+  applyVB() { const v = this.vb; this.svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); this.ajustarArea(); }
+  ajustarArea() {
+    const w = this.svg.getBoundingClientRect().width;
+    if (this.fsAtual && w && this.vb) this.svg.classList.toggle('area-miuda', this.fsAtual * 0.5 * w / this.vb.w < 9);
+  }
   /* Enquadrar deixa livre a coluna dos botões de zoom (à direita) e a faixa da legenda (embaixo):
      nenhum lote fica escondido atrás deles. */
   resetView() {
