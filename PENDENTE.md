@@ -760,6 +760,96 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z40. Confirmações dentro do app, no lugar da caixinha do navegador (21/10)
+
+Da avaliação de design: umas 30 confirmações de ações sérias apareciam na caixinha cinza do
+navegador. No celular ela mostra o endereço do site e perde a formatação dos valores, justo na
+hora mais séria.
+
+Agora todas abrem numa **janela do próprio app**:
+
+- **Por cima da janela que já estava aberta, sem fechá-la.** Desistindo, você volta exatamente
+  onde estava (por exemplo, no formulário do distrato).
+- **Título com a pergunta, valores em lista** (pago, retenção, devolução, valor da despesa,
+  parcela estornada…) e **o que acontece** em tópicos.
+- **Botão com o verbo da ação** ("Registrar distrato", "Excluir despesa", "Estornar"). Fica
+  vermelho quando a ação não tem volta; nesses casos a janela abre com o foco no **Cancelar**.
+- **Esc** ou **Cancelar** desistem. No celular a janela sobe de baixo, com botões largos.
+- **Excluir um empreendimento com tudo dentro** mostra quantos lotes, reservas, contratos e
+  despesas vão junto, e o botão só libera depois de você **digitar o nome** do empreendimento.
+  "Apagar todos os dados" pede "apagar tudo" digitado, no lugar das duas perguntas seguidas.
+- **Onde mudou:** distrato (registrar e desfazer), cessão (registrar e desfazer), antecipação,
+  estorno, excluir (despesa, parcela, lote, empreendimento, conta, grupo, centro de custo,
+  índice, conta de cobrança, modelo de documento, convite, vendedor), reajuste de preços, troca
+  do tipo do imóvel, importar backup, apagar tudo, dados de exemplo, sair com alterações não
+  enviadas, cancelar pedido de reserva (corretor), régua padrão e apagar erros.
+
+Para você fazer:
+
+- [ ] Abrir o distrato de um contrato e clicar em "Registrar distrato": conferir a janela e
+  cancelar.
+- [ ] Tentar excluir um empreendimento de teste e ver o pedido do nome.
+
+`testes/confirmacoes-app.test.js` (7 casos). Os testes antigos passaram a responder a janela
+nova pelo ajudante `testes/confirmacoes.js`.
+
+---
+
+## 7z38. Parcela atrasada: cobrar ou dispensar multa e juros é escolha sua (21/10)
+
+A avaliação de design achou um problema sério: a janela "Registrar pagamento" de uma parcela
+atrasada vinha com o valor **sem** multa e juros. Quem só confirmava quitava a parcela e os encargos
+sumiam sem registro (no exemplo do Pedro Santos, R$ 139,35).
+
+Como você decidiu, agora **não há padrão**:
+
+- Parcela atrasada mostra, acima do valor, **"Multa e juros · 61 dias de atraso"** com duas
+  opções, nenhuma marcada:
+  - **Cobrar multa e juros:** R$ 3.594,35 (multa de 2,0% + juros de 1,00% a.m.)
+  - **Sem multa e juros:** R$ 3.455,00, que dispensa R$ 139,35
+- Escolher uma preenche o valor recebido, que ainda pode ser mudado à mão.
+- **Sem escolher, não confirma:** o quadro fica vermelho e o aviso explica o que falta.
+- Ao dispensar, fica escrito na observação da parcela ("Multa e juros dispensados: R$ 139,35
+  (21/10/2026)") e no histórico, e o aviso de confirmação diz o valor dispensado.
+- Parcela em dia continua igual, com o valor já preenchido e sem pergunta.
+- Os avisos de campo faltando dizem qual campo é ("Informe o valor recebido", "Informe a data do
+  pagamento").
+
+Para você fazer:
+
+- [ ] Registrar o pagamento de uma parcela atrasada nas duas opções e conferir a observação.
+
+`testes/pagamento-encargos.test.js` (5 casos, relógio fixo em 19/10/2026).
+
+---
+
+## 7z37. Acabamento (21/10)
+
+Os detalhes menores da avaliação de design:
+
+- **Plural de verdade:** "1 parcela", "2 parcelas", "1 conta · 1 vencida", no lugar de
+  "parcela(s)". Valeu para Início, A receber, A pagar, Cobrança, Contratos, Reservas, Clientes,
+  Imóveis e Configurações.
+- **Contrato:**
+  - o selo diz **"Ativo"** (contrato, masculino), não "Ativa";
+  - quando a parcela mais antiga em aberto já venceu, o cartão "A receber" diz **"em atraso
+    desde 20/08/2026"**, em vez de "próxima: 20/08/2026" (uma "próxima" no passado);
+  - o empreendimento fica numa linha embaixo do imóvel, sem o ponto solto.
+- **Registrar pagamento:** o botão "Usar valor com juros" deixou de ficar embaixo de um rótulo
+  vazio.
+- **Teclado:** o anel de foco ficou sólido, na cor da marca (antes era um azul claro, difícil de
+  ver). No menu escuro ele é branco.
+- **Leitor de tela:** o item do menu da tela aberta é anunciado como a página atual.
+
+Para você fazer:
+
+- [ ] Abrir um contrato com parcela atrasada e conferir o "em atraso desde".
+- [ ] Navegar com a tecla Tab e ver o anel de foco.
+
+`testes/acabamento.test.js` (4 casos).
+
+---
+
 ## 7z36. Caminho do corretor no celular (20/10)
 
 Da avaliação de design: o corretor não chegava em "disponíveis + mandar a tabela" em dois toques.

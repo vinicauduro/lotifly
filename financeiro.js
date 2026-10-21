@@ -57,7 +57,7 @@ function renderRecebiveis() {
       ${contasComLayout().length ? `<button class="btn btn-secondary btn-sm" onclick="abrirGerarCobrancas()"><i class=ico data-i=bank></i>Gerar cobranças <span class="n">${parcelasDoMes(esc0, mesAtual()).filter(r => !registradaNoBanco(r) && !bloqueioRemessa(r)).length}</span></button>
       <button class="btn btn-secondary btn-sm" onclick="abrirRetorno()">Retorno</button>` : ''}
     </div>
-    <p class="small muted mb">${list.length} parcela(s) · ${fmtMoney(somaLista)}${f.status === 'avencer' ? ` · a vencer em ${monthLabel(f.mes)}` : f.status === 'atrasadoMes' ? ` · vencidas em ${monthLabel(f.mes)} e não pagas. <a href="#" onclick="mostrarRecebiveis('atrasado');return false">Ver os atrasos de todos os meses</a>` : f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
+    <p class="small muted mb">${nPlural(list.length, 'parcela')} · ${fmtMoney(somaLista)}${f.status === 'avencer' ? ` · a vencer em ${monthLabel(f.mes)}` : f.status === 'atrasadoMes' ? ` · vencidas em ${monthLabel(f.mes)} e não pagas. <a href="#" onclick="mostrarRecebiveis('atrasado');return false">Ver os atrasos de todos os meses</a>` : f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
     ${list.length ? `<div class="lista">${list.map(r => recRowHtml(r)).join('')}</div>`
       : !all.length ? `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Ainda não há parcelas a receber.</p><p>Elas aparecem aqui quando você registra um contrato com parcelas.</p></div>`
       : f.busca ? `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhuma parcela de “${esc(f.busca)}” nesta lista.</p><p><button class="btn btn-secondary btn-sm" onclick="filtroRec().busca='';renderRecebiveis()">Limpar busca</button></p></div>`
@@ -131,41 +131,64 @@ function recRowHtml(r) {
       ${st === 'parcial' ? `<div class="tiny muted">pago ${fmtMoney(r.valorPago)}</div>` : ''}${recCorrecao(r) > 0.005 && st !== 'pago' ? `<div class="tiny muted" title="Correção pelo índice do contrato">base ${fmtMoney(r.valor)} + correção</div>` : ''}${st === 'atrasado' ? `<div class="tiny ct-atraso">atualizado ${fmtMoney(recAtualizado(r))}</div>` : ''}
       <div class="btns" onclick="event.stopPropagation()">${st !== 'pago' && v && v.status !== 'distrato' && pode('financeiro.baixar') ? `<button class="btn-icon ok" title="Registrar pagamento" onclick="abrirPagamento('${r.id}')"><i class=ico data-i=money></i></button>` : ''}${num(r.valorPago) > 0 ? `<button class="btn-icon" title="Recibo" onclick="gerarRecibo('${r.id}')"><i class=ico data-i=receipt></i></button>` : ''}${pode('financeiro.baixar') ? `<button class="btn-icon" title="Editar" onclick="editarRecebivel('${r.id}')"><i class=ico data-i=pencil-simple></i></button>` : ''}</div></div></div>`;
 }
+/* Parcela atrasada: multa e juros não têm padrão. A pessoa escolhe, a cada pagamento, se cobra
+   ou dispensa; a dispensa fica escrita na observação e no histórico. */
 function abrirPagamento(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
   const v = getVenda(r.vendaId); const rest = recRestante(r); const atual = recAtualizado(r);
+  const atrasada = atual > rest + 0.01, dias = atrasada ? daysBetween(r.vencimento, todayStr()) : 0;
+  const r2 = x => Math.round(x * 100) / 100;
+  const encargos = atrasada ? `<fieldset class="pg-encargos" id="pgEncargos"><legend>Multa e juros · ${nPlural(dias, 'dia')} de atraso *</legend>
+      <label class="pg-opcao"><input type="radio" name="pgEnc" value="com" onchange="pgEscolherEncargos(${r2(atual)})"><span><b>Cobrar multa e juros</b><span class="tiny muted">${fmtMoney(atual)} · multa de ${fmtNum(db.config.multaPct, 1)}% + juros de ${fmtNum(db.config.jurosMesPct, 2)}% a.m.</span></span></label>
+      <label class="pg-opcao"><input type="radio" name="pgEnc" value="sem" onchange="pgEscolherEncargos(${r2(rest)})"><span><b>Sem multa e juros</b><span class="tiny muted">${fmtMoney(rest)} · dispensa ${fmtMoney(atual - rest)}</span></span></label>
+    </fieldset>` : '';
   const body = `<p class="small mb"><b>${v ? esc(v.cliente.nome) : ''}</b> · ${esc(r.descricao)} · vencimento ${fmtDate(r.vencimento)}</p>
-    <div class="detail-grid"><div><div class="k">Valor da parcela</div><div class="v">${fmtMoney(recValor(r))}${recCorrecao(r) > 0.005 ? `<div class="tiny muted">base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</div>` : ''}</div></div><div><div class="k">Em aberto</div><div class="v">${fmtMoney(rest)}</div></div>${atual > rest + 0.01 ? `<div class="full"><div class="k">Com multa e juros (${fmtNum(db.config.multaPct, 1)}% + ${fmtNum(db.config.jurosMesPct, 2)}% a.m.)</div><div class="v" style="color:var(--danger)">${fmtMoney(atual)}</div></div>` : ''}</div>
-    <div class="frow"><div class="fg"><label>Valor recebido (R$) *</label><input type="number" id="pgValor" step="0.01" value="${Math.round(rest * 100) / 100}"></div><div class="fg"><label>Data do pagamento *</label><input type="date" id="pgData" value="${todayStr()}"></div></div>
-    <div class="frow"><div class="fg"><label>Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div><div class="fg"><label>&nbsp;</label>${atual > rest + 0.01 ? `<button class="btn btn-outline btn-sm" onclick="setVal('pgValor',${Math.round(atual * 100) / 100})">Usar valor c/ juros</button>` : ''}</div></div>
-    <div class="fg"><label>Observação</label><input type="text" id="pgObs" value="${esc(r.obsPagamento || '')}"></div>`;
+    <div class="detail-grid"><div><div class="k">Valor da parcela</div><div class="v">${fmtMoney(recValor(r))}${recCorrecao(r) > 0.005 ? `<div class="tiny muted">base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</div>` : ''}</div></div><div><div class="k">Em aberto</div><div class="v">${fmtMoney(rest)}</div></div></div>
+    ${encargos}
+    <div class="frow"><div class="fg"><label for="pgValor">Valor recebido (R$) *</label><input type="number" id="pgValor" step="0.01" value="${atrasada ? '' : r2(rest)}" ${atrasada ? 'placeholder="escolha acima"' : ''}></div><div class="fg"><label for="pgData">Data do pagamento *</label><input type="date" id="pgData" value="${todayStr()}"></div></div>
+    <div class="fg"><label for="pgForma">Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div>
+    <div class="fg"><label for="pgObs">Observação</label><input type="text" id="pgObs" value="${esc(r.obsPagamento || '')}"></div>`;
   openModal({ title: 'Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">Confirmar e gerar recibo</button><button class="btn btn-success" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
+}
+function pgEscolherEncargos(valor) {
+  setVal('pgValor', valor);
+  const f = document.getElementById('pgEncargos'); if (f) f.classList.remove('erro');
 }
 function salvarPagamento(id, voltarVendaId, comRecibo) {
   if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', 'Seu perfil não registra pagamentos.', true); return; }
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
+  const rest = recRestante(r), atual = recAtualizado(r);
+  const escolha = (document.querySelector('input[name="pgEnc"]:checked') || {}).value || '';
+  if (atual > rest + 0.01 && !escolha) {
+    const f = document.getElementById('pgEncargos'); if (f) { f.classList.add('erro'); f.scrollIntoView({ block: 'nearest' }); }
+    toast('⚠️', 'Escolha se cobra multa e juros', 'A parcela está atrasada: marque "Cobrar multa e juros" ou "Sem multa e juros" antes de confirmar.', true); return;
+  }
   const valor = num(val('pgValor')), data = val('pgData');
-  if (!valor || !data) { toast('⚠️', 'Informe valor e data', '', true); return; }
-  const forma = val('pgForma'), obs = val('pgObs');
+  if (!valor) { toast('⚠️', 'Informe o valor recebido', 'Digite quanto entrou, em reais.', true); return; }
+  if (!data) { toast('⚠️', 'Informe a data do pagamento', 'Use o calendário do campo "Data do pagamento".', true); return; }
+  const forma = val('pgForma');
   const novoPago = num(r.valorPago) + valor;
   // se pagou a mais (juros/multa), registra o valor efetivamente recebido e considera quitada
   const devido = recValor(r);
   const quitou = novoPago >= devido - 0.005;
+  const dispensa = escolha === 'sem' && quitou ? Math.round((atual - rest) * 100) / 100 : 0;
+  const notaDispensa = dispensa ? `Multa e juros dispensados: ${fmtMoney(dispensa)} (${fmtDate(todayStr())})` : '';
+  const obs = [val('pgObs'), notaDispensa].filter(Boolean).join(' · ');
   const upd = Object.assign({}, r, { valorPago: novoPago, dataPagamento: data, forma, obsPagamento: obs,
     valorCorrigido: quitou ? Math.round(Math.max(devido, novoPago) * 100) / 100 : (r.valorCorrigido || null) });
   upsert('recebiveis', upd);
   atualizarStatusVenda(r.vendaId);
   const v = getVenda(r.vendaId);
-  logAct(`Pagamento recebido: ${v ? v.cliente.nome : ''} — ${r.descricao} — ${fmtMoney(valor)}`);
-  toast('✅', 'Pagamento registrado', `${v ? v.cliente.nome + ' · ' : ''}${r.descricao} · ${fmtMoney(valor)}${quitou ? '' : ' (parcial)'}`);
+  logAct(`Pagamento recebido: ${v ? v.cliente.nome : ''} — ${r.descricao} — ${fmtMoney(valor)}${dispensa ? ` — multa e juros dispensados (${fmtMoney(dispensa)})` : escolha === 'com' ? ' — com multa e juros' : ''}`);
+  toast('✅', 'Pagamento registrado', `${v ? v.cliente.nome + ' · ' : ''}${r.descricao} · ${fmtMoney(valor)}${quitou ? '' : ' (parcial)'}${dispensa ? ` · multa e juros dispensados (${fmtMoney(dispensa)})` : ''}`);
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
   /* O recibo é deste pagamento, não do total já pago na parcela. */
   if (comRecibo) gerarRecibo(id, { valor, data, forma, obs });
 }
-function estornarPagamento(id, voltarVendaId) {
+async function estornarPagamento(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
-  if (!confirm('Estornar o pagamento desta parcela? Ela voltará a ficar em aberto.')) return;
+  if (!(await confirmar({ titulo: 'Estornar o pagamento desta parcela?', valores: [['Parcela', r.descricao], ['Valor pago', fmtMoney(num(r.valorPago)), true]], texto: 'Ela volta a ficar em aberto.', acao: 'Estornar', perigo: true }))) return;
   upsert('recebiveis', Object.assign({}, r, { valorPago: 0, dataPagamento: null, forma: null }));
   atualizarStatusVenda(r.vendaId);
   logAct(`Pagamento estornado: ${r.descricao}`);
@@ -219,10 +242,10 @@ function salvarRecebivel(id, voltarVendaId) {
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent(); toast('✅', 'Parcela atualizada', '');
 }
-function excluirRecebivel(id, voltarVendaId) {
+async function excluirRecebivel(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
   if (registradaNoBanco(r) && recStatus(r) !== 'pago') { toast('🏦', 'Esta parcela está registrada no banco', 'Zere o valor ou marque como paga para gerar a baixa na remessa; depois exclua.', true); return; }
-  if (!confirm('Excluir esta parcela do cronograma?')) return;
+  if (!(await confirmar({ titulo: 'Excluir esta parcela do cronograma?', acao: 'Excluir parcela', perigo: true }))) return;
   removeRec('recebiveis', id); atualizarStatusVenda(r.vendaId);
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
@@ -320,7 +343,7 @@ function renderCustos(alvo) {
           <button class="btn btn-primary btn-sm" onclick="abrirCustoForm(null, { emp: ${escopo ? `'${escopo}'` : vinc === 'emps' ? `'${(curLot() || {}).id || ''}'` : 'null'}${centro && centro !== CENTRO_ADM ? `, centro: '${esc(centro)}'` : ''} })"><i class=ico data-i=plus></i>Lançar</button>
       </div>
     </div>
-    <p class="small muted mb">${list.length} lançamento(s) · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
+    <p class="small muted mb">${nPlural(list.length, 'lançamento')} · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
     ${list.length ? `<div class="lista">${list.map(c => custoRowHtml(c)).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
     ${global ? graficosCustos : ''}`;
   drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
@@ -420,9 +443,9 @@ function salvarPagamentoCusto(id) {
     upsert('custos', antes); logAct(`Pagamento desfeito: ${c.descricao}`); renderCurrent(); toast('↩️', 'Pagamento desfeito', `${c.descricao} voltou para em aberto.`);
   } });
 }
-function excluirCusto(id) {
+async function excluirCusto(id) {
   const c = db.custos.find(x => x.id === id); if (!c) return;
-  if (!confirm(`Excluir "${c.descricao}"?`)) return;
+  if (!(await confirmar({ titulo: `Excluir "${c.descricao}"?`, valores: [['Valor', fmtMoney(c.valor)]], acao: 'Excluir despesa', perigo: true }))) return;
   removeRec('custos', id); closeModal(); renderCurrent();
 }
 function exportarCustosCSV() {

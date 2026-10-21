@@ -14,7 +14,9 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
     /* As janelas do navegador (confirmar/avisar): anota a mensagem e responde como mandado */
     let resposta = 'accept'; const dialogos = [];
-    page.on('dialog', d => { dialogos.push({ tipo: d.type(), msg: d.message() }); resposta === 'accept' ? d.accept() : d.dismiss(); });
+    /* A confirmação agora é uma janela do app: registra tipo (confirm/alert) e texto e responde. */
+    await page.exposeFunction('__dialogoTeste', (tipo, msg) => { dialogos.push({ tipo, msg }); return resposta; });
+    await page.addInitScript(() => { new MutationObserver(() => { const box = document.getElementById('confirmaBox'); if (!box || box.dataset.visto) return; box.dataset.visto = '1'; const nao = box.querySelector('.conf-nao'); window.__dialogoTeste(nao ? 'confirm' : 'alert', box.innerText).then(r => (r === 'accept' || !nao ? box.querySelector('.conf-sim') : nao).click()); }).observe(document, { childList: true, subtree: true }); });
     page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`));
     await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
     await page.evaluate(() => {
@@ -41,7 +43,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       resposta = 'dismiss';
       await page.selectOption('#lmTipo', 'carteira:lote'); await page.waitForTimeout(150);
       const d = ultimo();
-      const f = ['característica importante', 'pode alterar os dados', 'De: Empreendimento', 'Para: Lote', 'os 3 lote(s) deixam de aparecer', 'valor de venda, matrícula e descrição', 'Deixa de aparecer para os corretores'];
+      const f = ['característica importante', 'pode alterar os dados', 'Empreendimento → Lote', 'os 3 lotes deixam de aparecer', 'valor de venda, matrícula e descrição', 'Deixa de aparecer para os corretores'];
       const falta = f.filter(x => !d.msg.includes(x));
       if (d.tipo !== 'confirm' || falta.length) throw new Error('falta: ' + falta.join(' | '));
       const r = await page.evaluate(() => ({ v: val('lmTipo'), aviso: lmTrocaAviso.textContent, terc: getComputedStyle(lmBoxTerceiro).display }));
@@ -83,7 +85,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       await page.evaluate(() => upsert('reservas', { id: 'res9', loteamentoId: 'emp9', loteId: 'emp9-1', status: 'pendente', cliente: { nome: 'Cliente' }, corretor: { nome: 'Corretor' }, criadoEm: new Date().toISOString(), validade: addDays(todayStr(), 3) }));
       await page.evaluate(() => abrirLoteamentoForm('emp9')); await page.waitForTimeout(200);
       await page.selectOption('#lmTipo', 'carteira:casa'); await page.waitForTimeout(150);
-      if (ultimo().tipo !== 'alert' || !/reserva\(s\) em andamento/.test(ultimo().msg)) throw new Error(JSON.stringify(ultimo()));
+      if (ultimo().tipo !== 'alert' || !/1 reserva em andamento/.test(ultimo().msg)) throw new Error(JSON.stringify(ultimo()));
       if (await page.evaluate(() => val('lmTipo')) !== 'loteamento') throw new Error('não voltou');
       await page.evaluate(() => { removeRec('reservas', 'res9'); closeModal(); });
     });

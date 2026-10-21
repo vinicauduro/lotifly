@@ -3,6 +3,7 @@
 // o termo de distrato, desfazer e o modelo no editor. No celular e no computador.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/distrato.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 const r2 = x => Math.round(x * 100) / 100;
 (async () => {
@@ -13,7 +14,7 @@ const r2 = x => Math.round(x * 100) / 100;
     const ctx = await browser.newContext({ viewport: { width: w, height: w < 700 ? 844 : 900 }, hasTouch: w < 700, serviceWorkers: 'block' });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-    const dialogos = []; page.on('dialog', d => { dialogos.push(d.message()); d.accept(); });
+    const dialogos = []; page.on('dialog', d => { dialogos.push(d.message()); d.accept(); }); await responderConfirmacoes(page);
     page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`));
     await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
     /* Contrato de teste: entrada e 3 parcelas pagas, o resto em aberto; uma parcela em aberto já

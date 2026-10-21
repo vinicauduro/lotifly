@@ -180,10 +180,10 @@ function listaContasHtml(lista) {
         <div class="meta"><span>convênio ${esc(c.convenio)}</span><span>· carteira ${esc(c.carteira)}</span><span>· ${emp ? 'só ' + esc(emp.nome) : 'todos os empreendimentos'}</span><span>· ${n} parcela(s) em aberto</span></div>
       </div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();state.sub.contaEdit='${c.id}';renderCurrent()" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></div></div>`; }).join('')}</div>`;
 }
-function excluirContaBanco(id) {
+async function excluirContaBanco(id) {
   const c = db.contasBanco.find(x => x.id === id); if (!c) return;
   if (db.remessas.some(r => r.contaId === id)) { toast('⚠️', 'Conta com remessas geradas', 'Não dá para excluir uma conta que já mandou arquivo ao banco.', true); return; }
-  if (!confirm('Excluir esta conta de cobrança?')) return;
+  if (!(await confirmar({ titulo: 'Excluir esta conta de cobrança?', acao: 'Excluir conta', perigo: true }))) return;
   removeRec('contasBanco', id); state.sub.contaEdit = null; renderCurrent();
 }
 function salvarContaBanco(id) {

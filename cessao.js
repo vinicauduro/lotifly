@@ -48,7 +48,7 @@ function abrirCessao(vendaId) {
     footer: `<button class="btn btn-secondary" onclick="abrirContrato('${v.id}')">Cancelar</button><button class="btn btn-primary" onclick="registrarCessao('${v.id}')">Registrar cessão</button>` });
 }
 
-function registrarCessao(vendaId) {
+async function registrarCessao(vendaId) {
   const v = getVenda(vendaId); if (!v) return;
   if (!pode('vendas.editar')) { toast('🔒', 'Sem permissão', '', true); return; }
   const data = val('csData');
@@ -71,7 +71,7 @@ function registrarCessao(vendaId) {
   if (cessionarios.some(p => onlyDigits(p.cpf) && docs.has(onlyDigits(p.cpf)))) { toast('⚠️', 'Cessionário já é comprador', 'Quem recebe o contrato não pode ser quem já é comprador dele.', true); return; }
   const s = saldoEmAberto(v);
   const valor = Math.max(0, num(val('csValor'))), taxa = Math.max(0, num(val('csTaxa')));
-  if (!confirm(`Registrar a cessão de ${nomesDasPartes(cedentes)} para ${nomesDasPartes(cessionarios)}?\n\nA partir de agora o comprador é ${cessionarios[0].nome}: cobranças, boletos novos e escritura vão para ${cessionarios.length > 1 ? 'os cessionários' : 'ele'}.`)) return;
+  if (!(await confirmar({ titulo: 'Registrar a cessão de direitos?', valores: [['De', nomesDasPartes(cedentes)], ['Para', nomesDasPartes(cessionarios), true]], texto: `A partir de agora o comprador é ${cessionarios[0].nome}: cobranças, boletos novos e escritura vão para ${cessionarios.length > 1 ? 'os cessionários' : 'ele'}.`, acao: 'Registrar cessão' }))) return;
 
   const cessao = {
     id: genId(), data, cedentes: JSON.parse(JSON.stringify(cedentes)), cessionarios,
@@ -105,12 +105,12 @@ function perguntarTermoCessao(vendaId, cessaoId) {
 
 /* Registro feito por engano: só a última cessão pode ser desfeita, e o contrato volta para os
    cedentes dela. A taxa lançada junto sai; os pagamentos registrados depois continuam. */
-function desfazerCessao(vendaId, cessaoId) {
+async function desfazerCessao(vendaId, cessaoId) {
   const v = getVenda(vendaId); if (!v) return;
   if (!pode('vendas.editar')) { toast('🔒', 'Sem permissão', '', true); return; }
   const cs = cessoesDe(v); const ult = cs[cs.length - 1];
   if (!ult || ult.id !== cessaoId) { toast('⚠️', 'Só a última cessão pode ser desfeita', '', true); return; }
-  if (!confirm(`Desfazer a cessão de ${fmtDate(ult.data)}? O contrato volta para ${nomesDasPartes(ult.cedentes)}${ult.taxaRecebivelId ? ' e a taxa de cessão lançada sai do contrato' : ''}. Os pagamentos registrados depois continuam.`)) return;
+  if (!(await confirmar({ titulo: `Desfazer a cessão de ${fmtDate(ult.data)}?`, texto: `O contrato volta para ${nomesDasPartes(ult.cedentes)}${ult.taxaRecebivelId ? ' e a taxa de cessão lançada sai do contrato' : ''}. Os pagamentos registrados depois continuam.`, acao: 'Desfazer cessão', perigo: true }))) return;
   const cedentes = (ult.cedentes || []).filter(p => p && p.nome);
   upsert('vendas', Object.assign({}, v, { cliente: cedentes[0] || v.cliente, compradoresExtras: cedentes.slice(1), cessoes: (v.cessoes || []).filter(c => c.id !== ult.id) }));
   if (ult.taxaRecebivelId && db.recebiveis.some(r => r.id === ult.taxaRecebivelId)) removeRec('recebiveis', ult.taxaRecebivelId);

@@ -2,6 +2,7 @@
 // entrar como administrador → abrir um loteamento → vender um lote → registrar um recebimento.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/fluxo.test.js   (PRINTS=pasta salva prints)
 const { chromium, devices } = require('playwright'); const path = require('path'); const fs = require('fs');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 const PRINTS = process.env.PRINTS; if (PRINTS) fs.mkdirSync(PRINTS, { recursive: true });
 (async () => {
@@ -13,7 +14,7 @@ const PRINTS = process.env.PRINTS; if (PRINTS) fs.mkdirSync(PRINTS, { recursive:
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
     page.on('pageerror', e => erros.push(`${nome} pageerror: ${e.message}`));
-    page.on('dialog', d => d.accept());
+    page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     const celular = nome === 'celular';
     const tocar = async loc => { await loc.scrollIntoViewIfNeeded(); if (celular) await loc.tap(); else await loc.click(); };
     let n = 0; const print = async rot => { if (PRINTS) await page.screenshot({ path: path.join(PRINTS, `${nome}-${++n}-${rot}.png`) }); };

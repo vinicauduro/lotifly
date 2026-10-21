@@ -3,6 +3,7 @@
 // comparada com uma tabela Price calculada aqui, à parte, sem usar o código do app.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/antecipacao.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 const r2 = x => Math.round(x * 100) / 100;
 const PV = 100000, I = 0.01, N = 12;
@@ -17,7 +18,7 @@ const vp = k => PMT / Math.pow(1 + I, k);                          // parcela k,
     const ctx = await browser.newContext({ viewport: { width: w, height: w < 700 ? 844 : 900 }, hasTouch: w < 700, serviceWorkers: 'block' });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-    page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`)); page.on('dialog', d => d.accept());
+    page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
     /* Contrato de teste: 12 parcelas a partir do mês que vem, sem índice e sem entrada.
        criar(id, juros, parcela, desloc) — desloc = meses entre hoje e a 1ª parcela. */
