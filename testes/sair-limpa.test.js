@@ -4,6 +4,7 @@
 // O Supabase é simulado.
 // Rodar: BASE=http://127.0.0.1:8765/gestao/ node testes/sair-limpa.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox', '--disable-gpu'] });
@@ -13,8 +14,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
   const page = await ctx.newPage(); page.setDefaultTimeout(8000);
   page.on('pageerror', e => erros.push(`pageerror: ${e.message}`));
-  let dialogo = 'accept';
-  page.on('dialog', d => (dialogo === 'accept' ? d.accept() : d.dismiss()));
+  await responderConfirmacoes(page);
   await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
   await page.evaluate(() => {
     document.querySelectorAll('#devDados,.toast').forEach(e => e.remove());
@@ -54,13 +54,11 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   });
   await passo('com alteração que a nuvem não recebeu: pergunta; "Cancelar" não sai nem apaga nada', async () => {
     await page.evaluate(() => preparar([{ op: 'upsert', col: 'recebiveis', id: 'r1', rec: { id: 'r1' } }]));
-    dialogo = 'dismiss';
-    let pergunta = '';
-    page.once('dialog', d => { pergunta = d.message(); });
+    await page.evaluate(() => { window.__respConfirmar = 'recusar'; });
     await page.evaluate(() => sair()); await page.waitForTimeout(200);
-    dialogo = 'accept';
+    const pergunta = await page.evaluate(() => { window.__respConfirmar = 'aceitar'; return window.__confirmacoes[window.__confirmacoes.length - 1] || ''; });
     const r = await page.evaluate(() => ({ ch: chaves(), saiu }));
-    if (!/1 alteração.*não chegaram à nuvem/s.test(pergunta)) throw new Error('pergunta: ' + pergunta);
+    if (!/1 alteração feita.*não chegou à nuvem/s.test(pergunta)) throw new Error('pergunta: ' + pergunta);
     if (r.saiu !== 1 || !r.ch.some(k => k.startsWith('gl_cache_'))) throw new Error('saiu ou apagou mesmo cancelando: ' + JSON.stringify(r));
   });
   await passo('confirmando, sai e apaga também a alteração pendente', async () => {

@@ -217,8 +217,8 @@ function salvarRegua(n) {
   setConfig({ regua: regua.sort((a, b) => a.dias - b.dias), pix: val('cgPix') });
   renderCurrent(); toast('✅', 'Régua salva', `${nPlural(regua.length, 'etapa')}`);
 }
-function restaurarRegua() {
-  if (!confirm('Voltar aos textos padrão da régua?')) return;
+async function restaurarRegua() {
+  if (!(await confirmar({ titulo: 'Voltar aos textos padrão da régua?', texto: 'Os textos que você escreveu na régua de cobrança são trocados pelos originais.', acao: 'Voltar ao padrão' }))) return;
   setConfig({ regua: REGUA_PADRAO });
   renderCurrent(); toast('↩️', 'Textos padrão restaurados', '');
 }

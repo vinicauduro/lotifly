@@ -411,8 +411,8 @@ async function uploadPlanta(input) {
   } catch (e) { toast('⚠️', 'Falha ao carregar imagem', e.message, true); }
   input.value = '';
 }
-function removerPlanta() {
-  if (!confirm('Remover a imagem da planta? As formas desenhadas serão mantidas, mas ficarão ocultas até enviar outra imagem.')) return;
+async function removerPlanta() {
+  if (!(await confirmar({ titulo: 'Remover a imagem da planta?', texto: 'As formas desenhadas continuam guardadas, mas ficam ocultas até você enviar outra imagem.', acao: 'Remover imagem', perigo: true }))) return;
   const lot = curLot(); const u = Object.assign({}, lot); u.planta = null;
   upsert('loteamentos', u); state.plantaAdmin = null; prefs.aModo = 'esquema'; savePrefs(); renderPlantaEditor();
 }
@@ -541,10 +541,10 @@ function salvarLote(id) {
   }
   renderCurrent(); toast('✅', 'Lote salvo', loteLabel(rec));
 }
-function excluirLote(id) {
+async function excluirLote(id) {
   const l = getLote(id); if (!l) return;
   if (l.status === 'vendido' || l.status === 'reservado') { toast('⚠️', 'Lote com reserva ou venda não pode ser excluído', '', true); return; }
-  if (!confirm(`Excluir ${loteLabel(l)}?`)) return;
+  if (!(await confirmar({ titulo: `Excluir ${loteLabel(l)}?`, texto: 'O lote sai da planta e da lista. Despesas ligadas a ele continuam, sem o lote.', acao: 'Excluir lote', perigo: true }))) return;
   db.custos.filter(c => c.loteId === id).forEach(c => upsert('custos', Object.assign({}, c, { loteId: null })));
   removeRec('lotes', id); closeModal(); renderCurrent();
 }
@@ -608,11 +608,11 @@ function abrirReajuste() {
     <label class="check"><input type="checkbox" id="rjArredonda" checked> Arredondar para centena (R$ 100)</label>`;
   openModal({ title: 'Reajustar preços', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="aplicarReajuste()">Aplicar</button>` });
 }
-function aplicarReajuste() {
+async function aplicarReajuste() {
   const lot = curLot(); const q = val('rjQuadra'), st = val('rjStatus'); const pct = num(val('rjPct')), m2 = num(val('rjM2'));
   if (!pct && !m2) { toast('⚠️', 'Informe o percentual ou o valor por m²', '', true); return; }
   const alvo = lotesDo(lot.id).filter(l => l.status !== 'vendido' && (q === 'all' || l.quadra === q) && (st === 'all' || l.status === 'disponivel'));
-  if (!confirm(`Reajustar ${nPlural(alvo.length, 'lote')}?`)) return;
+  if (!(await confirmar({ titulo: `Reajustar ${nPlural(alvo.length, 'lote')}?`, valores: [['Reajuste', m2 ? fmtMoney(m2) + ' por m²' : fmtNum(pct, 2) + '%', true], ['Lotes', String(alvo.length)]], texto: 'Lotes vendidos não mudam. O preço novo vale para tabelas e reservas daqui em diante.', acao: 'Reajustar preços' }))) return;
   alvo.forEach(l => { let p = m2 ? l.area * m2 : l.preco * (1 + pct / 100); if (checked('rjArredonda')) p = Math.round(p / 100) * 100; upsert('lotes', Object.assign({}, l, { preco: Math.round(p * 100) / 100 })); });
   logAct(`Reajuste de preços em ${nPlural(alvo.length, 'lote')}: ${m2 ? fmtMoney(m2) + '/m²' : pct + '%'}`);
   closeModal(); renderCurrent(); toast('✅', 'Preços reajustados', `${nPlural(alvo.length, 'lote')}`);
@@ -1519,15 +1519,15 @@ function efeitosTrocaTipo(l, de, para) {
 }
 /* Trocar o tipo de um imóvel já cadastrado é mudar uma característica importante: pede
    confirmação com o que muda e, se a pessoa desistir, o seletor volta ao tipo de antes. */
-function lmTrocarTipo(id) {
+async function lmTrocarTipo(id) {
   const l = getLoteamento(id); if (!l) return;
   const de = window.__lmTipoOrig || '', para = val('lmTipo');
   const aviso = $('#lmTrocaAviso');
   const volta = () => { setVal('lmTipo', de); if (aviso) aviso.innerHTML = ''; lmTipoChange(true); };
   if (!de || para === de) { if (aviso) aviso.innerHTML = ''; lmTipoChange(); return; }
   const ef = efeitosTrocaTipo(l, de, para);
-  if (ef.bloqueio) { alert(`Não dá para trocar o tipo.\n\n${ef.bloqueio}`); volta(); return; }
-  const ok = confirm(`Você está mudando uma característica importante do imóvel, e isso pode alterar os dados dele.\n\nDe: ${nomeTipoImovel(de)}\nPara: ${nomeTipoImovel(para)}\n\nO que muda:\n${ef.muda.map(m => '• ' + m).join('\n')}\n\nConfirma a troca?`);
+  if (ef.bloqueio) { await avisar({ titulo: 'Não dá para trocar o tipo', texto: ef.bloqueio }); volta(); return; }
+  const ok = await confirmar({ titulo: 'Trocar o tipo do imóvel?', texto: 'Você está mudando uma característica importante do imóvel, e isso pode alterar os dados dele.', valores: [['Troca', `${nomeTipoImovel(de)} → ${nomeTipoImovel(para)}`, true]], itens: ef.muda, acao: 'Trocar o tipo' });
   if (!ok) { volta(); return; }
   window.__lmTipoConfirmado = para;
   if (aviso) aviso.innerHTML = `<div class="alert warn" style="cursor:default;margin-top:8px"><span><b>Tipo trocado: ${esc(nomeTipoImovel(de))} → ${esc(nomeTipoImovel(para))}.</b> Confira os dados abaixo antes de salvar; a troca só vale quando você salvar.</span></div>`;
@@ -1548,7 +1548,7 @@ function lmTipoChange(abrindo) {
   $('#lmCondOpc').textContent = terc ? '— opcional' : '';
   if (!abrindo || !editando) $('#lmCondBox').open = !terc && !vazio;
 }
-function salvarLoteamento(id) {
+async function salvarLoteamento(id) {
   const prev = id ? getLoteamento(id) : null;
   const sel = lmTipoSel();
   if (!prev && sel.vazio) { toast('⚠️', 'Escolha o tipo do imóvel', 'Empreendimento, apartamento, casa, lote…', true); return; }
@@ -1559,7 +1559,7 @@ function salvarLoteamento(id) {
   if (trocou) {
     const ef = efeitosTrocaTipo(prev, de, para);
     if (ef.bloqueio) { toast('⚠️', 'Não dá para trocar o tipo', ef.bloqueio, true); return; }
-    if (window.__lmTipoConfirmado !== para && !confirm(`Confirma a troca do tipo do imóvel de ${nomeTipoImovel(de)} para ${nomeTipoImovel(para)}?\n\n${ef.muda.map(m => '• ' + m).join('\n')}`)) return;
+    if (window.__lmTipoConfirmado !== para && !(await confirmar({ titulo: 'Trocar o tipo do imóvel?', valores: [['Troca', `${nomeTipoImovel(de)} → ${nomeTipoImovel(para)}`, true]], itens: ef.muda, acao: 'Trocar e salvar' }))) return;
   }
   if (terc && !sel.cat) { toast('⚠️', 'Escolha o tipo do imóvel', 'Apartamento, casa, galpão, lote, sala comercial ou sítio.', true); return; }
   const nome = val('lmNome'); if (!nome) { toast('⚠️', terc ? 'Informe qual é o imóvel' : 'Informe o nome', terc ? 'Ex.: Lote 15 da Quadra 300' : '', true); return; }
@@ -1582,9 +1582,13 @@ function salvarLoteamento(id) {
   if (!prev) { logAct(`Imóvel cadastrado: ${empLabel(rec)} — ${nome}`); state.empAberto = rec.id; state.empSub = 'resumo'; setCurLotSilencioso(rec.id); state.tab = 'emp'; }
   closeModal(); renderCurrent(); toast('✅', prev ? 'Alterações salvas' : 'Imóvel cadastrado', `${empLabel(rec)} · ${nome}`);
 }
-function excluirLoteamento(id) {
+async function excluirLoteamento(id) {
   const l = getLoteamento(id); if (!l) return;
-  if (!confirm(ehCarteira(l) ? `Excluir "${l.nome}" e a venda, os recebíveis e os custos dele?` : `Excluir "${l.nome}" e TODOS os seus lotes, reservas, vendas e custos?`)) return;
+  /* Apaga em cascata e não tem volta: mostra o que vai junto e pede o nome digitado. */
+  const conta = { lotes: db.lotes.filter(x => x.loteamentoId === id).length, reservas: db.reservas.filter(x => x.loteamentoId === id).length, vendas: db.vendas.filter(x => x.loteamentoId === id).length, custos: db.custos.filter(x => x.loteamentoId === id).length };
+  if (!(await confirmar({ titulo: `Excluir "${l.nome}"?`, texto: 'Isto não tem volta. Vai junto tudo o que é dele:',
+    valores: (ehCarteira(l) ? [] : [['Lotes', String(conta.lotes)], ['Reservas', String(conta.reservas)]]).concat([['Contratos e parcelas', String(conta.vendas)], ['Despesas', String(conta.custos)]]),
+    itens: ['Se quiser guardar o histórico, faça um backup antes em Configurações › Sistema › Backup.'], digitar: l.nome, acao: 'Excluir tudo', perigo: true }))) return;
   db.lotes.filter(x => x.loteamentoId === id).forEach(x => removeRec('lotes', x.id));
   db.reservas.filter(x => x.loteamentoId === id).forEach(x => removeRec('reservas', x.id));
   db.vendas.filter(x => x.loteamentoId === id).forEach(x => { recebiveisDe(x.id).forEach(r => removeRec('recebiveis', r.id)); removeRec('vendas', x.id); });
@@ -1689,9 +1693,9 @@ function salvarVendedor(id) {
   upsert('vendedores', Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString() }, p, { obs: val('vddObs') }));
   closeModal(); renderCurrent(); toast('✅', 'Vendedor salvo', p.nome);
 }
-function excluirVendedor(id) {
+async function excluirVendedor(id) {
   const usos = db.vendas.filter(v => v.vendedorId === id).length;
-  if (usos && !confirm(`Este vendedor está em ${nPlural(usos, 'venda')}. Os contratos já emitidos guardam os dados como estavam, mas ele some da lista. Excluir?`)) return;
+  if (usos && !(await confirmar({ titulo: 'Excluir este vendedor?', texto: `Ele está em ${nPlural(usos, 'venda')}. Os contratos já emitidos guardam os dados como estavam, mas ele some da lista.`, acao: 'Excluir vendedor', perigo: true }))) return;
   removeRec('vendedores', id); closeModal(); renderCurrent();
 }
 function abrirCorretorForm(id) {
@@ -1766,9 +1770,9 @@ function salvarCategoria(id) {
   closeModal(); renderCurrent();
   toast('✅', prev ? 'Conta salva' : 'Conta criada', nome);
 }
-function excluirCategoria(id) {
+async function excluirCategoria(id) {
   if (db.custos.some(x => x.categoriaId === id)) { toast('⚠️', 'Conta em uso por lançamentos', 'Desative em vez de excluir: some do lançamento e o histórico fica.', true); return; }
-  if (!confirm('Excluir esta conta do plano?')) return; removeRec('categorias', id); closeModal(); renderCurrent();
+  if (!(await confirmar({ titulo: 'Excluir esta conta do plano?', acao: 'Excluir conta', perigo: true }))) return; removeRec('categorias', id); closeModal(); renderCurrent();
 }
 /* Grupo do plano: renomear qualquer um; criar e apagar só os da empresa (vazios). */
 function abrirGrupoPlanoForm(id) {
@@ -1790,9 +1794,9 @@ function salvarGrupoPlano(id) {
   logAct(id ? `Grupo do plano de contas renomeado: ${nome}` : `Grupo do plano de contas criado: ${nome}`);
   closeModal(); renderCurrent(); toast('✅', id ? 'Grupo salvo' : 'Grupo criado', nome);
 }
-function excluirGrupoPlano(id) {
+async function excluirGrupoPlano(id) {
   if (grupoDeFabrica(id) || db.categorias.some(c => grupoDaCategoria(c.id) === id)) return;
-  if (!confirm('Excluir este grupo do plano de contas?')) return;
+  if (!(await confirmar({ titulo: 'Excluir este grupo do plano de contas?', acao: 'Excluir grupo', perigo: true }))) return;
   const grupos = Object.assign({}, db.config.gruposBalancete || {});
   Object.keys(grupos).forEach(k => { if (grupos[k] === id) delete grupos[k]; });
   setConfig({ planoGrupos: gruposDespesa().filter(g => g[0] !== id).map(([k, n]) => ({ id: k, nome: n })), gruposBalancete: grupos });
@@ -1833,10 +1837,10 @@ function salvarCentro(id) {
   if (!id) logAct(`Centro de custo criado: ${nome}`);
   closeModal(); renderCurrent(); toast('✅', id ? 'Centro salvo' : 'Centro criado', nome);
 }
-function excluirCentro(id) {
+async function excluirCentro(id) {
   const usos = db.custos.filter(x => !x.loteamentoId && x.centroId === id).length;
   if (usos) { toast('⚠️', 'Centro em uso por despesas', 'Desative em vez de excluir: some do lançamento e o histórico fica.', true); return; }
-  if (!confirm('Excluir este centro de custo?')) return;
+  if (!(await confirmar({ titulo: 'Excluir este centro de custo?', acao: 'Excluir centro', perigo: true }))) return;
   setConfig({ centrosCusto: centrosCusto().filter(c => c.id !== id) });
   closeModal(); renderCurrent();
 }
@@ -1941,7 +1945,7 @@ function erroDeTeste() {
   setTimeout(carregarErros, 2500);
 }
 async function apagarErros() {
-  if (!confirm(Cloud.active ? 'Apagar todos os erros registrados da empresa?' : 'Apagar os erros registrados neste aparelho?')) return;
+  if (!(await confirmar({ titulo: Cloud.active ? 'Apagar todos os erros registrados da empresa?' : 'Apagar os erros registrados neste aparelho?', acao: 'Apagar erros', perigo: true }))) return;
   Erros.limparLocais();
   if (Cloud.active && Cloud.client) {
     const { error } = await Cloud.client.from('erros').delete().eq('org_id', Cloud.org.id);

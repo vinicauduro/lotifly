@@ -3,6 +3,7 @@
 //   BASE=http://127.0.0.1:8765/lotifly/ node testes/detalhes.test.js
 // Precisa do Playwright com Chromium (CHROMIUM=/caminho/do/chromium se não for o padrão).
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox', '--disable-gpu'] });
@@ -12,7 +13,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     const ctx = await browser.newContext({ viewport: { width: w, height: 860 }, reducedMotion: reduzir ? 'reduce' : 'no-preference', serviceWorkers: 'block', isMobile: w < 700, hasTouch: w < 700 });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-    page.on('pageerror', e => erros.push(`pageerror (${w}${reduzir ? ', reduzir' : ''}): ` + e.message)); page.on('dialog', d => d.accept());
+    page.on('pageerror', e => erros.push(`pageerror (${w}${reduzir ? ', reduzir' : ''}): ` + e.message)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     await page.goto(BASE + 'index.html?dados=' + est); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(400);
     await page.evaluate(() => { sessionStorage.setItem('gl_admin', '1'); startRole('admin'); document.querySelectorAll('.toast').forEach(t => t.remove()); }); await page.waitForTimeout(200);
     return { ctx, page };
