@@ -32,14 +32,14 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     if (dialogos) throw new Error('abriu caixinha do navegador');
   });
   await passo('data no futuro é recusada e a conta continua em aberto', async () => {
-    await page.fill('#cpData', '2026-11-01'); await page.click('#modalFoot .btn-success');
+    await page.fill('#cpData', '2026-11-01'); await page.click('#modalFoot .btn-primary');
     if (await page.evaluate(() => db.custos[0].status) !== 'pendente') throw new Error('pagou com data futura');
     if (!/Data no futuro/.test(await page.locator('#toastContainer').innerText())) throw new Error('sem aviso');
   });
   await passo('confirmar grava data, forma e observação; o aviso traz "Desfazer", que volta a conta para em aberto', async () => {
     await page.evaluate(() => document.querySelectorAll('.toast').forEach(e => e.remove()));
     await page.fill('#cpData', '2026-10-15'); await page.selectOption('#cpForma', 'PIX'); await page.fill('#cpObs', 'pago pelo app do banco');
-    await page.click('#modalFoot .btn-success');
+    await page.click('#modalFoot .btn-primary');
     const c = await page.evaluate(() => { const c = db.custos[0]; return [c.status, c.dataPagamento, c.formaPagamento, c.obs].join('|'); });
     if (c !== 'pago|2026-10-15|PIX|pago pelo app do banco') throw new Error(c);
     const desfazer = page.locator('.toast .toast-acao', { hasText: 'Desfazer' });

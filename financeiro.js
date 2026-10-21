@@ -148,7 +148,7 @@ function abrirPagamento(id, voltarVendaId) {
     <div class="frow"><div class="fg"><label for="pgValor">Valor recebido (R$) *</label><input type="number" id="pgValor" step="0.01" value="${atrasada ? '' : r2(rest)}" ${atrasada ? 'placeholder="escolha acima"' : ''}></div><div class="fg"><label for="pgData">Data do pagamento *</label><input type="date" id="pgData" value="${todayStr()}"></div></div>
     <div class="fg"><label for="pgForma">Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div>
     <div class="fg"><label for="pgObs">Observação</label><input type="text" id="pgObs" value="${esc(r.obsPagamento || '')}"></div>`;
-  openModal({ title: 'Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">Confirmar e gerar recibo</button><button class="btn btn-success" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
+  openModal({ title: 'Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">Confirmar e gerar recibo</button><button class="btn btn-primary" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
 }
 function pgEscolherEncargos(valor) {
   setVal('pgValor', valor);
@@ -435,7 +435,7 @@ function pagarCusto(id) {
     <div class="detail-grid"><div><div class="k">Valor</div><div class="v">${fmtMoney(c.valor)}</div></div><div><div class="k">Vencimento</div><div class="v">${c.vencimento ? fmtDate(c.vencimento) : '—'}</div></div></div>
     <div class="frow"><div class="fg"><label for="cpData">Data do pagamento *</label><input type="date" id="cpData" value="${todayStr()}" max="${todayStr()}"></div><div class="fg"><label for="cpForma">Forma</label><select id="cpForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
     <div class="fg"><label for="cpObs">Observação</label><input type="text" id="cpObs" value="${esc(c.obs || '')}"></div>`;
-  openModal({ title: 'Pagar conta', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="salvarPagamentoCusto('${c.id}')">Confirmar pagamento</button>` });
+  openModal({ title: 'Pagar conta', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarPagamentoCusto('${c.id}')">Confirmar pagamento</button>` });
 }
 function salvarPagamentoCusto(id) {
   if (!pode('custos.editar')) { toast('🔒', 'Sem permissão', 'Seu perfil não paga contas.', true); return; }

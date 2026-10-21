@@ -511,7 +511,7 @@ function mostrarRetorno() {
         ${recusados.map(x => { const v = getVenda(x.rec.vendaId); return `<tr><td>${esc(v ? imovelLabel(v) : '')} · ${esc(x.rec.descricao || '')}</td><td>${esc(x.nossoNumero)}</td><td>${esc(x.motivo || '—')}</td></tr>`; }).join('')}
         </tbody></table></div></div>` : ''}
       ${r.avisos.length ? `<div class="card"><h2>Confira antes</h2>${r.avisos.slice(0, 20).map(a => `<p class="help">${esc(a)}</p>`).join('')}</div>` : ''}`,
-    footer: baixar.length || recusados.length ? `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-success" onclick="aplicarRetorno()">${baixar.length ? 'Dar baixa em ' + baixar.length + ' parcela(s)' : ''}${baixar.length && recusados.length ? ' e liberar ' : ''}${!baixar.length && recusados.length ? 'Liberar ' + recusados.length + ' recusado(s)' : recusados.length ? recusados.length + ' recusado(s)' : ''}</button>`
+    footer: baixar.length || recusados.length ? `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="aplicarRetorno()">${baixar.length ? 'Dar baixa em ' + baixar.length + ' parcela(s)' : ''}${baixar.length && recusados.length ? ' e liberar ' : ''}${!baixar.length && recusados.length ? 'Liberar ' + recusados.length + ' recusado(s)' : recusados.length ? recusados.length + ' recusado(s)' : ''}</button>`
       : `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>` });
 }
 function aplicarRetorno() {

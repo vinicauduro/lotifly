@@ -1113,3 +1113,11 @@ svg.area-miuda .lote-area { display: none; }
   .conf-botoes { flex-direction: column-reverse; }
   .conf-botoes .btn { width: 100%; min-height: 44px; }
 }
+/* Botão + flutuante só no celular: no computador cada tela tem a ação no cabeçalho ou na barra
+   de filtros, e o botão flutuante cobria a última linha da lista. */
+@media (min-width: 900px) { .fab.show { display: none; } }
+/* Número zerado não comemora nem alarma: fica na cor do texto ("Vendas R$ 0,00", "Em atraso R$ 0,00"). */
+.kpi.zero .val { color: var(--text-strong); }
+/* Item simples (Imóveis, Corretores) dentro da lista contínua: linha, não cartão dentro de cartão. */
+.lista > .item:not(.linha) { margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
+.lista > .item:last-child { border-bottom: 0; }

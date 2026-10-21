@@ -760,6 +760,32 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z41. Telas no mesmo padrão (21/10)
+
+Da avaliação de design: cada tela tinha um jeito de cabeçalho, o botão + flutuante aparecia no
+computador cobrindo a última linha, e o verde servia tanto para botão quanto para "pago".
+
+- **Cabeçalho único:** Imóveis e Corretores ganharam o mesmo topo das outras telas (título, uma
+  frase curta e as ações à direita). A lista ficou contínua, sem cartão dentro de cartão, e o
+  título "Corretores" não aparece mais repetido.
+- **Ação principal no topo:** Imóveis tem "Gerar tabela" e "Novo imóvel"; Corretores, "Novo
+  corretor"; Reservas ganhou **"Nova reserva"** no cabeçalho.
+- **Botão + flutuante só no celular.** No computador cada tela já tem a ação no topo ou na barra
+  de filtros.
+- **Verde só para "pago" e WhatsApp:** os botões de ação (Registrar pagamento, Confirmar, Vender,
+  Aprovar, Converter em venda, Liberar para venda, baixa do retorno do banco) ficaram azuis, na
+  cor da marca.
+- **Zero não comemora:** "Vendas de out/26 R$ 0,00" e "Em atraso R$ 0,00" (Início e contrato)
+  ficam na cor do texto, não em verde nem em vermelho.
+
+Para você fazer:
+
+- [ ] Passar por Imóveis, Corretores e Reservas no computador e no celular.
+
+`testes/telas-padrao.test.js` (6 casos).
+
+---
+
 ## 7z40. Confirmações dentro do app, no lugar da caixinha do navegador (21/10)
 
 Da avaliação de design: umas 30 confirmações de ações sérias apareciam na caixinha cinza do

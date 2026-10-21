@@ -94,7 +94,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); }); await page.waitForTimeout(200);
       const id = await page.evaluate(() => db.recebiveis.find(r => !r.valorPago && document.querySelector(`[data-st="p:${r.id}"]`)).id);
       await page.evaluate(id => abrirPagamento(id), id); await page.waitForTimeout(250);
-      await page.click('#modalFoot .btn-success'); await page.waitForTimeout(80);
+      await page.click('#modalFoot .btn-primary'); await page.waitForTimeout(80);
       const r = await page.evaluate(id => { const el = document.querySelector(`[data-st="p:${id}"]`); const t = document.querySelector('.toast:last-child'); return { cls: el && el.className, cor: el && el.style.getPropertyValue('--destaque'), toast: t && t.className, txt: t && t.textContent }; }, id);
       if (!/st-mudou/.test(r.cls) || !/success/.test(r.cor)) throw new Error('linha: ' + JSON.stringify(r));
       if (!/\bok\b/.test(r.toast) || !/Parcela/.test(r.txt)) throw new Error('aviso: ' + JSON.stringify(r));
