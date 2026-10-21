@@ -760,6 +760,33 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z37. Acabamento (21/10)
+
+Os detalhes menores da avaliação de design:
+
+- **Plural de verdade:** "1 parcela", "2 parcelas", "1 conta · 1 vencida", no lugar de
+  "parcela(s)". Valeu para Início, A receber, A pagar, Cobrança, Contratos, Reservas, Clientes,
+  Imóveis e Configurações.
+- **Contrato:**
+  - o selo diz **"Ativo"** (contrato, masculino), não "Ativa";
+  - quando a parcela mais antiga em aberto já venceu, o cartão "A receber" diz **"em atraso
+    desde 20/08/2026"**, em vez de "próxima: 20/08/2026" (uma "próxima" no passado);
+  - o empreendimento fica numa linha embaixo do imóvel, sem o ponto solto.
+- **Registrar pagamento:** o botão "Usar valor com juros" deixou de ficar embaixo de um rótulo
+  vazio.
+- **Teclado:** o anel de foco ficou sólido, na cor da marca (antes era um azul claro, difícil de
+  ver). No menu escuro ele é branco.
+- **Leitor de tela:** o item do menu da tela aberta é anunciado como a página atual.
+
+Para você fazer:
+
+- [ ] Abrir um contrato com parcela atrasada e conferir o "em atraso desde".
+- [ ] Navegar com a tecla Tab e ver o anel de foco.
+
+`testes/acabamento.test.js` (4 casos).
+
+---
+
 ## 7z36. Caminho do corretor no celular (20/10)
 
 Da avaliação de design: o corretor não chegava em "disponíveis + mandar a tabela" em dois toques.

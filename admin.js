@@ -182,7 +182,7 @@ function listaEmpreendimentosHtml() {
       const ls = lotesDo(l.id);
       const pend = db.reservas.filter(r => r.loteamentoId === l.id && reservaStatus(r) === 'pendente').length;
       return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
-        <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${pend} reserva(s) a aprovar</span>` : ''}</div>
+        <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${nPlural(pend, 'reserva')} a aprovar</span>` : ''}</div>
         <div class="meta">${esc(l.cidade || '')}<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span><span>· ${ls.filter(x => x.status === 'disponivel').length} disponíveis</span></div>
       </div><div class="side"><span class="muted">›</span></div></div>`;
     }).join('') || `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}</div>`;
@@ -261,11 +261,11 @@ function renderPainel() {
   v.innerHTML = `
     ${alerts}
     <div class="kpi-grid inicio">
-      <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${k.contratosCarteira} contrato(s) ›</div></div>
-      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${k.nAtrasados} parcela(s) · ${k.clientesAtraso} contrato(s)<br>somando todos os meses ›</div></div>
+      <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${nPlural(k.contratosCarteira, 'contrato')} ›</div></div>
+      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${nPlural(k.nAtrasados, 'parcela')} · ${nPlural(k.clientesAtraso, 'contrato')}<br>somando todos os meses ›</div></div>
       <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
-      <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${k.nPagar} conta(s)${k.pagarVencido ? ` · ${k.pagarVencido} vencida(s)` : ''} ›</div></div>
-      <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${k.vendas} contrato(s) ›</div></div>
+      <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${nPlural(k.nPagar, 'conta')}${k.pagarVencido ? ` · ${nPlural(k.pagarVencido, 'vencida')}` : ''} ›</div></div>
+      <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${nPlural(k.vendas, 'contrato')} ›</div></div>
     </div>
     ${barraMesHtml('')}
     <div class="grid2">
@@ -440,7 +440,7 @@ function renderALotes(alvo) {
       <select aria-label="Quadra" onchange="aSetFiltro('alotes','quadra',this.value,renderALotes)"><option value="all">Todas as quadras</option>${quadras.map(q => `<option value="${esc(q)}" ${f.quadra === q ? 'selected' : ''}>Quadra ${esc(q)}</option>`).join('')}</select>
       <input type="text" placeholder="Buscar…" value="${esc(f.busca)}" oninput="aSetFiltro('alotes','busca',this.value,renderALotes,this)">
     </div>
-    <p class="small muted mb">${list.length} lote(s) · ${fmtNum(areaFiltro, 0)} m² · ${fmtMoney(vgvFiltro)}</p>
+    <p class="small muted mb">${nPlural(list.length, 'lote')} · ${fmtNum(areaFiltro, 0)} m² · ${fmtMoney(vgvFiltro)}</p>
     ${list.length ? `<div class="card" style="padding:0"><div class="table-wrap"><table class="tbl">
       <thead><tr><th>Quadra</th><th>Lote</th><th class="num">Área m²</th><th class="num">Preço</th><th class="num">R$/m²</th><th>Status</th><th>Cliente</th><th><span class="sr-only">Ações</span></th></tr></thead>
       <tbody>${list.map(l => { const r = reservaAtiva(l.id); const vd = vendaAtiva(l.id); const cli = vd ? vd.cliente.nome : r ? r.cliente.nome : ''; return `<tr class="clickable" data-st="l:${l.id}" onclick="abrirLoteAdmin('${l.id}')"><td>${esc(l.quadra)}</td><td><b>${esc(l.numero)}</b>${l.tipo === 'comercial' ? ' <span class="tiny muted">com.</span>' : ''}</td><td class="num">${num(l.area) ? fmtNum(l.area, 0) : '<span class="muted">—</span>'}</td><td class="num">${num(l.preco) ? `<b>${fmtMoney(l.preco)}</b>` : '<span class="muted">—</span>'}</td><td class="num">${num(l.area) && num(l.preco) ? fmtNum(l.preco / l.area, 0) : '<span class="muted">—</span>'}</td><td><span class="badge ${l.status}">${statusLabel(l.status)}</span></td><td>${esc(cli)}</td><td onclick="event.stopPropagation()"><button class="btn-icon" onclick="abrirLoteForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></td></tr>`; }).join('')}</tbody>
@@ -612,10 +612,10 @@ function aplicarReajuste() {
   const lot = curLot(); const q = val('rjQuadra'), st = val('rjStatus'); const pct = num(val('rjPct')), m2 = num(val('rjM2'));
   if (!pct && !m2) { toast('⚠️', 'Informe o percentual ou o valor por m²', '', true); return; }
   const alvo = lotesDo(lot.id).filter(l => l.status !== 'vendido' && (q === 'all' || l.quadra === q) && (st === 'all' || l.status === 'disponivel'));
-  if (!confirm(`Reajustar ${alvo.length} lote(s)?`)) return;
+  if (!confirm(`Reajustar ${nPlural(alvo.length, 'lote')}?`)) return;
   alvo.forEach(l => { let p = m2 ? l.area * m2 : l.preco * (1 + pct / 100); if (checked('rjArredonda')) p = Math.round(p / 100) * 100; upsert('lotes', Object.assign({}, l, { preco: Math.round(p * 100) / 100 })); });
-  logAct(`Reajuste de preços em ${alvo.length} lote(s): ${m2 ? fmtMoney(m2) + '/m²' : pct + '%'}`);
-  closeModal(); renderCurrent(); toast('✅', 'Preços reajustados', `${alvo.length} lote(s)`);
+  logAct(`Reajuste de preços em ${nPlural(alvo.length, 'lote')}: ${m2 ? fmtMoney(m2) + '/m²' : pct + '%'}`);
+  closeModal(); renderCurrent(); toast('✅', 'Preços reajustados', `${nPlural(alvo.length, 'lote')}`);
 }
 function exportarLotesCSV() {
   const lot = curLot(); const rows = [['Quadra', 'Lote', 'Área m²', 'Frente', 'Fundos', 'Preço', 'R$/m²', 'Tipo', 'Status', 'Cliente', 'Corretor', 'Matrícula', 'Obs']];
@@ -1338,7 +1338,7 @@ function excluirVenda(id) {
     body: `<p class="help mb">Isto apaga a venda de <b>${esc(imovelLabel(x))}</b> para <b>${esc(x.cliente.nome)}</b>. Não dá para desfazer.</p>
       <div class="detail-grid">
         <div><div class="k">Parcelas</div><div class="v">${recs.length} serão apagadas</div></div>
-        <div><div class="k">Já recebido</div><div class="v">${pagos.length ? `<b style="color:var(--danger)">${fmtMoney(totalPago)}</b> em ${pagos.length} pagamento(s)` : 'nada'}</div></div>
+        <div><div class="k">Já recebido</div><div class="v">${pagos.length ? `<b style="color:var(--danger)">${fmtMoney(totalPago)}</b> em ${nPlural(pagos.length, 'pagamento')}` : 'nada'}</div></div>
         ${l ? `<div class="full"><div class="k">Lote</div><div class="v">${esc(loteLabel(l))} volta a ficar disponível</div></div>` : ''}
       </div>
       ${pagos.length ? `<div class="alert warn" style="cursor:default"><span>Este contrato tem <b>${fmtMoney(totalPago)}</b> já recebido. Apagando, esse dinheiro some dos relatórios e do caixa. Se o negócio foi desfeito e você precisa do histórico, guarde um backup antes em Configurações › Backup.</span></div>` : ''}
@@ -1501,11 +1501,11 @@ function efeitosTrocaTipo(l, de, para) {
   const contratos = db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato');
   const reservas = db.reservas.filter(r => r.loteamentoId === l.id && (r.status === 'pendente' || r.status === 'aprovada'));
   if (virAvulso && contratos.length > 1) return { bloqueio: `Este empreendimento tem ${contratos.length} contratos. Um imóvel avulso tem um contrato só, então não dá para trocar.` };
-  if (virAvulso && reservas.length) return { bloqueio: `Há ${reservas.length} reserva(s) em andamento neste empreendimento. Aprove, converta ou recuse antes de trocar o tipo: imóvel avulso não tem reserva.` };
+  if (virAvulso && reservas.length) return { bloqueio: `Há ${nPlural(reservas.length, 'reserva')} em andamento neste empreendimento. Aprove, converta ou recuse antes de trocar o tipo: imóvel avulso não tem reserva.` };
   const nLotes = lotesDo(l.id).length, temPlanta = !!(l.planta && l.planta.img) || nLotes > 0;
   const muda = [];
   if (virAvulso) {
-    if (temPlanta) muda.push(`A planta${nLotes ? ` e os ${nLotes} lote(s)` : ''} deixam de aparecer. Ficam guardados e voltam se o tipo voltar a ser empreendimento.`);
+    if (temPlanta) muda.push(`A planta${nLotes ? ` e os ${nPlural(nLotes, 'lote')}` : ''} deixam de aparecer. Ficam guardados e voltam se o tipo voltar a ser empreendimento.`);
     muda.push('O imóvel passa a ter valor de venda, matrícula e descrição próprios, que você precisa preencher.');
     muda.push('Deixa de aparecer para os corretores (imóvel avulso não tem reserva).');
   } else if (virEmp) {
@@ -1594,7 +1594,7 @@ function excluirLoteamento(id) {
 }
 function cadLoteamentosHtml() {
   return `<div class="card"><h2>Loteamentos <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span></h2>
-    ${db.loteamentos.map(l => { const ls = lotesDo(l.id); return `<div class="item ${l.id === state.lotId ? '' : 'bloqueado'}" onclick="setCurLot('${l.id}');state.sub.cad='loteamento';renderCurrent()"><div class="info"><div class="title">${esc(l.nome)} ${l.id === state.lotId ? '<span class="badge aprovada">atual</span>' : ''}</div><div class="meta"><span class="badge neutral">${esc(empLabel(l))}</span><span>${esc(l.cidade || '')}</span>${ehCarteira(l) ? `<span>· ${db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato').length} venda(s)</span>` : `<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span>`}</div></div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();abrirLoteamentoForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></div></div>`; }).join('') || '<p class="help">Nenhum empreendimento.</p>'}</div>`;
+    ${db.loteamentos.map(l => { const ls = lotesDo(l.id); return `<div class="item ${l.id === state.lotId ? '' : 'bloqueado'}" onclick="setCurLot('${l.id}');state.sub.cad='loteamento';renderCurrent()"><div class="info"><div class="title">${esc(l.nome)} ${l.id === state.lotId ? '<span class="badge aprovada">atual</span>' : ''}</div><div class="meta"><span class="badge neutral">${esc(empLabel(l))}</span><span>${esc(l.cidade || '')}</span>${ehCarteira(l) ? `<span>· ${nPlural(db.vendas.filter(v => v.loteamentoId === l.id && v.status !== 'distrato').length, 'venda')}</span>` : `<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span>`}</div></div><div class="side"><button class="btn-icon" onclick="event.stopPropagation();abrirLoteamentoForm('${l.id}')" title="Editar" aria-label="Editar"><i class=ico data-i=pencil-simple></i></button></div></div>`; }).join('') || '<p class="help">Nenhum empreendimento.</p>'}</div>`;
 }
 function abrirOrcamentoForm() {
   const lot = curLot(); const orc = lot.orcamento || {};
@@ -1615,13 +1615,13 @@ function renderCorretoresAdmin() {
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()) || (c.userId && x.userId === c.userId); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v2 => v2.status !== 'distrato' && m(v2.corretor)) }; };
   v.innerHTML = `<div class="card"><h2>Corretores ${pode('equipe.gerenciar') ? `<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')"><i class=ico data-i=plus></i>Convidar corretor</button></span>` : ''}</h2>
     <p class="help mb">Os corretores entram por convite e usam o portal deles para ver a planta, simular e pedir reserva.</p>
-    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const st = stats(c); return `<div class="item"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${st.res} reserva(s) · ${st.vend.length} venda(s) · ${fmtMoneyShort(st.vend.reduce((t, x) => t + num(x.valorTotal), 0))}</span></div></div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda. Convide o primeiro.</p>'}</div>`;
+    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const st = stats(c); return `<div class="item"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${nPlural(st.res, 'reserva')} · ${nPlural(st.vend.length, 'venda')} · ${fmtMoneyShort(st.vend.reduce((t, x) => t + num(x.valorTotal), 0))}</span></div></div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda. Convide o primeiro.</p>'}</div>`;
 }
 function cadCorretoresHtml() {
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v => v.status !== 'distrato' && m(v.corretor)) }; };
   return `<div class="card"><h2>Corretores <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()"><i class=ico data-i=plus></i>Novo</button></span></h2>
     <p class="help mb">Corretores são cadastrados automaticamente quando fazem o primeiro pedido de reserva. Você também pode cadastrá-los aqui.</p>
-    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${s.res} reserva(s) · ${s.vend.length} venda(s) · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda.</p>'}</div>`;
+    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${nPlural(s.res, 'reserva')} · ${nPlural(s.vend.length, 'venda')} · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda.</p>'}</div>`;
 }
 
 /* ---- Vendedores (outorgantes) ----------------------------------------------------------
@@ -1650,7 +1650,7 @@ function cadEmpresaHtml() {
       return `<div class="item" onclick="abrirVendedorForm('${v.id}')"><div class="info"><div class="title">${esc(v.nome)}</div>
         <div class="meta"><span>${esc(v.cpf ? fmtCPF(v.cpf) : 'sem documento')}</span>${v.cidade ? `<span>· ${esc(v.cidade)}</span>` : ''}
         ${falta.length ? `<span class="warn">· falta ${esc(falta.join(', '))}</span>` : '<span>· qualificação completa</span>'}</div></div>
-        <div class="side"><span class="muted">${db.vendas.filter(x => x.vendedorId === v.id).length} venda(s)</span></div></div>`;
+        <div class="side"><span class="muted">${nPlural(db.vendas.filter(x => x.vendedorId === v.id).length, 'venda')}</span></div></div>`;
     }).join('') || '<p class="help">Nenhuma outra empresa cadastrada.</p>'}</div>`;
 }
 function salvarEmpresa() {
@@ -1691,7 +1691,7 @@ function salvarVendedor(id) {
 }
 function excluirVendedor(id) {
   const usos = db.vendas.filter(v => v.vendedorId === id).length;
-  if (usos && !confirm(`Este vendedor está em ${usos} venda(s). Os contratos já emitidos guardam os dados como estavam, mas ele some da lista. Excluir?`)) return;
+  if (usos && !confirm(`Este vendedor está em ${nPlural(usos, 'venda')}. Os contratos já emitidos guardam os dados como estavam, mas ele some da lista. Excluir?`)) return;
   removeRec('vendedores', id); closeModal(); renderCurrent();
 }
 function abrirCorretorForm(id) {
@@ -1715,11 +1715,11 @@ function salvarCorretor(id) {
 function cadCategoriasHtml() {
   const cfg = pode('config.editar');
   const usos = id => db.custos.filter(x => x.categoriaId === id).length;
-  const conta = c => `<div class="item pc-conta${contaAtiva(c.id) ? '' : ' inativa'}" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}${contaAtiva(c.id) ? '' : ' <span class="badge neutral">desativada</span>'}</div><div class="meta"><span>${usos(c.id)} lançamento(s)</span></div></div></div>`;
+  const conta = c => `<div class="item pc-conta${contaAtiva(c.id) ? '' : ' inativa'}" style="border-left-color:${c.cor}" onclick="abrirCategoriaForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)}${contaAtiva(c.id) ? '' : ' <span class="badge neutral">desativada</span>'}</div><div class="meta"><span>${nPlural(usos(c.id), 'lançamento')}</span></div></div></div>`;
   const auto = { comissoes: 'Automático: as comissões marcadas como pagas nos contratos.', devolucao: 'O distrato lança aqui a devolução ao comprador.' };
   const grupos = gruposDespesa().map(([g, nome]) => {
     const cs = db.categorias.filter(c => grupoDaCategoria(c.id) === g);
-    return `<div class="pc-grupo" data-grupo="${esc(g)}"><div class="pc-gh"><div><b>${esc(nome)}</b> <span class="tiny muted">${cs.length} conta(s)${grupoDeFabrica(g) ? '' : ' · criado pela empresa'}</span>${auto[g] ? `<div class="tiny muted">${auto[g]}</div>` : ''}</div>
+    return `<div class="pc-grupo" data-grupo="${esc(g)}"><div class="pc-gh"><div><b>${esc(nome)}</b> <span class="tiny muted">${nPlural(cs.length, 'conta')}${grupoDeFabrica(g) ? '' : ' · criado pela empresa'}</span>${auto[g] ? `<div class="tiny muted">${auto[g]}</div>` : ''}</div>
       <span class="h-actions">${cfg ? `<button class="btn btn-secondary btn-sm" onclick="abrirGrupoPlanoForm('${esc(g)}')" title="Renomear o grupo" aria-label="Renomear o grupo ${esc(nome)}"><i class=ico data-i=pencil-simple></i></button>` : ''}${g !== 'comissoes' ? `<button class="btn btn-secondary btn-sm" onclick="abrirCategoriaForm(null, '${esc(g)}')" aria-label="Nova conta em ${esc(nome)}"><i class=ico data-i=plus></i>Conta</button>` : ''}</span></div>
       ${cs.map(conta).join('')}</div>`;
   }).join('');
@@ -1731,7 +1731,7 @@ function cadCategoriasHtml() {
       ${LINHAS_RECEITA.map(([, rot]) => `<div class="item pc-conta pc-auto"><div class="info"><div class="title">${esc(rot)}</div></div></div>`).join('')}</div>
     <h3 class="pc-sec">Despesas</h3>
     ${grupos}
-    ${soltas.length ? `<div class="pc-grupo" data-grupo=""><div class="pc-gh"><div><b>Sem grupo</b> <span class="tiny muted">${soltas.length} conta(s)</span><div class="tiny muted">No balancete entram em "Custo das obras" quando a despesa é de um empreendimento, e em "Despesas administrativas" quando é da empresa. Abra a conta para escolher o grupo.</div></div></div>${soltas.map(conta).join('')}</div>` : ''}
+    ${soltas.length ? `<div class="pc-grupo" data-grupo=""><div class="pc-gh"><div><b>Sem grupo</b> <span class="tiny muted">${nPlural(soltas.length, 'conta')}</span><div class="tiny muted">No balancete entram em "Custo das obras" quando a despesa é de um empreendimento, e em "Despesas administrativas" quando é da empresa. Abra a conta para escolher o grupo.</div></div></div>${soltas.map(conta).join('')}</div>` : ''}
     ${cfg ? '' : '<p class="help">Criar e renomear grupos, mudar o grupo de uma conta ou desativá-la é com quem altera as configurações da empresa.</p>'}</div>`;
 }
 function abrirCategoriaForm(id, grupoIni) {
@@ -1804,7 +1804,7 @@ function excluirGrupoPlano(id) {
 function cadCentrosHtml() {
   const cfg = pode('config.editar');
   const n = k => db.custos.filter(c => centroDoCusto(c) === k).length;
-  const linha = (k, nome, sub, clique) => `<div class="item pc-conta${clique ? '' : ' pc-auto'}" ${clique ? `onclick="${clique}"` : ''}><div class="info"><div class="title">${esc(nome)}</div><div class="meta"><span>${n(k)} despesa(s)</span><span>${sub}</span></div></div></div>`;
+  const linha = (k, nome, sub, clique) => `<div class="item pc-conta${clique ? '' : ' pc-auto'}" ${clique ? `onclick="${clique}"` : ''}><div class="info"><div class="title">${esc(nome)}</div><div class="meta"><span>${nPlural(n(k), 'despesa')}</span><span>${sub}</span></div></div></div>`;
   const proprios = centrosCusto();
   return `<div class="card"><h2>Centros de custo <span class="h-actions">${cfg ? `<button class="btn btn-primary btn-sm" onclick="abrirCentroForm()"><i class=ico data-i=plus></i>Novo centro</button>` : ''}</span></h2>
     <p class="help">O centro de custo diz <b>quem gastou</b>. Cada empreendimento é um centro, e o que é da empresa fica na Administração ou num centro criado aqui. No balancete dá para ver o resultado de cada centro lado a lado.</p>
@@ -1818,7 +1818,7 @@ function cadCentrosHtml() {
 function abrirCentroForm(id) {
   const c = id ? getCentro(id) : null, usos = c ? db.custos.filter(x => !x.loteamentoId && x.centroId === c.id).length : 0;
   openModal({ title: c ? 'Centro de custo' : 'Novo centro de custo', body: `<div class="fg"><label for="ccNome">Nome *</label><input type="text" id="ccNome" value="${esc(c ? c.nome : '')}" placeholder="Ex.: Comercial"></div>
-      ${c ? `<div class="fg"><label class="check"><input type="checkbox" id="ccAtivo" ${c.ativo !== false ? 'checked' : ''}> Centro ativo (aparece para lançar despesas)</label><div class="hint">${usos} despesa(s) neste centro.</div></div>` : ''}`,
+      ${c ? `<div class="fg"><label class="check"><input type="checkbox" id="ccAtivo" ${c.ativo !== false ? 'checked' : ''}> Centro ativo (aparece para lançar despesas)</label><div class="hint">${nPlural(usos, 'despesa')} neste centro.</div></div>` : ''}`,
     footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCentro('${esc(c.id)}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCentro('${c ? esc(c.id) : ''}')">Salvar</button>` });
   focarSeLivre('ccNome');
 }
@@ -1930,7 +1930,7 @@ function copiarErros() {
   const lista = (window.__erros || []).slice(0, 20);
   if (!lista.length) { toast('ℹ️', 'Nada para copiar', 'Nenhum erro registrado.'); return; }
   const txt = lista.map(e => `[${e.ts}] ${e.quem || ''} · ${e.tela || ''} · ${e.versao || ''}${(e.vezes || 1) > 1 ? ' · ' + e.vezes + ' vezes' : ''}\n${e.mensagem}\n${e.pilha || ''}\n${e.navegador || ''}`).join('\n\n---\n\n');
-  const ok = () => toast('✅', 'Copiado', `${lista.length} erro(s). Cole na mensagem para o suporte.`);
+  const ok = () => toast('✅', 'Copiado', `${nPlural(lista.length, 'erro')}. Cole na mensagem para o suporte.`);
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, () => prompt('Copie o texto abaixo:', txt));
   else prompt('Copie o texto abaixo:', txt);
 }

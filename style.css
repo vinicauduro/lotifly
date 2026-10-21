@@ -74,7 +74,14 @@ button, input, select, textarea { font-family: inherit; }
 button, a, .tab, .chip, .item, .kpi, .alert, [onclick] { touch-action: manipulation; }
 a { color: var(--primary); text-underline-offset: 2px; }
 h1, h2, h3, h4 { line-height: 1.25; text-wrap: balance; color: var(--text-strong); }
-:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-sm); }
+/* Foco do teclado: anel sólido na cor da marca, com um respiro branco, visível sobre cartão e
+   sobre o menu escuro. Nos campos continua o anel suave, que acompanha a borda azul. */
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; box-shadow: none; border-radius: var(--r-sm); }
+.aside :focus-visible, .topbar :focus-visible { outline-color: #fff; }
+.aside:focus-visible { outline-color: #fff; outline-offset: -3px; }
+/* Dentro de faixa, lista ou barra (que cortam o que passa da borda), o anel vai para dentro. */
+.st-item:focus-visible, .lista > .item:focus-visible, .bm-seg:focus-visible, .bm-leg:focus-visible, .busca-res:focus-visible { outline-offset: -2px; }
+#modalBox:focus-visible { outline: none; }
 /* Linha de tabela não desenha sombra: o foco do teclado vira um contorno por dentro */
 tr:focus-visible { box-shadow: none; outline: 2px solid var(--primary); outline-offset: -2px; }
 /* A janela recebe o foco ao abrir (para o leitor de tela e o Tab começarem nela): sem anel em
@@ -1073,3 +1080,7 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 .sim-box .sim-result { margin: 0 0 10px; }
 /* Planta: a área do lote some quando ficaria pequena demais para ler (volta ao aproximar). */
 svg.area-miuda .lote-area { display: none; }
+/* Contrato: o empreendimento numa linha própria embaixo do imóvel, sem o ponto solto. */
+.ct-titulo .ct-emp { display: block; font-size: 0.8rem; font-weight: 500; margin-top: 2px; }
+/* Pagamento: "Usar valor com juros" com o valor ao lado, alinhado embaixo como os campos. */
+.fg-acao { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }

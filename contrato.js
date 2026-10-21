@@ -121,11 +121,11 @@ function renderContrato() {
     <div class="card ct-cab">
       <div class="ct-num">${x.numeroContrato ? `Contrato <b>Nº ${esc(x.numeroContrato)}</b>` : '<span class="muted">Contrato sem número</span>'}
         ${pode('vendas.editar') ? `<button class="btn-icon" title="${x.numeroContrato ? 'Alterar o número' : 'Dar número'}" onclick="${x.numeroContrato ? `editarNumeroContrato('${x.id}')` : `numerarVenda('${x.id}')`}">${x.numeroContrato ? '<i class=ico data-i=pencil-simple></i>' : '<i class=ico data-i=hash></i>'}</button>` : ''}
-        <span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${statusLabel(x.status)}</span></div>
-      <h2 class="ct-titulo">${esc(imovelLabel(x))}${lot ? ` <span class="muted">· ${esc(lot.nome)}</span>` : ''}</h2>
+        <span class="badge ${x.status === 'distrato' ? 'distrato' : x.status}">${({ ativa: 'Ativo', quitada: 'Quitado' })[x.status] || statusLabel(x.status)}</span></div>
+      <h2 class="ct-titulo">${esc(imovelLabel(x))}${lot ? ` <span class="ct-emp muted">${esc(lot.nome)}</span>` : ''}</h2>
       <div class="meta"><span>${esc(c.nome || '')}${extras ? ` e mais ${extras}` : ''}</span><span>· ${fmtDate(x.dataVenda)}</span><span>· ${x.nParcelas ? `${x.nParcelas}× ${fmtMoney(x.valorParcela)}` : 'à vista'}</span></div>
       ${x.status === 'distrato' && x.distrato ? kpisDistratoHtml(x) : `<div class="kpi-grid ct-kpis">
-        <div class="kpi c-primary"><div class="lbl">Valor do contrato</div><div class="val">${fmtMoney(x.valorTotal)}</div><div class="sub">${r.n} parcela(s) com a entrada</div></div>
+        <div class="kpi c-primary"><div class="lbl">Valor do contrato</div><div class="val">${fmtMoney(x.valorTotal)}</div><div class="sub">${nPlural(r.n, 'parcela')} com a entrada</div></div>
         <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoney(r.pago)}</div><div class="sub">${pct}% · ${r.nPagas}/${r.n} pagas</div></div>
         <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(Math.max(0, r.restante))}</div><div class="sub">${proximaParcelaTxt(x)}</div></div>
         <div class="kpi ${r.atrasado ? 'c-red' : 'c-green'}"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(r.atrasado)}</div><div class="sub">${r.atrasado ? 'veja em Parcelas' : 'em dia'}</div></div>
@@ -149,7 +149,9 @@ function kpisDistratoHtml(x) {
 }
 function proximaParcelaTxt(x) {
   const prox = recebiveisDe(x.id).filter(rc => recRestante(rc) > 0.005).sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0];
-  return prox ? `próxima: ${fmtDate(prox.vencimento)}` : 'nada em aberto';
+  /* A mais antiga em aberto: se já venceu, é atraso, não "próxima". */
+  if (!prox) return 'nada em aberto';
+  return prox.vencimento < todayStr() ? `em atraso desde ${fmtDate(prox.vencimento)}` : `próxima: ${fmtDate(prox.vencimento)}`;
 }
 
 // ---------------------------------------------------------------- abas

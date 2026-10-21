@@ -32,6 +32,8 @@ function daysBetween(a, b) { return Math.round((parseDate(b) - parseDate(a)) / 8
 function monthKey(s) { return (s || '').slice(0, 7); }
 function monthLabel(key) { const [y, m] = key.split('-'); return ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1] + '/' + y.slice(2); }
 function fmtMoney(v) { return (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+/* "1 parcela", "2 parcelas": no lugar do "parcela(s)". varios padrão = um + "s". */
+function nPlural(n, um, varios) { return `${n} ${n === 1 ? um : (varios || um + 's')}`; }
 function fmtMoneyShort(v) {
   v = Number(v) || 0; const abs = Math.abs(v);
   if (abs >= 1e6) return 'R$ ' + (v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi';
@@ -1779,7 +1781,7 @@ function showScreen(name) {
 function switchTab(tab) {
   state.tab = tab;
   const prefix = state.role === 'admin' ? 'a' : 'c';
-  $$(`#screen-${state.role} .tab`).forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  $$(`#screen-${state.role} .tab`).forEach(t => { const on = t.dataset.tab === tab; t.classList.toggle('active', on); if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
   $$(`#screen-${state.role} .view`).forEach(v => v.classList.toggle('active', v.id === `${prefix}v-${tab}`));
   if (document.body.classList.contains('aside-aberto')) { if (typeof fecharMenu === 'function') fecharMenu(); else document.body.classList.remove('aside-aberto'); }
   renderCurrent();
