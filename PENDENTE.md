@@ -760,6 +760,41 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z40. Confirmações dentro do app, no lugar da caixinha do navegador (21/10)
+
+Da avaliação de design: umas 30 confirmações de ações sérias apareciam na caixinha cinza do
+navegador. No celular ela mostra o endereço do site e perde a formatação dos valores, justo na
+hora mais séria.
+
+Agora todas abrem numa **janela do próprio app**:
+
+- **Por cima da janela que já estava aberta, sem fechá-la.** Desistindo, você volta exatamente
+  onde estava (por exemplo, no formulário do distrato).
+- **Título com a pergunta, valores em lista** (pago, retenção, devolução, valor da despesa,
+  parcela estornada…) e **o que acontece** em tópicos.
+- **Botão com o verbo da ação** ("Registrar distrato", "Excluir despesa", "Estornar"). Fica
+  vermelho quando a ação não tem volta; nesses casos a janela abre com o foco no **Cancelar**.
+- **Esc** ou **Cancelar** desistem. No celular a janela sobe de baixo, com botões largos.
+- **Excluir um empreendimento com tudo dentro** mostra quantos lotes, reservas, contratos e
+  despesas vão junto, e o botão só libera depois de você **digitar o nome** do empreendimento.
+  "Apagar todos os dados" pede "apagar tudo" digitado, no lugar das duas perguntas seguidas.
+- **Onde mudou:** distrato (registrar e desfazer), cessão (registrar e desfazer), antecipação,
+  estorno, excluir (despesa, parcela, lote, empreendimento, conta, grupo, centro de custo,
+  índice, conta de cobrança, modelo de documento, convite, vendedor), reajuste de preços, troca
+  do tipo do imóvel, importar backup, apagar tudo, dados de exemplo, sair com alterações não
+  enviadas, cancelar pedido de reserva (corretor), régua padrão e apagar erros.
+
+Para você fazer:
+
+- [ ] Abrir o distrato de um contrato e clicar em "Registrar distrato": conferir a janela e
+  cancelar.
+- [ ] Tentar excluir um empreendimento de teste e ver o pedido do nome.
+
+`testes/confirmacoes-app.test.js` (7 casos). Os testes antigos passaram a responder a janela
+nova pelo ajudante `testes/confirmacoes.js`.
+
+---
+
 ## 7z38. Parcela atrasada: cobrar ou dispensar multa e juros é escolha sua (21/10)
 
 A avaliação de design achou um problema sério: a janela "Registrar pagamento" de uma parcela

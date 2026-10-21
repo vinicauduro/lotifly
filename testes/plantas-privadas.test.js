@@ -4,6 +4,7 @@
 // link, o link público antigo, a falha sem quebrar a tela e a imagem do modo local.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/plantas-privadas.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 const ORG = '11111111-1111-1111-1111-111111111111';
 (async () => {
@@ -13,7 +14,7 @@ const ORG = '11111111-1111-1111-1111-111111111111';
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' });
   await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
   const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-  page.on('pageerror', e => erros.push(`pageerror: ${e.message}`)); page.on('dialog', d => d.accept());
+  page.on('pageerror', e => erros.push(`pageerror: ${e.message}`)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
   await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
   await page.evaluate((ORG) => {
     sessionStorage.setItem('gl_admin', '1'); startRole('admin'); document.querySelectorAll('#devDados,.toast').forEach(e => e.remove());

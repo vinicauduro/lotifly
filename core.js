@@ -32,6 +32,54 @@ function daysBetween(a, b) { return Math.round((parseDate(b) - parseDate(a)) / 8
 function monthKey(s) { return (s || '').slice(0, 7); }
 function monthLabel(key) { const [y, m] = key.split('-'); return ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1] + '/' + y.slice(2); }
 function fmtMoney(v) { return (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+/* Confirmação dentro do app, no lugar da caixinha do navegador: título, o que acontece, os
+   valores em lista e o botão com o verbo da ação (vermelho quando não tem volta). Abre por cima
+   de uma janela já aberta sem fechá-la. Devolve uma Promise: true confirma, false desiste.
+   o = { titulo, texto, itens: [...], valores: [[rótulo, valor, destaque?]], acao, cancelar,
+         perigo, digitar: 'texto que a pessoa precisa digitar para liberar o botão', soAviso } */
+function confirmar(o) {
+  o = typeof o === 'string' ? { texto: o } : (o || {});
+  return new Promise(resolve => {
+    const antes = document.activeElement;
+    const ov = document.createElement('div'); ov.className = 'conf-overlay'; ov.id = 'confirmaOverlay';
+    ov.innerHTML = `<div class="conf-box" id="confirmaBox" role="alertdialog" aria-modal="true" aria-labelledby="confTit"${o.texto ? ' aria-describedby="confTxt"' : ''}>
+      <h2 id="confTit">${esc(o.titulo || (o.soAviso ? 'Atenção' : 'Confirmar'))}</h2>
+      ${o.texto ? `<p id="confTxt" class="conf-texto">${esc(o.texto)}</p>` : ''}
+      ${o.valores && o.valores.length ? `<dl class="conf-valores">${o.valores.map(([k, v, forte]) => `<div${forte ? ' class="forte"' : ''}><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+      ${o.itens && o.itens.length ? `<ul class="conf-itens">${o.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+      ${o.digitar ? `<div class="fg conf-digitar"><label for="confDigitar">Para confirmar, digite <b>${esc(o.digitar)}</b></label><input type="text" id="confDigitar" autocomplete="off" spellcheck="false"></div>` : ''}
+      <div class="conf-botoes">${o.soAviso ? '' : `<button type="button" class="btn btn-secondary conf-nao">${esc(o.cancelar || 'Cancelar')}</button>`}<button type="button" class="btn ${o.perigo ? 'btn-danger' : 'btn-primary'} conf-sim"${o.digitar ? ' disabled' : ''}>${esc(o.acao || (o.soAviso ? 'Entendi' : 'Confirmar'))}</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    const box = ov.querySelector('.conf-box'), sim = ov.querySelector('.conf-sim'), nao = ov.querySelector('.conf-nao'), dig = ov.querySelector('#confDigitar');
+    const norm = t => String(t || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    let feito = false;
+    const fim = v => {
+      if (feito) return; feito = true;
+      window.removeEventListener('keydown', tecla, true); ov.remove();
+      if (antes && document.contains(antes)) { try { antes.focus({ preventScroll: true }); } catch (e) {} }
+      resolve(v);
+    };
+    /* Esc desiste; Tab gira só dentro da confirmação; nada vaza para a janela de baixo. */
+    const tecla = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); fim(!!o.soAviso); return; }
+      if (e.key === 'Tab') {
+        const f = [...box.querySelectorAll('button:not([disabled]), input')]; if (!f.length) return;
+        const i = f.indexOf(document.activeElement), prox = e.shiftKey ? (i <= 0 ? f.length - 1 : i - 1) : (i === f.length - 1 ? 0 : i + 1);
+        e.preventDefault(); e.stopImmediatePropagation(); f[prox].focus(); return;
+      }
+      if (e.key === 'Enter' && dig && document.activeElement === dig && !sim.disabled) { e.preventDefault(); fim(true); }
+    };
+    window.addEventListener('keydown', tecla, true);
+    sim.onclick = () => fim(true);
+    if (nao) nao.onclick = () => fim(false);
+    ov.addEventListener('mousedown', e => { if (e.target === ov) fim(!!o.soAviso); });
+    if (dig) dig.oninput = () => { sim.disabled = norm(dig.value) !== norm(o.digitar); };
+    /* Foco começa no lado seguro: em ação sem volta, no Cancelar. */
+    (dig || (o.perigo && nao) || sim).focus();
+  });
+}
+function avisar(o) { return confirmar(Object.assign({ soAviso: true }, typeof o === 'string' ? { texto: o } : o)); }
 /* "1 parcela", "2 parcelas": no lugar do "parcela(s)". varios padrão = um + "s". */
 function nPlural(n, um, varios) { return `${n} ${n === 1 ? um : (varios || um + 's')}`; }
 function fmtMoneyShort(v) {
@@ -1915,7 +1963,7 @@ function voltarAdmin() { if (Cloud.active ? Cloud.admin : sessionStorage.getItem
 async function sair() {
   if (Cloud.enabled && Cloud.user) {
     const n = Math.max(Cloud.pendentesNoAparelho(), (Cloud.pendentes || []).length);
-    if (n && !confirm(`${n} alteração(ões) feitas neste aparelho ainda não chegaram à nuvem (sem internet ou recusadas). Saindo da conta, elas são apagadas daqui e se perdem.\n\nSair mesmo assim?`)) return;
+    if (n && !(await confirmar({ titulo: 'Sair mesmo assim?', texto: `${n === 1 ? '1 alteração feita' : n + ' alterações feitas'} neste aparelho ainda não ${n === 1 ? 'chegou' : 'chegaram'} à nuvem (sem internet ou recusada). Saindo da conta, ${n === 1 ? 'ela é apagada' : 'elas são apagadas'} daqui e se ${n === 1 ? 'perde' : 'perdem'}.`, acao: 'Sair e perder', cancelar: 'Ficar', perigo: true }))) return;
   }
   sessionStorage.removeItem('gl_admin');
   prefs.lastRole = null; savePrefs();
@@ -1955,7 +2003,7 @@ async function importarBackup(input) {
   try {
     const data = JSON.parse(await readFileAsText(f));
     if (!data || !data.config) throw new Error('Arquivo inválido');
-    if (!confirm('Importar este backup vai SUBSTITUIR todos os dados atuais. Continuar?')) { input.value = ''; return; }
+    if (!(await confirmar({ titulo: 'Importar este backup?', texto: 'Todos os dados atuais são substituídos pelos do arquivo. Se quiser guardar os de agora, exporte um backup antes.', acao: 'Substituir os dados', perigo: true }))) { input.value = ''; return; }
     if (Cloud.active) { delete data.config.adminPin; data.config = Object.assign({}, db.config, data.config); }
     await replaceDB(data);
     toast('✅', 'Backup importado', '');
@@ -1964,8 +2012,7 @@ async function importarBackup(input) {
   input.value = '';
 }
 async function apagarTudo() {
-  if (!confirm('Apagar TODOS os dados deste loteamento (lotes, reservas, vendas, custos)? Esta ação não pode ser desfeita.')) return;
-  if (!confirm('Tem certeza? Recomendamos exportar um backup antes.')) return;
+  if (!(await confirmar({ titulo: 'Apagar todos os dados?', texto: 'Isto não tem volta. Recomendamos exportar um backup antes.', itens: ['Imóveis, lotes e plantas', 'Reservas, contratos e parcelas', 'Despesas e cobranças'], digitar: 'apagar tudo', acao: 'Apagar tudo', perigo: true }))) return;
   const cfg = db.config;
   await replaceDB(Object.assign(defaultDB(), { config: cfg }));
   state.lotId = null;
@@ -1975,7 +2022,7 @@ async function apagarTudo() {
 
 // ---------------------------------------------------------------- dados de exemplo
 async function carregarDemo() {
-  if (db.lotes.length && !confirm('Já existem dados cadastrados. Carregar os dados de exemplo vai substituí-los. Continuar?')) return;
+  if (db.lotes.length && !(await confirmar({ titulo: 'Carregar os dados de exemplo?', texto: 'Já existem dados cadastrados. Os dados de exemplo vão substituí-los.', acao: 'Substituir pelos de exemplo', perigo: true }))) return;
   const d = defaultDB();
   d.config = Cloud.active ? Object.assign({}, db.config, { comissaoPct: 5 }) : Object.assign(d.config, { empresa: 'Sua Incorporadora', comissaoPct: 5 });
   const lot = { id: 'demo-lot', nome: 'Residencial Vista Verde', cidade: 'Rio do Sul / SC', endereco: 'Rod. BR-470, km 140', descricao: 'Loteamento residencial com 32 lotes, infraestrutura completa: asfalto, água, energia, iluminação em LED e área de lazer.',

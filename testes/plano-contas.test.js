@@ -5,6 +5,7 @@
 // de despesas agrupado por centro. Números montados à mão e conferidos à mão.
 // Rodar: BASE=http://127.0.0.1:8765/gestao/ node testes/plano-contas.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox', '--disable-gpu'] });
@@ -13,7 +14,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
   await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
   const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-  page.on('pageerror', e => erros.push(`pageerror: ${e.message}`)); page.on('dialog', d => d.accept());
+  page.on('pageerror', e => erros.push(`pageerror: ${e.message}`)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
   await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
   await page.evaluate(() => {
     sessionStorage.setItem('gl_admin', '1'); startRole('admin'); document.querySelectorAll('#devDados,.toast').forEach(e => e.remove());
@@ -80,10 +81,10 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     const gid = await page.evaluate(() => gruposDespesa().find(g => g[1] === 'Veículos e combustível')[0]);
     await page.evaluate(g => abrirGrupoPlanoForm(g), gid);
     if (!(await page.locator('#modalFoot .btn-outline-danger').isDisabled())) throw new Error('deixou apagar grupo com conta');
-    const r = await page.evaluate(g => {
+    const r = await page.evaluate(async g => {
       closeModal(); const cid = db.categorias.find(c => c.nome === 'Combustível').id;
       setConfig({ gruposBalancete: Object.assign({}, db.config.gruposBalancete, { [cid]: '' }) });
-      excluirGrupoPlano(g);
+      await excluirGrupoPlano(g);
       return { existe: gruposDespesa().some(x => x[0] === g), grupoConta: grupoDaCategoria(cid), linha: bal().linha('Despesas administrativas') };
     }, gid);
     if (r.existe || r.grupoConta !== '') throw new Error(JSON.stringify(r));

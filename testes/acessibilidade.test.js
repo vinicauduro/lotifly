@@ -2,7 +2,8 @@
 // telas, no celular e no computador. Falha se aparecer qualquer violação.
 // Precisa do axe-core: npm install axe-core (em qualquer pasta) e AXE=caminho/do/axe.min.js
 // Rodar: AXE=.../node_modules/axe-core/axe.min.js BASE=http://127.0.0.1:8765/lotifly/ node testes/acessibilidade.test.js
-const { chromium } = require('playwright'); const fs = require('fs');
+const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes'); const fs = require('fs');
 if (!process.env.AXE) { console.log('defina AXE com o caminho do axe.min.js'); process.exit(2); }
 const AXE = fs.readFileSync(process.env.AXE, 'utf8');
 (async () => {
@@ -11,7 +12,7 @@ const AXE = fs.readFileSync(process.env.AXE, 'utf8');
   for (const w of [390, 1440]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 860 }, serviceWorkers: 'block' });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
-    const page = await ctx.newPage(); page.on('dialog', d => d.accept());
+    const page = await ctx.newPage(); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     await page.goto((process.env.BASE || 'http://127.0.0.1:8765/gestao/') + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(400);
     await page.addScriptTag({ content: AXE });
     const telas = [['landing', `(()=>{})()`], ['inicio', `(()=>{sessionStorage.setItem('gl_admin','1');startRole('admin');switchTab('painel')})()`], ['imoveis', `switchTab('emp')`], ['lotes', `abrirEmpreendimento(db.loteamentos[0].id,'lotes')`], ['contratos', `switchTab('vendas')`], ['contrato', `abrirContrato(db.vendas[0].id,'parcelas')`], ['contrato-menu', `(()=>{abrirContrato(db.vendas[0].id,'resumo');document.querySelectorAll('.ct-topo details.menu')[1].open=true})()`], ['a-receber', `switchTab('recebiveis')`], ['clientes', `switchTab('clientes')`], ['pagamento', `abrirPagamento(db.recebiveis.find(r=>!r.valorPago).id)`], ['config', `(()=>{closeModal();switchTab('cadastros')})()`], ['reserva-admin', `abrirReservaAdmin(db.reservas.find(r=>r.status==='pendente').id)`], ['reserva-aprovada', `aprovarReserva(db.reservas.find(r=>r.status==='pendente').id)`], ['reserva-recusar', `pedirMotivoReserva(db.reservas[0].id,'recusada')`], ['corretor-planta', `(()=>{startRole('corretor');switchTab('planta')})()`], ['corretor-lotes', `switchTab('lotes')`], ['lote', `abrirLoteCorretor(db.lotes.find(l=>l.status==='disponivel').id)`], ['reserva-pedido', `abrirReservaForm(db.lotes.find(l=>l.status==='disponivel').id)`]];
