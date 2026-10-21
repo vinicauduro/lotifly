@@ -4,6 +4,7 @@
 // nome de quem pagou, desfazer, cessões em sequência e o modelo no editor.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/cessao.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox', '--disable-gpu'] });
@@ -13,7 +14,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     const ctx = await browser.newContext({ viewport: { width: w, height: w < 700 ? 844 : 900 }, hasTouch: w < 700, serviceWorkers: 'block' });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-    page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`)); page.on('dialog', d => d.accept());
+    page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
     /* Contrato de teste: as 3 primeiras parcelas pagas pelo comprador atual, o resto em aberto */
     const vid = await page.evaluate(() => {

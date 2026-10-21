@@ -186,9 +186,9 @@ function salvarPagamento(id, voltarVendaId, comRecibo) {
   /* O recibo é deste pagamento, não do total já pago na parcela. */
   if (comRecibo) gerarRecibo(id, { valor, data, forma, obs });
 }
-function estornarPagamento(id, voltarVendaId) {
+async function estornarPagamento(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
-  if (!confirm('Estornar o pagamento desta parcela? Ela voltará a ficar em aberto.')) return;
+  if (!(await confirmar({ titulo: 'Estornar o pagamento desta parcela?', valores: [['Parcela', r.descricao], ['Valor pago', fmtMoney(num(r.valorPago)), true]], texto: 'Ela volta a ficar em aberto.', acao: 'Estornar', perigo: true }))) return;
   upsert('recebiveis', Object.assign({}, r, { valorPago: 0, dataPagamento: null, forma: null }));
   atualizarStatusVenda(r.vendaId);
   logAct(`Pagamento estornado: ${r.descricao}`);
@@ -242,10 +242,10 @@ function salvarRecebivel(id, voltarVendaId) {
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent(); toast('✅', 'Parcela atualizada', '');
 }
-function excluirRecebivel(id, voltarVendaId) {
+async function excluirRecebivel(id, voltarVendaId) {
   const r = db.recebiveis.find(x => x.id === id); if (!r) return;
   if (registradaNoBanco(r) && recStatus(r) !== 'pago') { toast('🏦', 'Esta parcela está registrada no banco', 'Zere o valor ou marque como paga para gerar a baixa na remessa; depois exclua.', true); return; }
-  if (!confirm('Excluir esta parcela do cronograma?')) return;
+  if (!(await confirmar({ titulo: 'Excluir esta parcela do cronograma?', acao: 'Excluir parcela', perigo: true }))) return;
   removeRec('recebiveis', id); atualizarStatusVenda(r.vendaId);
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
@@ -443,9 +443,9 @@ function salvarPagamentoCusto(id) {
     upsert('custos', antes); logAct(`Pagamento desfeito: ${c.descricao}`); renderCurrent(); toast('↩️', 'Pagamento desfeito', `${c.descricao} voltou para em aberto.`);
   } });
 }
-function excluirCusto(id) {
+async function excluirCusto(id) {
   const c = db.custos.find(x => x.id === id); if (!c) return;
-  if (!confirm(`Excluir "${c.descricao}"?`)) return;
+  if (!(await confirmar({ titulo: `Excluir "${c.descricao}"?`, valores: [['Valor', fmtMoney(c.valor)]], acao: 'Excluir despesa', perigo: true }))) return;
   removeRec('custos', id); closeModal(); renderCurrent();
 }
 function exportarCustosCSV() {

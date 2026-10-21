@@ -114,7 +114,7 @@ function dtCalc(vendaId) {
     <br><span class="tiny ${nInvalido ? '' : 'muted'}" ${nInvalido ? 'style="color:var(--danger)"' : ''}>${nInvalido ? `O parcelamento vai de 1 a ${DISTRATO_MAX_PARCELAS} parcelas.` : esc(textoFormaDevolucao(d))}</span>`;
 }
 
-function registrarDistrato(vendaId) {
+async function registrarDistrato(vendaId) {
   const v = getVenda(vendaId); if (!v) return;
   if (!pode('vendas.distrato')) { toast('🔒', 'Sem permissão', '', true); return; }
   if (v.status === 'distrato') return;
@@ -128,7 +128,7 @@ function registrarDistrato(vendaId) {
   if (motivoTipo === 'outro' && !detalhe.trim()) { toast('⚠️', 'Descreva o motivo', 'Com "Outro motivo", o detalhe é obrigatório.', true); return; }
   const d = calculoDistrato(v, f);
   if (num(f.outrosDescontos) > 0 && !val('dtOutrosDesc').trim()) { toast('⚠️', 'Diga o que são os outros descontos', 'Eles vão escritos no termo de distrato.', true); return; }
-  if (!confirm(`Registrar o distrato de ${imovelLabel(v)}?\n\nPago pelo comprador: ${fmtMoney(d.pago)}\nRetenção (${pctTxt(d.retencaoPct)}): ${fmtMoney(d.retencao)}${d.outrosDescontos ? `\nOutros descontos: ${fmtMoney(d.outrosDescontos)}` : ''}\nDevolução: ${fmtMoney(d.devolucao)} ${textoFormaDevolucao(d)}\n\nAs parcelas em aberto deixam de ser cobradas e o imóvel volta a ficar disponível.`)) return;
+  if (!(await confirmar({ titulo: `Registrar o distrato de ${imovelLabel(v)}?`, valores: [['Pago pelo comprador', fmtMoney(d.pago)], [`Retenção (${pctTxt(d.retencaoPct)})`, fmtMoney(d.retencao)]].concat(d.outrosDescontos ? [['Outros descontos', fmtMoney(d.outrosDescontos)]] : []).concat([['Devolução', `${fmtMoney(d.devolucao)} ${textoFormaDevolucao(d)}`, true]]), itens: ['As parcelas em aberto deixam de ser cobradas.', 'O imóvel volta a ficar disponível.', 'A devolução entra em A pagar.'], acao: 'Registrar distrato', perigo: true }))) return;
 
   const motivo = motivoDistratoTexto(motivoTipo, detalhe);
   const distrato = Object.assign({ data: f.data, motivoTipo, motivoDetalhe: detalhe, motivo, outrosDescontosDesc: val('dtOutrosDesc'), obs: val('dtObs'),
@@ -163,7 +163,7 @@ function perguntarTermoDistrato(vendaId) {
 }
 
 /* Registro feito por engano: volta o contrato enquanto nenhuma devolução foi paga. */
-function desfazerDistrato(vendaId) {
+async function desfazerDistrato(vendaId) {
   const v = getVenda(vendaId); if (!v || v.status !== 'distrato') return;
   if (!pode('vendas.distrato')) { toast('🔒', 'Sem permissão', '', true); return; }
   const d = v.distrato || {};
@@ -172,7 +172,7 @@ function desfazerDistrato(vendaId) {
   const l = v.loteId ? getLote(v.loteId) : null;
   if (l && l.status !== 'disponivel' && l.vendaId !== v.id) { toast('⚠️', 'O lote já foi vendido ou reservado de novo', 'Não dá para desfazer este distrato.', true); return; }
   if (!v.loteId && db.vendas.some(x => x.id !== v.id && x.loteamentoId === v.loteamentoId && x.status !== 'distrato' && ehCarteira(getLoteamento(v.loteamentoId)))) { toast('⚠️', 'O imóvel já foi vendido de novo', 'Não dá para desfazer este distrato.', true); return; }
-  if (!confirm(`Desfazer o distrato de ${imovelLabel(v)}? O contrato volta a valer, as parcelas voltam a ser cobradas, o imóvel volta a ficar vendido e a devolução lançada em A pagar sai.`)) return;
+  if (!(await confirmar({ titulo: `Desfazer o distrato de ${imovelLabel(v)}?`, itens: ['O contrato volta a valer e as parcelas voltam a ser cobradas.', 'O imóvel volta a ficar vendido.', 'A devolução lançada em A pagar sai.'], acao: 'Desfazer distrato', perigo: true }))) return;
   custos.forEach(c => removeRec('custos', c.id));
   upsert('vendas', Object.assign({}, v, { status: 'ativa', distratoEm: null, motivo: '', distrato: null }));
   if (l) upsert('lotes', Object.assign({}, l, { status: 'vendido', vendaId: v.id, reservaId: null }));

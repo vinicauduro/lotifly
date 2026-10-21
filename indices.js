@@ -215,10 +215,10 @@ function salvarIndice(id) {
   upsert('indices', Object.assign({}, prev || { id: genId(), valores: {}, criadoEm: new Date().toISOString() }, { codigo, nome, tipo: val('ixTipo') }));
   closeModal(); renderCurrent(); toast('✅', 'Índice salvo', nome);
 }
-function excluirIndice(id) {
+async function excluirIndice(id) {
   const ind = getIndice(id); if (!ind) return;
   if (db.vendas.some(v => v.indiceId === id)) { toast('⚠️', 'Índice em uso', 'Há contratos usando este índice.', true); return; }
-  if (!confirm(`Excluir o índice ${ind.nome} e todos os valores lançados?`)) return;
+  if (!(await confirmar({ titulo: `Excluir o índice ${ind.nome}?`, texto: 'Todos os valores lançados dele saem junto.', acao: 'Excluir índice', perigo: true }))) return;
   removeRec('indices', id); renderCurrent(); toast('🗑️', 'Índice excluído', '');
 }
 

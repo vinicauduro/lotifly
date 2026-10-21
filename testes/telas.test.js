@@ -2,13 +2,14 @@
 // "reduzir movimento", e falha se alguma der erro de JavaScript.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/telas.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   let total = 0;
   for (const w of [390, 1440]) for (const rm of ['no-preference', 'reduce']) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 860 }, reducedMotion: rm, serviceWorkers: 'block' });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
-    const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('dialog', d => d.accept());
+    const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     await page.goto((process.env.BASE || 'http://127.0.0.1:8765/gestao/') + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(400);
     await page.evaluate(() => { sessionStorage.setItem('gl_admin', '1'); startRole('admin'); });
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#screen-admin .view')].map(v => v.id.replace('av-', '')));

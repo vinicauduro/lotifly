@@ -177,7 +177,7 @@ async function criarConvite() {
   try { const cod = await Cloud.criarConvite(val('cvPapel'), val('cvDesc'), { maxUsos: val('cvUsos'), dias: val('cvDias') }); closeModal(); renderCurrent(); toast('✅', 'Convite criado', 'Código ' + cod); }
   catch (e) { toast('⚠️', 'Falha', e.message, true); }
 }
-async function apagarConvite(id) { if (!confirm('Excluir este convite? Quem já entrou continua na equipe.')) return; try { await Cloud.apagarConvite(id); renderCurrent(); } catch (e) { toast('⚠️', 'Falha', e.message, true); } }
+async function apagarConvite(id) { if (!(await confirmar({ titulo: 'Excluir este convite?', texto: 'Quem já entrou continua na equipe.', acao: 'Excluir convite', perigo: true }))) return; try { await Cloud.apagarConvite(id); renderCurrent(); } catch (e) { toast('⚠️', 'Falha', e.message, true); } }
 function abrirMembroForm(id) {
   const m = Cloud.membros.find(x => x.id === id); if (!m) return;
   const eu = m.userId === Cloud.user.id;
