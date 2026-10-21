@@ -127,7 +127,7 @@ function abrirCobranca(vendaId) {
   openModal({
     title: 'Cobrar · ' + esc(c.nome),
     wide: true,
-    body: `<p class="small mb">${it.parcelas.length} parcela(s) · ${it.dias} dias de atraso · <b>${fmtMoney(it.valor)}</b> com multa e juros</p>
+    body: `<p class="small mb">${nPlural(it.parcelas.length, 'parcela')} · ${it.dias} dias de atraso · <b>${fmtMoney(it.valor)}</b> com multa e juros</p>
       <div class="frow"><div class="fg"><label>Etapa da régua</label><select id="cbFaixa" onchange="cbTrocaFaixa('${vendaId}')">${reguaConfig().map(f => `<option value="${f.dias}" ${f.dias === faixa.dias ? 'selected' : ''}>${esc(f.nome)} — a partir de ${f.dias} dias</option>`).join('')}</select></div>
         <div class="fg"><label>Canal</label><select id="cbCanal">${CANAIS.map(([k, l2]) => `<option value="${k}" ${k === 'whatsapp' && !c.telefone ? 'disabled' : ''}>${l2}</option>`).join('')}</select></div></div>
       <div class="fg"><label>Mensagem</label><textarea id="cbTexto" style="min-height:130px">${esc(texto)}</textarea>
@@ -169,7 +169,7 @@ function historicoCobranca(vendaId) {
   const list = cobrancasDe(vendaId);
   openModal({
     title: 'Histórico de cobrança',
-    body: `<p class="small mb"><b>${esc(v.cliente.nome)}</b> · ${list.length} registro(s)</p>
+    body: `<p class="small mb"><b>${esc(v.cliente.nome)}</b> · ${nPlural(list.length, 'registro')}</p>
       ${list.map(c => `<div class="card" style="margin-bottom:8px"><div class="row-between"><div><b>${fmtDate(c.data)}</b> · ${esc((CANAIS.find(x => x[0] === c.canal) || [, c.canal])[1])}${c.faixa ? ` · ${esc(c.faixa)}` : ''}</div><span class="tiny muted">${esc(c.quem || '')}</span></div>
         <div class="small mt">${c.dias ? `${c.dias} dias de atraso · ${fmtMoney(c.valor)}` : ''}${c.obs ? `<br>${esc(c.obs)}` : ''}</div>
         <div class="btn-row mt"><button class="btn btn-outline-danger btn-sm" onclick="excluirCobranca('${c.id}','${vendaId}')">Excluir</button></div></div>`).join('') || '<p class="help">Nada registrado.</p>'}`,
@@ -215,10 +215,10 @@ function salvarRegua(n) {
   }
   if (!regua.length) { toast('⚠️', 'Régua vazia', 'Preencha ao menos uma etapa.', true); return; }
   setConfig({ regua: regua.sort((a, b) => a.dias - b.dias), pix: val('cgPix') });
-  renderCurrent(); toast('✅', 'Régua salva', `${regua.length} etapa(s)`);
+  renderCurrent(); toast('✅', 'Régua salva', `${nPlural(regua.length, 'etapa')}`);
 }
-function restaurarRegua() {
-  if (!confirm('Voltar aos textos padrão da régua?')) return;
+async function restaurarRegua() {
+  if (!(await confirmar({ titulo: 'Voltar aos textos padrão da régua?', texto: 'Os textos que você escreveu na régua de cobrança são trocados pelos originais.', acao: 'Voltar ao padrão' }))) return;
   setConfig({ regua: REGUA_PADRAO });
   renderCurrent(); toast('↩️', 'Textos padrão restaurados', '');
 }

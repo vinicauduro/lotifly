@@ -6,6 +6,7 @@
 // entra; a tela lista, faz erro de teste e apaga; corretor não vê a tela.
 // Rodar: BASE=http://127.0.0.1:8765/gestao/ node testes/erros.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox', '--disable-gpu'] });
@@ -16,7 +17,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   const page = await ctx.newPage(); page.setDefaultTimeout(8000);
   /* os erros deste teste são de propósito: só falha o que não for deles */
   page.on('pageerror', e => { if (!/de propósito|teste|reading 'x'|Failed to fetch/i.test(e.message)) erros.push(`pageerror: ${e.message}`); });
-  page.on('dialog', d => d.accept());
+  page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
   await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
   await page.evaluate(() => { sessionStorage.setItem('gl_admin', '1'); startRole('admin'); document.querySelectorAll('#devDados,.toast').forEach(e => e.remove()); Erros.limparLocais(); });
   const espera = ms => page.waitForTimeout(ms);

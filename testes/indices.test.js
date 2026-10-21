@@ -6,6 +6,7 @@
 // Também confere a tela de lançamento: lançar um mês antigo mostra o que muda antes de salvar.
 // Rodar: BASE=http://127.0.0.1:8765/lotifly/ node testes/indices.test.js
 const { chromium } = require('playwright');
+const { responderConfirmacoes } = require('./confirmacoes');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 const r2 = x => Math.round(x * 100) / 100;
 /* IPCA de teste: março com deflação; setembro ainda não lançado */
@@ -24,7 +25,7 @@ const planilhaCub = mesParc => { let f = 1; meses('2026-01', mesAnt(mesParc)).fo
     const ctx = await browser.newContext({ viewport: { width: w, height: w < 700 ? 844 : 900 }, hasTouch: w < 700, serviceWorkers: 'block' });
     await ctx.route(/config\.js/, r => r.fulfill({ contentType: 'application/javascript', body: "window.GL_CONFIG={supabaseUrl:'',supabaseAnonKey:''};" }));
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
-    page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`)); page.on('dialog', d => d.accept());
+    page.on('pageerror', e => erros.push(`${w} pageerror: ${e.message}`)); page.on('dialog', d => d.accept()); await responderConfirmacoes(page);
     await page.goto(BASE + 'index.html?dados=exemplo'); await page.waitForFunction(() => window.PiorCaso && db.loteamentos.length); await page.waitForTimeout(300);
     /* Dois contratos de teste, venda em 10/01/2026, base jan/2026, entrada de 5.000 e 12
        parcelas de 1.000,00 de fev/2026 a jan/2027: um pelo IPCA, outro pelo CUB */
@@ -76,6 +77,8 @@ const planilhaCub = mesParc => { let f = 1; meses('2026-01', mesAnt(mesParc)).fo
       await passo('parcela paga congela: um índice lançado depois não muda o que o cliente já pagou', async () => {
         const pago = await page.evaluate(() => { const r = parcela('vi1', '2026-06'); abrirPagamento(r.id); return recValor(r); });
         await page.waitForTimeout(200);
+        /* parcela atrasada: escolhe "sem multa e juros" para pagar exatamente o valor da parcela */
+        if (await page.locator('input[name="pgEnc"][value="sem"]').count()) await page.check('input[name="pgEnc"][value="sem"]');
         await page.locator('#modalFoot').getByRole('button', { name: 'Confirmar', exact: true }).click(); await page.waitForTimeout(200);
         const r = await page.evaluate(() => { const ind = getIndice('ix-ipca'); const orig = ind.valores; ind.valores = Object.assign({}, orig, { '2026-02': 1.40 }); const out = { jun: recValor(parcela('vi1', '2026-06')), jul: recValor(parcela('vi1', '2026-07')) }; ind.valores = orig; return out; });
         if (r.jun !== pago) throw new Error(`a paga mudou: ${pago} → ${r.jun}`);

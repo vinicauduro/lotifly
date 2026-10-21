@@ -179,7 +179,7 @@ function planoAntecipacao(v, data, tipo, qtd, valor, modo) {
     descricao: (alvo.length ? `Quita ${alvo.length} parcela(s) do fim do contrato, de ${fmtDate(alvo[0].rec.vencimento)} em diante.` : '') + descricaoParcial };
 }
 
-function aplicarAntecipacao(vendaId) {
+async function aplicarAntecipacao(vendaId) {
   if (!pode('financeiro.antecipar')) { toast('🔒', 'Sem permissão', 'Seu perfil não registra antecipações.', true); return; }
   const v = getVenda(vendaId); if (!v) return;
   const data = val('anData') || todayStr();
@@ -187,7 +187,7 @@ function aplicarAntecipacao(vendaId) {
   const plano = planoAntecipacao(v, data, tipo, Math.round(num(val('anQtd'))), num(val('anValor')), val('anModo'));
   const obs = val('anObs') || 'Antecipação com desconto de juros';
   if (!plano.itens.length && !plano.novaParcela && !plano.parcial) { toast('⚠️', 'Nada a registrar', 'Confira o valor informado.', true); return; }
-  if (!confirm(`Registrar ${fmtMoney(plano.pagar)} em ${fmtDate(data)}?${plano.itens.length ? ` ${plano.itens.length} parcela(s) serão quitadas.` : ''}${plano.parcial ? ` A ${plano.parcial.item.rec.descricao} fica em aberto com o saldo.` : ''}`)) return;
+  if (!(await confirmar({ titulo: 'Registrar a antecipação?', valores: [['Valor pago', fmtMoney(plano.pagar), true], ['Data', fmtDate(data)]].concat(plano.itens.length ? [['Parcelas quitadas', String(plano.itens.length)]] : []), itens: plano.parcial ? [`A ${plano.parcial.item.rec.descricao} fica em aberto com o saldo.`] : [], acao: 'Registrar antecipação' }))) return;
 
   plano.itens.forEach(x => {
     const r = x.rec;

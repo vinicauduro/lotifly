@@ -294,7 +294,7 @@ async function enviarReserva(loteId) {
 }
 async function cancelarMinhaReserva(id) {
   const r = getReserva(id); if (!r) return;
-  if (!confirm('Cancelar o pedido de reserva deste lote?')) return;
+  if (!(await confirmar({ titulo: 'Cancelar o pedido de reserva deste lote?', acao: 'Cancelar pedido', cancelar: 'Voltar', perigo: true }))) return;
   if (Cloud.active && !Cloud.admin) {
     try { await Cloud.cancelarMinhaReserva(id, 'Corretor cancelou o pedido'); } catch (e) { toast('⚠️', 'Não foi possível cancelar', e.message, true); return; }
     const ri = db.reservas.findIndex(x => x.id === id); if (ri >= 0) db.reservas[ri] = Object.assign({}, r, { status: 'cancelada' });

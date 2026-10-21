@@ -156,7 +156,7 @@ function excluirCliente(id, confirmado) {
   if (!confirmado) {
     openModal({ title: 'Excluir cliente',
       body: `<p class="mb">Excluir <b>${esc(c.nome)}</b> do cadastro de clientes?</p>
-        ${n ? `<div class="alert warn" style="cursor:default"><span>É comprador em <b>${n} contrato(s)</b>. Os contratos não mudam, porque guardam os dados como estavam no dia. Some só a ficha do cadastro; se ele comprar de novo, os dados terão de ser digitados outra vez.</span></div>` : ''}
+        ${n ? `<div class="alert warn" style="cursor:default"><span>É comprador em <b>${nPlural(n, 'contrato')}</b>. Os contratos não mudam, porque guardam os dados como estavam no dia. Some só a ficha do cadastro; se ele comprar de novo, os dados terão de ser digitados outra vez.</span></div>` : ''}
         <p class="help">Não dá para desfazer.</p>`,
       footer: `<button class="btn btn-secondary" onclick="abrirClienteForm('${esc(id)}')">Voltar</button><button class="btn btn-danger" onclick="excluirCliente('${esc(id)}', true)">Excluir definitivamente</button>` });
     return;

@@ -649,8 +649,8 @@ function salvarModelo(id) {
   logAct(`Modelo de ${rec.tipo} salvo: ${nome}`);
   closeModal(); renderCurrent(); toast('✅', 'Modelo salvo', nome);
 }
-function excluirModelo(id) {
+async function excluirModelo(id) {
   const m = db.modelos.find(x => x.id === id); if (!m) return;
-  if (!confirm(`Excluir o modelo "${m.nome}"?`)) return;
+  if (!(await confirmar({ titulo: `Excluir o modelo "${m.nome}"?`, texto: 'Os documentos já gerados com ele não mudam.', acao: 'Excluir modelo', perigo: true }))) return;
   removeRec('modelos', id); renderCurrent(); toast('🗑️', 'Modelo excluído', '');
 }
