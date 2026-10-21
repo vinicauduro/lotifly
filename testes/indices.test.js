@@ -76,6 +76,8 @@ const planilhaCub = mesParc => { let f = 1; meses('2026-01', mesAnt(mesParc)).fo
       await passo('parcela paga congela: um índice lançado depois não muda o que o cliente já pagou', async () => {
         const pago = await page.evaluate(() => { const r = parcela('vi1', '2026-06'); abrirPagamento(r.id); return recValor(r); });
         await page.waitForTimeout(200);
+        /* parcela atrasada: escolhe "sem multa e juros" para pagar exatamente o valor da parcela */
+        if (await page.locator('input[name="pgEnc"][value="sem"]').count()) await page.check('input[name="pgEnc"][value="sem"]');
         await page.locator('#modalFoot').getByRole('button', { name: 'Confirmar', exact: true }).click(); await page.waitForTimeout(200);
         const r = await page.evaluate(() => { const ind = getIndice('ix-ipca'); const orig = ind.valores; ind.valores = Object.assign({}, orig, { '2026-02': 1.40 }); const out = { jun: recValor(parcela('vi1', '2026-06')), jul: recValor(parcela('vi1', '2026-07')) }; ind.valores = orig; return out; });
         if (r.jun !== pago) throw new Error(`a paga mudou: ${pago} → ${r.jun}`);

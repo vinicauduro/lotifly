@@ -1082,5 +1082,11 @@ button, .btn, .btn-icon, .chip, .tab, .top-link, .aside-acao, .landing-btn, .fab
 svg.area-miuda .lote-area { display: none; }
 /* Contrato: o empreendimento numa linha própria embaixo do imóvel, sem o ponto solto. */
 .ct-titulo .ct-emp { display: block; font-size: 0.8rem; font-weight: 500; margin-top: 2px; }
-/* Pagamento: "Usar valor com juros" com o valor ao lado, alinhado embaixo como os campos. */
-.fg-acao { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+/* Pagamento de parcela atrasada: cobrar ou dispensar multa e juros, sem padrão. */
+.pg-encargos { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px 12px; margin: 0 0 14px; }
+.pg-encargos legend { font-size: 0.82rem; font-weight: 600; color: var(--text-strong); padding: 0 4px; }
+.pg-encargos.erro { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12); }
+.pg-opcao { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; cursor: pointer; border-radius: var(--r-sm); min-height: 44px; }
+.pg-opcao + .pg-opcao { border-top: 1px solid var(--border); }
+.pg-opcao input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--primary); }
+.pg-opcao > span { display: flex; flex-direction: column; gap: 2px; }

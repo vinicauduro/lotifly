@@ -760,6 +760,34 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z38. Parcela atrasada: cobrar ou dispensar multa e juros é escolha sua (21/10)
+
+A avaliação de design achou um problema sério: a janela "Registrar pagamento" de uma parcela
+atrasada vinha com o valor **sem** multa e juros. Quem só confirmava quitava a parcela e os encargos
+sumiam sem registro (no exemplo do Pedro Santos, R$ 139,35).
+
+Como você decidiu, agora **não há padrão**:
+
+- Parcela atrasada mostra, acima do valor, **"Multa e juros · 61 dias de atraso"** com duas
+  opções, nenhuma marcada:
+  - **Cobrar multa e juros:** R$ 3.594,35 (multa de 2,0% + juros de 1,00% a.m.)
+  - **Sem multa e juros:** R$ 3.455,00, que dispensa R$ 139,35
+- Escolher uma preenche o valor recebido, que ainda pode ser mudado à mão.
+- **Sem escolher, não confirma:** o quadro fica vermelho e o aviso explica o que falta.
+- Ao dispensar, fica escrito na observação da parcela ("Multa e juros dispensados: R$ 139,35
+  (21/10/2026)") e no histórico, e o aviso de confirmação diz o valor dispensado.
+- Parcela em dia continua igual, com o valor já preenchido e sem pergunta.
+- Os avisos de campo faltando dizem qual campo é ("Informe o valor recebido", "Informe a data do
+  pagamento").
+
+Para você fazer:
+
+- [ ] Registrar o pagamento de uma parcela atrasada nas duas opções e conferir a observação.
+
+`testes/pagamento-encargos.test.js` (5 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z37. Acabamento (21/10)
 
 Os detalhes menores da avaliação de design:
