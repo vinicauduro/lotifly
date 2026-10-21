@@ -760,6 +760,24 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z39. Despesa paga: a data do pagamento vem do vencimento (21/10)
+
+Pedido seu: ao lançar uma despesa e escolher o status **Pago**, a data do pagamento vinha com a
+data de hoje.
+
+- Agora ela vem com a **data de vencimento** da despesa. Se não houver vencimento, vem hoje.
+- Se você mudar o vencimento depois, a data do pagamento acompanha, até você mexer nela.
+- Data digitada por você não é trocada, e é ela que fica gravada.
+- Despesa que já estava paga, ao ser editada, mantém a data de pagamento que tinha.
+
+Para você fazer:
+
+- [ ] Lançar uma despesa com vencimento, escolher "Pago" e conferir a data.
+
+`testes/despesa-data-pagamento.test.js` (5 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z36. Caminho do corretor no celular (20/10)
 
 Da avaliação de design: o corretor não chegava em "disponíveis + mandar a tabela" em dois toques.

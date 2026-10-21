@@ -375,11 +375,19 @@ function abrirCustoForm(id, opc = {}) {
     <div class="fg"><label>Descrição *</label><input type="text" id="cuDesc" value="${esc(c ? c.descricao : '')}" placeholder="Ex.: Pavimentação — 2ª medição"></div>
     <div class="frow"><div class="fg"><label for="cuCat">Conta (plano de contas) *</label><select id="cuCat">${opcoesContasHtml(c ? c.categoriaId : (categoriasParaLancar()[0] || db.categorias[0] || {}).id)}</select></div><div class="fg"><label>Fornecedor</label><input type="text" id="cuForn" list="fornList" value="${esc(c ? c.fornecedor || '' : '')}"><datalist id="fornList">${fornecedores.map(f => `<option value="${esc(f)}">`).join('')}</datalist></div></div>
     <div class="frow"><div class="fg"><label>Valor (R$) *</label><input type="number" id="cuValor" step="0.01" value="${c ? c.valor : ''}"></div><div class="fg"><label>Forma de pagamento</label><select id="cuForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c && c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
-    <div class="frow"><div class="fg"><label>Competência *</label><input type="date" id="cuComp" value="${c ? c.dataCompetencia : todayStr()}"></div><div class="fg"><label>Vencimento</label><input type="date" id="cuVenc" value="${c ? c.vencimento || '' : ''}"></div></div>
-    <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="document.getElementById('cuDataPg').parentElement.style.display=this.value==='pago'?'':'none'"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c ? c.dataPagamento || todayStr() : todayStr()}"></div></div>
+    <div class="frow"><div class="fg"><label>Competência *</label><input type="date" id="cuComp" value="${c ? c.dataCompetencia : todayStr()}"></div><div class="fg"><label>Vencimento</label><input type="date" id="cuVenc" value="${c ? c.vencimento || '' : ''}" oninput="cuStatusMudou()"></div></div>
+    <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="cuStatusMudou()"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c && c.dataPagamento ? c.dataPagamento : ''}" oninput="this.dataset.mexido='1'"></div></div>
     <div class="fg"><label>Observações</label><textarea id="cuObs">${esc(c ? c.obs || '' : '')}</textarea></div>`;
   openModal({ title: c ? 'Editar despesa' : 'Lançar despesa', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
   focarSeLivre('cuDesc');
+}
+/* Marcada como paga, a data do pagamento vem do vencimento (sem vencimento, hoje). Enquanto a
+   pessoa não mexer nela, acompanha o vencimento se ele mudar; depois de mexer, fica a dela. */
+function cuStatusMudou() {
+  const pg = document.getElementById('cuDataPg'); if (!pg) return;
+  const pago = val('cuStatus') === 'pago';
+  pg.parentElement.style.display = pago ? '' : 'none';
+  if (pago && !pg.dataset.mexido && (!pg.value || pg.dataset.auto)) { pg.value = val('cuVenc') || todayStr(); pg.dataset.auto = '1'; }
 }
 function salvarCusto(id) {
   const prev = id ? db.custos.find(x => x.id === id) : null;
@@ -387,7 +395,7 @@ function salvarCusto(id) {
   const st = val('cuStatus');
   const emp = cuEmpDoCampo() || null, imv = emp ? val('cuImovel') : '';
   const campo = val('cuEmp') || '', centro = !emp && campo.startsWith('c:') ? campo.slice(2) : null;
-  const rec = Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString() }, { loteamentoId: emp, loteId: imv.startsWith('l:') ? imv.slice(2) : null, vendaId: imv.startsWith('v:') ? imv.slice(2) : null, descricao: val('cuDesc'), categoriaId: val('cuCat'), fornecedor: val('cuForn'), valor: num(val('cuValor')), formaPagamento: val('cuForma'), dataCompetencia: val('cuComp'), vencimento: val('cuVenc') || null, status: st, dataPagamento: st === 'pago' ? (val('cuDataPg') || todayStr()) : null, obs: val('cuObs') });
+  const rec = Object.assign({}, prev || { id: genId(), criadoEm: new Date().toISOString() }, { loteamentoId: emp, loteId: imv.startsWith('l:') ? imv.slice(2) : null, vendaId: imv.startsWith('v:') ? imv.slice(2) : null, descricao: val('cuDesc'), categoriaId: val('cuCat'), fornecedor: val('cuForn'), valor: num(val('cuValor')), formaPagamento: val('cuForma'), dataCompetencia: val('cuComp'), vencimento: val('cuVenc') || null, status: st, dataPagamento: st === 'pago' ? (val('cuDataPg') || val('cuVenc') || todayStr()) : null, obs: val('cuObs') });
   /* O centro só vai para o banco quando existe: quem ainda não rodou o schema novo continua
      lançando normalmente as despesas sem centro. */
   if (centro) rec.centroId = centro; else if (prev && prev.centroId) rec.centroId = null; else delete rec.centroId;
