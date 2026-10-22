@@ -1123,3 +1123,24 @@ svg.area-miuda .lote-area { display: none; }
 .lista > .item:last-child { border-bottom: 0; }
 /* Segunda linha do resumo: o número do mês, mais discreto que o da carteira. */
 .ct-resumo.ct-resumo-sub { font-size: 0.78rem; margin-top: -6px; }
+
+/* Caixa e bancos: saldos por empresa e extrato da conta */
+.cx-empresa { margin-bottom: 18px; }
+.cx-emp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 8px; }
+.cx-emp-head h3 { font-size: 0.92rem; font-weight: 600; color: var(--text-strong); margin: 0; }
+.cx-emp-tot { font-size: 0.92rem; font-weight: 600; color: var(--text-strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cx-ico { margin-right: 8px; color: var(--muted); }
+.cx-conta.inativa { opacity: 0.6; }
+.cx-conta .value, .cx-mov .value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.value.neg, .v.neg, b.neg, .cx-emp-tot.neg, .cx-saldos .v.neg { color: var(--danger); }
+.value.pos, .v.pos, .cx-saldos .v.pos { color: var(--success); }
+.cx-mov .value.neg { color: var(--text-strong); }
+.cx-inicial { background: var(--surface-2); cursor: default; }
+.cx-inicial .title { font-weight: 500; color: var(--muted); }
+.cx-saldos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.cx-saldos > div { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 14px; min-width: 0; }
+.cx-saldos .k { font-size: 0.76rem; color: var(--muted); font-weight: 500; }
+.cx-saldos .v { font-size: 1.12rem; font-weight: 650; color: var(--text-strong); font-variant-numeric: tabular-nums; margin-top: 2px; overflow-wrap: anywhere; }
+.cx-pend .btn { flex: none; }
+.cx-pend-lista .item.linha select { margin-top: 6px; max-width: 100%; }
+@media (max-width: 520px) { .cx-saldos { grid-template-columns: 1fr 1fr; } .cx-saldos > div:first-child { grid-column: 1 / -1; } }

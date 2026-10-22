@@ -515,6 +515,8 @@ begin
   delete from public.indices where org_id = p_org;
   delete from public.cobrancas where org_id = p_org;
   delete from public.remessas where org_id = p_org;
+  delete from public.movimentos where org_id = p_org;
+  delete from public.contas_caixa where org_id = p_org;
   delete from public.contas_banco where org_id = p_org;
   delete from public.modelos where org_id = p_org;
   delete from public.vendedores where org_id = p_org;
@@ -1160,6 +1162,8 @@ begin
   delete from public.indices where org_id = p_org;
   delete from public.cobrancas where org_id = p_org;
   delete from public.remessas where org_id = p_org;
+  delete from public.movimentos where org_id = p_org;
+  delete from public.contas_caixa where org_id = p_org;
   delete from public.contas_banco where org_id = p_org;
   delete from public.modelos where org_id = p_org;
   delete from public.vendedores where org_id = p_org;
@@ -1241,3 +1245,103 @@ begin
 exception when others then
   raise notice 'agendamento da liberação de reservas não criado (%)', sqlerrm;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- 11. Caixa e bancos: contas de cada empresa do grupo e o que entra e sai delas
+-- ---------------------------------------------------------------------
+-- Uma conta (corrente, poupança, aplicação ou o caixa em dinheiro) é de uma empresa do grupo:
+-- empresa_id vazio é a empresa principal; senão, o id em vendedores. O saldo começa no
+-- saldo_inicial, informado na data de corte (data_saldo); dali em diante, soma os movimentos.
+-- conta_banco_id liga a conta ao convênio de boletos (contas_banco), para a baixa do retorno
+-- cair nela.
+create table if not exists public.contas_caixa (
+  org_id          uuid not null references public.organizacoes(id) on delete cascade,
+  id              text not null,
+  nome            text not null default '',
+  tipo            text not null default 'corrente' check (tipo in ('corrente','poupanca','aplicacao','caixa')),
+  banco           text not null default '',
+  empresa_id      text not null default '',
+  conta_banco_id  text not null default '',
+  saldo_inicial   double precision not null default 0,
+  data_saldo      date,
+  ativa           boolean not null default true,
+  criado_em       timestamptz not null default now(),
+  primary key (org_id, id)
+);
+-- Cada entrada (+) ou saída (−) de uma conta. Recebimento de parcela, despesa paga e comissão
+-- paga apontam para a origem (recebivel_id, custo_id, venda_id); a transferência são dois
+-- movimentos com o mesmo transferencia_id.
+create table if not exists public.movimentos (
+  org_id           uuid not null references public.organizacoes(id) on delete cascade,
+  id               text not null,
+  conta_id         text not null,
+  data             date not null,
+  valor            double precision not null,
+  natureza         text not null default 'manual',
+  descricao        text not null default '',
+  recebivel_id     text,
+  custo_id         text,
+  venda_id         text,
+  transferencia_id text,
+  obs              text not null default '',
+  criado_em        timestamptz not null default now(),
+  primary key (org_id, id)
+);
+create index if not exists movimentos_conta_idx on public.movimentos (org_id, conta_id, data);
+alter table public.contas_caixa enable row level security;
+alter table public.movimentos enable row level security;
+drop policy if exists contas_caixa_select on public.contas_caixa;
+drop policy if exists contas_caixa_write on public.contas_caixa;
+create policy contas_caixa_select on public.contas_caixa for select to authenticated using (public.eh_financeiro(org_id));
+create policy contas_caixa_write on public.contas_caixa for all to authenticated using (public.eh_financeiro(org_id)) with check (public.eh_financeiro(org_id));
+drop policy if exists movimentos_select on public.movimentos;
+drop policy if exists movimentos_write on public.movimentos;
+create policy movimentos_select on public.movimentos for select to authenticated using (public.eh_financeiro(org_id));
+create policy movimentos_write on public.movimentos for all to authenticated using (public.eh_financeiro(org_id)) with check (public.eh_financeiro(org_id));
+
+-- Criar ou mudar conta (e o saldo inicial) pede "alterar configurações".
+create or replace function public.contas_caixa_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_org uuid := coalesce(new.org_id, old.org_id);
+begin
+  if public.limpando_dados() or auth.uid() is null then return coalesce(new, old); end if;
+  if tg_op = 'INSERT' and exists (select 1 from public.contas_caixa where org_id = new.org_id and id = new.id) then return new; end if;
+  if tg_op = 'UPDATE' and public.colunas_mudadas(to_jsonb(new), to_jsonb(old)) = '{}' then return new; end if;
+  perform public.exigir_permissao(v_org, array['config.editar'], 'criar ou alterar contas do caixa');
+  return coalesce(new, old);
+end $$;
+drop trigger if exists contas_caixa_permissoes on public.contas_caixa;
+create trigger contas_caixa_permissoes before insert or update or delete on public.contas_caixa
+  for each row execute function public.contas_caixa_permissoes();
+
+-- O movimento nasce de quem registra recebimento, paga conta ou comissão, antecipa ou
+-- transfere: qualquer uma dessas permissões basta.
+create or replace function public.movimentos_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_org uuid := coalesce(new.org_id, old.org_id);
+begin
+  if public.limpando_dados() or auth.uid() is null then return coalesce(new, old); end if;
+  if tg_op = 'INSERT' and exists (select 1 from public.movimentos where org_id = new.org_id and id = new.id) then return new; end if;
+  if tg_op = 'UPDATE' and public.colunas_mudadas(to_jsonb(new), to_jsonb(old)) = '{}' then return new; end if;
+  perform public.exigir_permissao(v_org, array['financeiro.baixar','financeiro.antecipar','custos.editar','comissao.gerenciar','vendas.distrato'], 'lançar no caixa');
+  return coalesce(new, old);
+end $$;
+drop trigger if exists movimentos_permissoes on public.movimentos;
+create trigger movimentos_permissoes before insert or update or delete on public.movimentos
+  for each row execute function public.movimentos_permissoes();
+
+alter table public.contas_caixa replica identity full;
+alter table public.movimentos replica identity full;
+do $$
+declare t text;
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach t in array array['contas_caixa','movimentos'] loop
+      if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
+  end if;
+end $$;
+revoke all on public.contas_caixa, public.movimentos from anon;
+revoke execute on function public.contas_caixa_permissoes(), public.movimentos_permissoes() from public, anon;

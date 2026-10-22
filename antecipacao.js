@@ -98,6 +98,7 @@ function abrirAntecipacao(vendaId) {
         <option value="parcela">Reduzir o valor das parcelas — mantém o prazo</option>
       </select></div>
       <div class="sim-result" id="anResumo"></div>
+      ${contaCaixaCampoHtml('anConta', 'Entrou na conta', empresaDaVenda(v))}
       <div class="fg"><label>Observação no recibo</label><input type="text" id="anObs" placeholder="Antecipação negociada com o cliente"></div>
     </div>`;
   openModal({
@@ -185,10 +186,11 @@ async function aplicarAntecipacao(vendaId) {
   const data = val('anData') || todayStr();
   const tipo = val('anTipo');
   const plano = planoAntecipacao(v, data, tipo, Math.round(num(val('anQtd'))), num(val('anValor')), val('anModo'));
-  const obs = val('anObs') || 'Antecipação com desconto de juros';
+  const obs = val('anObs') || 'Antecipação com desconto de juros', contaCx = val('anConta');
   if (!plano.itens.length && !plano.novaParcela && !plano.parcial) { toast('⚠️', 'Nada a registrar', 'Confira o valor informado.', true); return; }
   if (!(await confirmar({ titulo: 'Registrar a antecipação?', valores: [['Valor pago', fmtMoney(plano.pagar), true], ['Data', fmtDate(data)]].concat(plano.itens.length ? [['Parcelas quitadas', String(plano.itens.length)]] : []), itens: plano.parcial ? [`A ${plano.parcial.item.rec.descricao} fica em aberto com o saldo.`] : [], acao: 'Registrar antecipação' }))) return;
 
+  comConta(contaCx, () => {
   plano.itens.forEach(x => {
     const r = x.rec;
     upsert('recebiveis', Object.assign({}, r, {
@@ -219,6 +221,8 @@ async function aplicarAntecipacao(vendaId) {
       obsPagamento: `${obs}${credNominal - pago > 0.005 ? ` · desconto de ${fmtMoney(credNominal - pago)}` : ''}`
     });
   }
+
+  });
 
   if (plano.tipo === 'valor' && plano.modo === 'parcela' && plano.novaParcela) {
     plano.restantes.forEach(r => {

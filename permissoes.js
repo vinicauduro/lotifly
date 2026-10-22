@@ -97,7 +97,7 @@ function meuPapel() { return Cloud.active ? (Cloud.papel || 'corretor') : 'dono'
 /* Itens do menu lateral e a permissão que cada um pede. */
 const TAB_PERM = {
   reservas: 'reservas.aprovar', vendas: 'vendas.criar', contrato: 'vendas.criar', clientes: 'vendas.criar', recebiveis: 'financeiro.ver',
-  cobranca: 'cobranca.ver', boletos: 'financeiro.ver', custos: 'custos.ver',
+  cobranca: 'cobranca.ver', boletos: 'financeiro.ver', caixa: 'financeiro.ver', custos: 'custos.ver',
   indices: 'indices.editar', relatorios: 'relatorios.ver'
 };
 function abaPermitida(tab) {

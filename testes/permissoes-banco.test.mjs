@@ -283,5 +283,21 @@ await passo('corretor continua barrado pela função (nem chega às travas por p
   if (r.rows.length) throw new Error('corretor conseguiu editar');
 });
 
+await passo('caixa e bancos: conta nova pede "alterar configurações"; o financeiro lança movimento; o corretor nem vê', async () => {
+  await ajustar({ permissoesPessoas: {} });
+  const conta = id => `insert into public.contas_caixa (org_id, id, nome, tipo, saldo_inicial, data_saldo) values ('${ORG}','${id}','BB Corrente','corrente',12500.5,'2026-10-01')`;
+  await recusa('fin', conta('cx1'), 'contas do caixa');
+  await como('admin', conta('cx1'));
+  const mov = (id, v) => `insert into public.movimentos (org_id, id, conta_id, data, valor, natureza, recebivel_id) values ('${ORG}','${id}','cx1','2026-10-15',${v},'recebimento','r1')`;
+  await como('fin', mov('m1', 1000));
+  await como('fin', `update public.movimentos set valor = 1000 where id = 'm1'`);   // reenvio sem mudança
+  await recusa('cor', mov('m2', 50), 'lançar no caixa');
+  if ((await como('cor', `select * from public.movimentos`)).rows.length) throw new Error('corretor viu o caixa');
+  await ajustar({ permissoesPessoas: { [U.fin]: { 'financeiro.baixar': false, 'financeiro.antecipar': false, 'custos.editar': false, 'comissao.gerenciar': false } } });
+  await recusa('fin', mov('m3', 10), 'lançar no caixa');
+  await ajustar({ permissoesPessoas: {} });
+  const r = (await db.query(`select c.saldo_inicial + coalesce(sum(m.valor), 0) as saldo from public.contas_caixa c left join public.movimentos m on m.org_id = c.org_id and m.conta_id = c.id and m.data >= c.data_saldo where c.id = 'cx1' group by c.saldo_inicial`)).rows[0];
+  if (r.saldo !== 13500.5) throw new Error('saldo ' + r.saldo);
+});
 console.log(erros.length ? '\nERROS:\n' + erros.join('\n') : '\ntudo ok');
 process.exit(erros.length ? 1 : 0);

@@ -423,10 +423,10 @@ function defaultDB() {
     meta: { version: 1, createdAt: new Date().toISOString() },
     config: defaultConfig(),
     loteamentos: [], lotes: [], reservas: [], vendas: [], recebiveis: [], custos: [],
-    categorias: defaultCategorias(), corretores: [], vendedores: [], clientes: [], modelos: [], indices: [], cobrancas: [], contasBanco: [], remessas: [], log: []
+    categorias: defaultCategorias(), corretores: [], vendedores: [], clientes: [], modelos: [], indices: [], cobrancas: [], contasBanco: [], remessas: [], contasCaixa: [], movimentos: [], log: []
   };
 }
-const COLLECTIONS = ['loteamentos', 'lotes', 'reservas', 'vendas', 'recebiveis', 'custos', 'categorias', 'corretores', 'vendedores', 'clientes', 'modelos', 'indices', 'cobrancas', 'contasBanco', 'remessas', 'log'];
+const COLLECTIONS = ['loteamentos', 'lotes', 'reservas', 'vendas', 'recebiveis', 'custos', 'categorias', 'corretores', 'vendedores', 'clientes', 'modelos', 'indices', 'cobrancas', 'contasBanco', 'remessas', 'contasCaixa', 'movimentos', 'log'];
 function normalizeDB(data) {
   const d = data && typeof data === 'object' ? data : {};
   d.meta = d.meta || { version: 1 };
@@ -461,16 +461,20 @@ function savePrefs() { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); }
 // gravação: sempre em memória + cache local; na nuvem, também no Supabase
 function upsert(col, rec) {
   const arr = db[col];
-  const i = arr.findIndex(r => r.id === rec.id);
+  const i = arr.findIndex(r => r.id === rec.id), antes = i >= 0 ? arr[i] : null;
   if (i >= 0) arr[i] = rec; else arr.push(rec);
   saveLocal();
   if (Cloud.active) Cloud.upsert(col, rec);
+  /* Recebimento, conta paga e comissão paga: o caixa acompanha sozinho (caixa.js) */
+  if (typeof caixaAoGravar === 'function') caixaAoGravar(col, rec, antes);
   return rec;
 }
 function removeRec(col, id) {
+  const antes = db[col].find(r => r.id === id);
   db[col] = db[col].filter(r => r.id !== id);
   saveLocal();
   if (Cloud.active) Cloud.remove(col, id);
+  if (antes && typeof caixaAoApagar === 'function') caixaAoApagar(col, antes);
 }
 function setConfig(patch) {
   Object.assign(db.config, patch);
@@ -520,11 +524,13 @@ const TABLE_COLS = {
   contasBanco: ['id', 'loteamentoId', 'banco', 'carteira', 'variacao', 'agencia', 'agenciaDv', 'conta', 'contaDv', 'convenio', 'nossoNumeroAtual', 'nnMax', 'remessaSeq', 'multaPct', 'jurosMesPct', 'jurosDia', 'descontoPct', 'protestoDias', 'baixaDias', 'especie', 'aceite', 'instrucao1', 'instrucao2', 'mensagem1', 'mensagem2', 'criadoEm'],
   cobrancas: ['id', 'vendaId', 'loteamentoId', 'data', 'canal', 'faixa', 'dias', 'valor', 'obs', 'quem', 'criadoEm'],
   remessas: ['id', 'loteamentoId', 'contaId', 'sequencial', 'data', 'arquivo', 'qtd', 'baixas', 'valor', 'recIds', 'primeiroNn', 'ultimoNn', 'criadoEm'],
+  contasCaixa: ['id', 'nome', 'tipo', 'banco', 'empresaId', 'contaBancoId', 'saldoInicial', 'dataSaldo', 'ativa', 'criadoEm'],
+  movimentos: ['id', 'contaId', 'data', 'valor', 'natureza', 'descricao', 'recebivelId', 'custoId', 'vendaId', 'transferenciaId', 'obs', 'criadoEm'],
   log: ['id', 'ts', 'who', 'msg']
 };
 /* Tabelas criadas depois da primeira versão do schema: se faltarem, o app segue sem elas. */
-const TABELAS_NOVAS = ['clientes'];
-const NULLABLE_EMPTY = new Set(['loteamentoId', 'centroId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area']);
+const TABELAS_NOVAS = ['clientes', 'contasCaixa', 'movimentos'];
+const NULLABLE_EMPTY = new Set(['loteamentoId', 'centroId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area', 'dataSaldo', 'recebivelId', 'custoId', 'transferenciaId']);
 const INT_FIELDS = new Set(['nParcelas', 'numero']);
 function snakeKey(k) { return k.replace(/[A-Z]/g, m => '_' + m.toLowerCase()); }
 /* No aplicativo a coleção é camelCase (contasBanco); no Postgres a tabela é snake_case
@@ -782,7 +788,8 @@ const Cloud = {
     if (this.channel) this.client.removeChannel(this.channel);
     const org = this.org.id;
     let ch = this.client.channel('org-' + org);
-    Object.keys(TABLE_COLS).forEach(t => {
+    /* Tabela que ainda não existe no banco (schema.sql não rodado de novo) fica de fora */
+    Object.keys(TABLE_COLS).filter(t => !(this.tabelasFaltando || []).includes(t)).forEach(t => {
       ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: tabelaDe(t), filter: 'org_id=eq.' + org }, payload => this.onChange(t, payload));
     });
     ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: 'organizacoes', filter: 'id=eq.' + org }, payload => { if (payload.new && payload.new.config) { db.config = Object.assign(defaultConfig(), payload.new.config); saveLocal(); this.agendarRender(); } });
@@ -877,6 +884,7 @@ const Cloud = {
          lista antiga era escrita à mão e já tinha esquecido os vendedores: restaurar um backup
          na nuvem perdia o cadastro de outros CNPJs do grupo. */
       for (const t of Object.keys(TABLE_COLS)) {
+        if (!db[t].length && (this.tabelasFaltando || []).includes(t)) continue;   // tabela que o banco ainda não tem
         const rows = db[t].map(r => toRow(t, r));
         for (let i = 0; i < rows.length; i += 400) {
           const { error } = await this.client.from(tabelaDe(t)).upsert(rows.slice(i, i + 400), opcoesUpsert(t));
