@@ -115,7 +115,7 @@ function renderContrato() {
     `<details class="menu"><summary class="btn btn-secondary btn-sm">Documentos <i class=ico data-i=caret-down></i></summary><div class="menu-lista" role="menu">${docs}</div></details>`,
     mais || excluir ? `<details class="menu"><summary class="btn btn-secondary btn-sm">Mais <i class=ico data-i=caret-down></i></summary><div class="menu-lista" role="menu">${mais}${mais && excluir ? '<hr>' : ''}${excluir}</div></details>` : ''
   ].filter(Boolean).join('');
-  const principal = proxima && pode('financeiro.baixar') ? `<button class="btn btn-success btn-sm ct-principal" onclick="abrirPagamento('${proxima.id}','${x.id}')" title="${esc(proxima.descricao)} · vence ${fmtDate(proxima.vencimento)}"><i class=ico data-i=money></i>Registrar pagamento</button>` : '';
+  const principal = proxima && pode('financeiro.baixar') ? `<button class="btn btn-primary btn-sm ct-principal" onclick="abrirPagamento('${proxima.id}','${x.id}')" title="${esc(proxima.descricao)} · vence ${fmtDate(proxima.vencimento)}"><i class=ico data-i=money></i>Registrar pagamento</button>` : '';
   el.innerHTML = `
     <div class="ct-topo"><button class="btn btn-secondary btn-sm" onclick="voltarDoContrato()">‹ ${esc(voltarRot)}</button><div class="ct-menus">${menus}</div>${principal}</div>
     <div class="card ct-cab">
@@ -128,7 +128,7 @@ function renderContrato() {
         <div class="kpi c-primary"><div class="lbl">Valor do contrato</div><div class="val">${fmtMoney(x.valorTotal)}</div><div class="sub">${nPlural(r.n, 'parcela')} com a entrada</div></div>
         <div class="kpi c-green"><div class="lbl">Recebido</div><div class="val">${fmtMoney(r.pago)}</div><div class="sub">${pct}% · ${r.nPagas}/${r.n} pagas</div></div>
         <div class="kpi c-amber"><div class="lbl">A receber</div><div class="val">${fmtMoney(Math.max(0, r.restante))}</div><div class="sub">${proximaParcelaTxt(x)}</div></div>
-        <div class="kpi ${r.atrasado ? 'c-red' : 'c-green'}"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(r.atrasado)}</div><div class="sub">${r.atrasado ? 'veja em Parcelas' : 'em dia'}</div></div>
+        <div class="kpi ${r.atrasado ? 'c-red' : 'c-green zero'}"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(r.atrasado)}</div><div class="sub">${r.atrasado ? 'veja em Parcelas' : 'em dia'}</div></div>
       </div>`}
       <div class="progress"><div style="width:${pct}%"></div></div>
     </div>

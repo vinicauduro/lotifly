@@ -106,7 +106,7 @@ function abrirAntecipacao(vendaId) {
     footer: `<button class="btn btn-secondary" onclick="abrirVendaAdmin('${v.id}')">Voltar</button>
       <button class="btn btn-outline" onclick="imprimirDemonstrativo('${v.id}')">Demonstrativo</button>
       ${v.cliente.telefone ? `<a class="btn btn-wa" target="_blank" href="${waLink(v.cliente.telefone, textoAntecipacao(v, s))}">Enviar</a>` : ''}
-      <button class="btn btn-success" onclick="aplicarAntecipacao('${v.id}')">Registrar pagamento</button>`
+      <button class="btn btn-primary" onclick="aplicarAntecipacao('${v.id}')">Registrar pagamento</button>`
   });
   anCalc(v.id);
 }

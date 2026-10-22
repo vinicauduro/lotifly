@@ -33,7 +33,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     if (r.marcado || r.valor !== '') throw new Error(JSON.stringify(r));
   });
   await passo('sem escolher, não confirma: avisa e destaca a escolha', async () => {
-    await page.click('#modalFoot .btn-success');
+    await page.click('#modalFoot .btn-primary');
     const r = await page.evaluate(() => ({ pago: db.recebiveis.find(x => x.id === 'a1').valorPago, erro: document.getElementById('pgEncargos').classList.contains('erro') }));
     if (r.pago || !r.erro || !/Escolha se cobra multa e juros/.test(await toastTxt())) throw new Error(JSON.stringify(r));
   });
@@ -41,7 +41,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.check('input[name="pgEnc"][value="com"]');
     const esperado = await page.evaluate(() => Math.round(recAtualizado(db.recebiveis.find(x => x.id === 'a1')) * 100) / 100);
     if (num(await page.inputValue('#pgValor')) !== esperado) throw new Error(await page.inputValue('#pgValor') + ' ≠ ' + esperado);
-    await page.click('#modalFoot .btn-success');
+    await page.click('#modalFoot .btn-primary');
     const r = await page.evaluate(() => { const x = db.recebiveis.find(x => x.id === 'a1'); return { pago: x.valorPago, st: recStatus(x), obs: x.obsPagamento || '' }; });
     if (Math.abs(r.pago - esperado) > 0.005 || r.st !== 'pago' || /dispensad/.test(r.obs)) throw new Error(JSON.stringify(r));
     function num(v) { return Math.round(parseFloat(v) * 100) / 100; }
@@ -52,7 +52,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.check('input[name="pgEnc"][value="sem"]');
     if (await page.inputValue('#pgValor') !== '1000') throw new Error(await page.inputValue('#pgValor'));
     await page.fill('#pgObs', 'cliente pediu');
-    await page.click('#modalFoot .btn-success');
+    await page.click('#modalFoot .btn-primary');
     const r = await page.evaluate(() => { const x = db.recebiveis.find(x => x.id === 'a2'); return { st: recStatus(x), obs: x.obsPagamento, hist: (db.atividades || db.log || []).map(a => a.texto || a.msg || a.descricao || JSON.stringify(a)).join(' || ') }; });
     const dTxt = await page.evaluate(d => fmtMoney(d).replace(/\s+/g, ' '), dispensa); r.obs = r.obs.replace(/\s+/g, ' ');
     if (r.st !== 'pago' || !r.obs.startsWith('cliente pediu · Multa e juros dispensados: ' + dTxt)) throw new Error(JSON.stringify(r).slice(0, 300));

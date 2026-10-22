@@ -31,10 +31,12 @@ function renderAdminTab() {
 /* Toda tela do menu diz onde você está. Contratos e Imóveis montam o título com as ações
    deles; as outras ganham só o nome, em cima de tudo. */
 const TITULOS_TELA = { reservas: 'Reservas', corretores: 'Corretores', clientes: 'Clientes', recebiveis: 'A receber', cobranca: 'Cobrança', boletos: 'Boletos e banco', custos: 'A pagar', indices: 'Índices', relatorios: 'Relatórios', cadastros: 'Configurações' };
+/* Ação principal no cabeçalho da tela, para o computador (no celular o botão + faz o mesmo). */
+const ACOES_TELA = { reservas: () => pode('reservas.aprovar') ? '<button class="btn btn-primary btn-sm" onclick="novaReservaEscolhendoEmp()"><i class=ico data-i=plus></i>Nova reserva</button>' : '' };
 function colocarTituloTela(tab) {
   const v = $('#av-' + tab), t = TITULOS_TELA[tab];
   if (!v || !t || v.querySelector(':scope > .pg-head')) return;
-  v.insertAdjacentHTML('afterbegin', tituloTela(t));
+  v.insertAdjacentHTML('afterbegin', tituloTela(t, ACOES_TELA[tab] ? ACOES_TELA[tab]() : ''));
 }
 
 // ================================================================ BUSCA GERAL
@@ -169,9 +171,10 @@ function renderEmpreendimentos() {
    de venda dele é a informação principal e fica à vista. */
 function listaEmpreendimentosHtml() {
   const podeCriar = pode('config.editar') || pode('lotes.editar');
-  return `<div class="card"><h2>Imóveis <span class="h-actions">${db.loteamentos.length ? '<button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Gerar tabela</button>' : ''}${podeCriar ? '<button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button>' : ''}</span></h2>
-    <p class="help mb">Os empreendimentos, com planta e lotes, e cada imóvel avulso que você vende — apartamento, casa, lote, sala… Abra um para ver preços e situação. Contratos, recebíveis e relatórios ficam no menu, com todos juntos.</p>
-    ${db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)).map(l => {
+  /* Mesmo cabeçalho das outras telas (título e ações à direita) e a lista contínua, sem cartão
+     em volta. */
+  return `${tituloTela('Imóveis', (db.loteamentos.length ? '<button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Gerar tabela</button>' : '') + (podeCriar ? '<button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo imóvel</button>' : ''), 'Empreendimentos, com planta e lotes, e imóveis avulsos. Abra um para ver preços e situação.')}
+    ${db.loteamentos.length ? '<div class="lista">' : ''}${db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)).map(l => {
       if (ehCarteira(l)) {
         const vd = vendaAtivaDoImovel(l);
         return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
@@ -185,7 +188,7 @@ function listaEmpreendimentosHtml() {
         <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${nPlural(pend, 'reserva')} a aprovar</span>` : ''}</div>
         <div class="meta">${esc(l.cidade || '')}<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span><span>· ${ls.filter(x => x.status === 'disponivel').length} disponíveis</span></div>
       </div><div class="side"><span class="muted">›</span></div></div>`;
-    }).join('') || `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}</div>`;
+    }).join('') || `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}${db.loteamentos.length ? '</div>' : ''}`;
 }
 function fabShow(action) { const f = $('#fab'); f.classList.add('show'); f.setAttribute('onclick', action); }
 
@@ -262,10 +265,10 @@ function renderPainel() {
     ${alerts}
     <div class="kpi-grid inicio">
       <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${nPlural(k.contratosCarteira, 'contrato')} ›</div></div>
-      <div class="kpi c-red" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${nPlural(k.nAtrasados, 'parcela')} · ${nPlural(k.clientesAtraso, 'contrato')}<br>somando todos os meses ›</div></div>
+      <div class="kpi c-red ${k.atrasado > 0.005 ? '' : 'zero'}" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${nPlural(k.nAtrasados, 'parcela')} · ${nPlural(k.clientesAtraso, 'contrato')}<br>somando todos os meses ›</div></div>
       <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
       <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${nPlural(k.nPagar, 'conta')}${k.pagarVencido ? ` · ${nPlural(k.pagarVencido, 'vencida')}` : ''} ›</div></div>
-      <div class="kpi c-green" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${nPlural(k.vendas, 'contrato')} ›</div></div>
+      <div class="kpi c-green ${k.vendido > 0.005 ? '' : 'zero'}" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${nPlural(k.vendas, 'contrato')} ›</div></div>
     </div>
     ${barraMesHtml('')}
     <div class="grid2">
@@ -467,9 +470,9 @@ function abrirLoteAdmin(id) {
       ${l.obs ? `<div class="full"><div class="k">Observações</div><div class="v">${esc(l.obs)}</div></div>` : ''}
     </div>`;
   let footer = `<button class="btn btn-secondary" onclick="abrirLoteForm('${l.id}')">Editar</button>`;
-  if (l.status === 'disponivel') footer += `<button class="btn btn-accent" onclick="abrirReservaAdminForm('${l.id}')">Reservar</button><button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}')">Vender</button><button class="btn btn-outline-danger" onclick="bloquearLote('${l.id}',true)">Bloquear</button>`;
-  else if (l.status === 'bloqueado') footer += `<button class="btn btn-success" onclick="bloquearLote('${l.id}',false)">Liberar para venda</button>`;
-  else if (l.status === 'reservado' && r) footer += `<button class="btn btn-success" onclick="abrirVendaForm(null,'${l.id}','${r.id}')">Converter em venda</button>`;
+  if (l.status === 'disponivel') footer += `<button class="btn btn-accent" onclick="abrirReservaAdminForm('${l.id}')">Reservar</button><button class="btn btn-primary" onclick="abrirVendaForm(null,'${l.id}')">Vender</button><button class="btn btn-outline-danger" onclick="bloquearLote('${l.id}',true)">Bloquear</button>`;
+  else if (l.status === 'bloqueado') footer += `<button class="btn btn-primary" onclick="bloquearLote('${l.id}',false)">Liberar para venda</button>`;
+  else if (l.status === 'reservado' && r) footer += `<button class="btn btn-primary" onclick="abrirVendaForm(null,'${l.id}','${r.id}')">Converter em venda</button>`;
   openModal({ title: `${esc(loteLabel(l))}`, body, footer });
 }
 /* Bloquear pede o motivo numa janela do app (fica nas observações do lote); liberar é direto. */
@@ -668,7 +671,7 @@ function abrirReservaAdmin(id, aviso) {
   const outras = [];
   let footer = '';
   if (r.status === 'pendente' && pode('reservas.aprovar')) {
-    footer = `<button class="btn btn-outline-danger" onclick="pedirMotivoReserva('${r.id}','recusada')">Recusar</button><button class="btn btn-success" onclick="aprovarReserva('${r.id}')">Aprovar</button>`;
+    footer = `<button class="btn btn-outline-danger" onclick="pedirMotivoReserva('${r.id}','recusada')">Recusar</button><button class="btn btn-primary" onclick="aprovarReserva('${r.id}')">Aprovar</button>`;
     outras.push(`<button class="link" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">Converter direto em venda</button>`);
   } else if (abertas) {
     footer = `<button class="btn btn-primary" onclick="abrirVendaForm(null,'${r.loteId}','${r.id}')">Converter em venda</button>`;
@@ -1617,15 +1620,13 @@ function renderCorretoresAdmin() {
   const v = $('#av-corretores');
   if (!Cloud.active) { v.innerHTML = cadCorretoresHtml(); return; }
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()) || (c.userId && x.userId === c.userId); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v2 => v2.status !== 'distrato' && m(v2.corretor)) }; };
-  v.innerHTML = `<div class="card"><h2>Corretores ${pode('equipe.gerenciar') ? `<span class="h-actions"><button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')"><i class=ico data-i=plus></i>Convidar corretor</button></span>` : ''}</h2>
-    <p class="help mb">Os corretores entram por convite e usam o portal deles para ver a planta, simular e pedir reserva.</p>
-    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const st = stats(c); return `<div class="item"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${nPlural(st.res, 'reserva')} · ${nPlural(st.vend.length, 'venda')} · ${fmtMoneyShort(st.vend.reduce((t, x) => t + num(x.valorTotal), 0))}</span></div></div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda. Convide o primeiro.</p>'}</div>`;
+  v.innerHTML = `${tituloTela('Corretores', pode('equipe.gerenciar') ? `<button class="btn btn-primary btn-sm" onclick="state.sub.cad='corretores';switchTab('cadastros')"><i class=ico data-i=plus></i>Convidar corretor</button>` : '', 'Entram por convite e usam o portal deles para ver a planta, simular e pedir reserva.')}
+    <div class="lista">${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const st = stats(c); return `<div class="item"><div class="info"><div class="title">${esc(c.nome)}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span>${c.telefone ? `<span>· ${esc(fmtPhone(c.telefone))}</span>` : ''}${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${nPlural(st.res, 'reserva')} · ${nPlural(st.vend.length, 'venda')} · ${fmtMoneyShort(st.vend.reduce((t, x) => t + num(x.valorTotal), 0))}</span></div></div></div>`; }).join('') || '<div class="empty"><p>Nenhum corretor ainda. Convide o primeiro.</p></div>'}</div>`;
 }
 function cadCorretoresHtml() {
   const stats = c => { const m = x => (onlyDigits(x.telefone) && onlyDigits(x.telefone) === onlyDigits(c.telefone)) || (x.creci && c.creci && x.creci.toLowerCase() === c.creci.toLowerCase()); return { res: db.reservas.filter(r => m(r.corretor)).length, vend: db.vendas.filter(v => v.status !== 'distrato' && m(v.corretor)) }; };
-  return `<div class="card"><h2>Corretores <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()"><i class=ico data-i=plus></i>Novo</button></span></h2>
-    <p class="help mb">Corretores são cadastrados automaticamente quando fazem o primeiro pedido de reserva. Você também pode cadastrá-los aqui.</p>
-    ${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${nPlural(s.res, 'reserva')} · ${nPlural(s.vend.length, 'venda')} · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`; }).join('') || '<p class="help">Nenhum corretor ainda.</p>'}</div>`;
+  return `${tituloTela('Corretores', '<button class="btn btn-primary btn-sm" onclick="abrirCorretorForm()"><i class=ico data-i=plus></i>Novo corretor</button>', 'Entram sozinhos no primeiro pedido de reserva; dá para cadastrar aqui também.')}
+    <div class="lista">${db.corretores.slice().sort((a, b) => naturalCmp(a.nome, b.nome)).map(c => { const s = stats(c); return `<div class="item ${c.ativo === false ? 'bloqueado' : ''}" onclick="abrirCorretorForm('${c.id}')"><div class="info"><div class="title">${esc(c.nome)} ${c.ativo === false ? '<span class="badge neutral">inativo</span>' : ''}</div><div class="meta"><span>${esc(c.creci || 'sem CRECI')}</span><span>· ${esc(fmtPhone(c.telefone))}</span>${c.imobiliaria ? `<span>· ${esc(c.imobiliaria)}</span>` : ''}<span>· ${nPlural(s.res, 'reserva')} · ${nPlural(s.vend.length, 'venda')} · ${fmtMoneyShort(s.vend.reduce((t, v) => t + num(v.valorTotal), 0))}</span></div></div><div class="side">${c.telefone ? `<a class="btn-icon" style="background:#dcfce7;color:#166534;text-decoration:none" target="_blank" href="${waLink(c.telefone, '')}" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp"><i class=ico data-i=whatsapp-logo></i></a>` : ''}</div></div>`; }).join('') || '<div class="empty"><p>Nenhum corretor ainda.</p></div>'}</div>`;
 }
 
 /* ---- Vendedores (outorgantes) ----------------------------------------------------------

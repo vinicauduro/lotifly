@@ -760,6 +760,55 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z42. Listas mais limpas (21/10)
+
+Da avaliação de design: linhas de resumo longas demais e a tela de Clientes se contradizendo.
+
+- **A receber:** o resumo virou uma linha só, dizendo de quando são as parcelas ("Parcelas de
+  out/26; as atrasadas, de todos os meses") e o atalho "ver a carteira inteira". Os totais da
+  carteira continuam no Início (cartão "Total a receber") e no atalho.
+- **Cobrança:** a primeira linha fica com o que importa: **em atraso (todos os meses), em quantos
+  contratos, com multa e juros** e o botão "nunca cobrado". Recuperado e inadimplência do mês
+  foram para uma segunda linha, menor.
+- **Clientes:** com o cadastro vazio e compradores nos contratos, a tela mostrava "5 compradores
+  sem ficha", números zerados e "Nenhum cliente cadastrado" ao mesmo tempo. Agora a tela inteira
+  vira o convite **"5 compradores dos contratos ainda não têm ficha"**, com os botões "Trazer os 5
+  compradores" e "Novo cliente". Também acabou o "comprador(es)" no aviso.
+
+Para você fazer:
+
+- [ ] Abrir A receber, Cobrança e Clientes e ver se a leitura ficou mais rápida.
+
+`testes/listas-limpas.test.js` (4 casos, relógio fixo em 19/10/2026).
+
+---
+
+## 7z41. Telas no mesmo padrão (21/10)
+
+Da avaliação de design: cada tela tinha um jeito de cabeçalho, o botão + flutuante aparecia no
+computador cobrindo a última linha, e o verde servia tanto para botão quanto para "pago".
+
+- **Cabeçalho único:** Imóveis e Corretores ganharam o mesmo topo das outras telas (título, uma
+  frase curta e as ações à direita). A lista ficou contínua, sem cartão dentro de cartão, e o
+  título "Corretores" não aparece mais repetido.
+- **Ação principal no topo:** Imóveis tem "Gerar tabela" e "Novo imóvel"; Corretores, "Novo
+  corretor"; Reservas ganhou **"Nova reserva"** no cabeçalho.
+- **Botão + flutuante só no celular.** No computador cada tela já tem a ação no topo ou na barra
+  de filtros.
+- **Verde só para "pago" e WhatsApp:** os botões de ação (Registrar pagamento, Confirmar, Vender,
+  Aprovar, Converter em venda, Liberar para venda, baixa do retorno do banco) ficaram azuis, na
+  cor da marca.
+- **Zero não comemora:** "Vendas de out/26 R$ 0,00" e "Em atraso R$ 0,00" (Início e contrato)
+  ficam na cor do texto, não em verde nem em vermelho.
+
+Para você fazer:
+
+- [ ] Passar por Imóveis, Corretores e Reservas no computador e no celular.
+
+`testes/telas-padrao.test.js` (6 casos).
+
+---
+
 ## 7z40. Confirmações dentro do app, no lugar da caixinha do navegador (21/10)
 
 Da avaliação de design: umas 30 confirmações de ações sérias apareciam na caixinha cinza do

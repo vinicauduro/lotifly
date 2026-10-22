@@ -60,8 +60,9 @@ function importarCompradores() {
   if (!podeEditarClientes()) { toast('🔒', 'Sem permissão', '', true); return; }
   const fora = compradoresForaDoCadastro(); if (!fora.length) return;
   fora.forEach(p => upsert('clientes', clienteDePessoa(p)));
-  logAct(`Cadastro de clientes: ${fora.length} comprador(es) trazido(s) dos contratos`);
-  renderCurrent(); toast('✅', 'Clientes cadastrados', `${fora.length} comprador(es) dos contratos.`);
+  const q = fora.length === 1 ? '1 comprador trazido' : `${fora.length} compradores trazidos`;
+  logAct(`Cadastro de clientes: ${q} dos contratos`);
+  renderCurrent(); toast('✅', 'Clientes cadastrados', `${q} dos contratos.`);
 }
 /* Ao salvar um contrato, os compradores entram no cadastro ou atualizam a ficha que já
    existe. Campo em branco no contrato não apaga o que a ficha já sabia. */
@@ -97,8 +98,17 @@ function renderClientes() {
     .sort((a, c2) => naturalCmp(a.nome || '', c2.nome || ''));
   const fora = edita ? compradoresForaDoCadastro() : [];
   const incompletos = db.clientes.filter(c => faltaQualificacao(c).length).length;
+  /* Cadastro vazio com compradores nos contratos: não mostra números zerados nem "Nenhum cliente";
+     a tela inteira vira o convite para trazer quem já comprou. */
+  if (!db.clientes.length && fora.length) {
+    v.innerHTML = `<div class="empty cli-trazer"><div class="ic"><i class=ico data-i=users></i></div>
+      <p><b>${fora.length === 1 ? '1 comprador dos contratos ainda não tem ficha' : `${fora.length} compradores dos contratos ainda não têm ficha`}</b></p>
+      <p class="small">Trazendo para o cadastro, os dados de cada um ficam guardados para os próximos contratos. Quem já tem ficha, pelo CPF, não é duplicado.</p>
+      <p class="btn-row" style="justify-content:center"><button class="btn btn-primary" onclick="importarCompradores()">${fora.length === 1 ? 'Trazer o comprador' : `Trazer os ${fora.length} compradores`}</button><button class="btn btn-secondary" onclick="abrirClienteForm()"><i class=ico data-i=plus></i>Novo cliente</button></p></div>`;
+    return;
+  }
   v.innerHTML = `
-    ${fora.length ? `<div class="alert info" onclick="importarCompradores()"><span><b>${fora.length} comprador(es) dos contratos ainda sem ficha.</b> Trazer para o cadastro? Quem já tem ficha, pelo CPF, não é duplicado. <u>Trazer agora</u></span><i class=ico data-i=caret-right></i></div>` : ''}
+    ${fora.length ? `<div class="alert info" onclick="importarCompradores()"><span><b>${fora.length === 1 ? '1 comprador dos contratos ainda sem ficha.' : `${fora.length} compradores dos contratos ainda sem ficha.`}</b> Trazer para o cadastro? Quem já tem ficha, pelo CPF, não é duplicado. <u>Trazer agora</u></span><i class=ico data-i=caret-right></i></div>` : ''}
     ${faixaHtml(GRUPOS.map(([k, l, fn]) => { const n = db.clientes.filter(fn).length; return { k: k === 'incompleto' ? 'aguardando' : k, l, n, v: k === 'incompleto' ? (n ? 'precisa completar' : 'todos prontos') : k === 'com' ? 'comprador em contrato' : k === 'sem' ? 'só no cadastro' : 'no cadastro', ativo: f.grupo === k, acao: `state.filters.clientes.grupo='${k}';renderClientes()` }; }), 'Clientes por situação')}
     <div class="filters"><input type="text" placeholder="Nome, CPF, telefone, e-mail ou cidade…" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
       ${edita ? '<button class="btn btn-primary btn-sm" onclick="abrirClienteForm()"><i class=ico data-i=plus></i>Novo cliente</button>' : ''}</div>
