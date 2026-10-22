@@ -28,6 +28,8 @@ function renderAdminTab() {
   else if (tab === 'relatorios') renderRelatorios();
   else if (tab === 'cadastros') renderCadastros();
   colocarTituloTela(tab);
+  /* A barra das selecionadas é da tela que está aberta */
+  if (typeof desenharBarra === 'function') setTimeout(desenharBarra, 0);
 }
 /* Toda tela do menu diz onde você está. Contratos e Imóveis montam o título com as ações
    deles; as outras ganham só o nome, em cima de tudo. */
@@ -175,21 +177,31 @@ function listaEmpreendimentosHtml() {
   /* Mesmo cabeçalho das outras telas (título e ações à direita) e a lista contínua, sem cartão
      em volta. */
   return `${tituloTela('Imóveis', (db.loteamentos.length ? '<button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Gerar tabela</button>' : '') + (podeCriar ? '<button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo imóvel</button>' : ''), 'Empreendimentos, com planta e lotes, e imóveis avulsos. Abra um para ver preços e situação.')}
-    ${db.loteamentos.length ? '<div class="lista">' : ''}${db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)).map(l => {
-      if (ehCarteira(l)) {
-        const vd = vendaAtivaDoImovel(l);
-        return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
-          <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">${esc(empLabel(l))}</span></div>
-          <div class="meta">${esc(l.cidade || '')}${l.matricula ? `<span>· matrícula ${esc(l.matricula)}</span>` : ''}${num(l.area) ? `<span>· ${fmtNum(l.area, 2)} m²</span>` : ''}${vd ? `<span>· vendido para ${esc(vd.cliente.nome)}</span>` : ''}</div>
-        </div><div class="side">${num(l.preco) ? `<div class="value">${fmtMoney(l.preco)}</div>` : '<div class="tiny muted">sem valor de venda</div>'}<span class="badge ${vd ? 'vendido' : 'disponivel'}">${vd ? 'Vendido' : 'Disponível'}</span></div></div>`;
-      }
-      const ls = lotesDo(l.id);
-      const pend = db.reservas.filter(r => r.loteamentoId === l.id && reservaStatus(r) === 'pendente').length;
-      return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
-        <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${nPlural(pend, 'reserva')} a aprovar</span>` : ''}</div>
-        <div class="meta">${esc(l.cidade || '')}<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span><span>· ${ls.filter(x => x.status === 'disponivel').length} disponíveis</span></div>
-      </div><div class="side"><span class="muted">›</span></div></div>`;
-    }).join('') || `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}${db.loteamentos.length ? '</div>' : ''}`;
+    ${db.loteamentos.length ? listaSelecionavel('imoveis', db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)), empLinhaHtml, opcoesSelImoveis())
+      : `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}`;
+}
+/* Uma linha por imóvel: o empreendimento com os números dos lotes, ou o imóvel avulso com o valor */
+function empLinhaHtml(l) {
+  if (ehCarteira(l)) {
+    const vd = vendaAtivaDoImovel(l);
+    return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
+      <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">${esc(empLabel(l))}</span></div>
+      <div class="meta">${esc(l.cidade || '')}${l.matricula ? `<span>· matrícula ${esc(l.matricula)}</span>` : ''}${num(l.area) ? `<span>· ${fmtNum(l.area, 2)} m²</span>` : ''}${vd ? `<span>· vendido para ${esc(vd.cliente.nome)}</span>` : ''}</div>
+    </div><div class="side">${num(l.preco) ? `<div class="value">${fmtMoney(l.preco)}</div>` : '<div class="tiny muted">sem valor de venda</div>'}<span class="badge ${vd ? 'vendido' : 'disponivel'}">${vd ? 'Vendido' : 'Disponível'}</span></div></div>`;
+  }
+  const ls = lotesDo(l.id);
+  const pend = db.reservas.filter(r => r.loteamentoId === l.id && reservaStatus(r) === 'pendente').length;
+  return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
+    <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${nPlural(pend, 'reserva')} a aprovar</span>` : ''}</div>
+    <div class="meta">${esc(l.cidade || '')}<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span><span>· ${ls.filter(x => x.status === 'disponivel').length} disponíveis</span></div>
+  </div><div class="side"><span class="muted">›</span></div></div>`;
+}
+function opcoesSelImoveis() {
+  return { titulo: 'Imóveis', rotulo: l => l.nome,
+    colunas: [['Nome', l => l.nome], ['Tipo', l => ehCarteira(l) ? empLabel(l) : 'Empreendimento'], ['Cidade', l => l.cidade || ''],
+      ['Lotes', l => ehCarteira(l) ? '' : String(lotesDo(l.id).length), true], ['Vendidos', l => ehCarteira(l) ? (vendaAtivaDoImovel(l) ? '1' : '0') : String(lotesDo(l.id).filter(x => x.status === 'vendido').length), true],
+      ['Disponíveis', l => ehCarteira(l) ? (vendaAtivaDoImovel(l) ? '0' : '1') : String(lotesDo(l.id).filter(x => x.status === 'disponivel').length), true]],
+    acoes: [{ rotulo: 'Excluir', icone: 'trash', perigo: true, pode: () => pode('config.editar'), fn: excluirImoveisEmLote }] };
 }
 function fabShow(action) { const f = $('#fab'); f.classList.add('show'); f.setAttribute('onclick', action); }
 
@@ -642,7 +654,13 @@ function renderAReservas(alvo) {
   v.innerHTML = `
     ${db.loteamentos.length > 1 ? `<div class="filters">${escopoSelectHtml('renderAReservas()')}</div>` : ''}
     ${faixaHtml([['ativas', 'Ativas'], ['pendente', 'Aguardando'], ['aprovada', 'Aprovadas'], ['expirada', 'Vencidas'], ['historico', 'Histórico']].map(([k, l]) => { const cs = all.filter(grupos[k]); return { k: k === 'expirada' ? 'atrasado' : k === 'pendente' && cs.length ? 'aguardando' : k, l, n: cs.length, v: cs.length && soma(cs) ? fmtMoneyShort(soma(cs)) + ' em propostas' : k === 'historico' ? 'encerradas' : '—', ativo: f.status === k, acao: `state.filters.ares.status='${k}';renderAReservas()` }; }), 'Reservas por situação')}
-    ${list.length ? `<div class="lista">${list.map(reservaLinhaHtml).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Nenhuma reserva nesta lista.</p></div>`}`;
+    ${list.length ? listaSelecionavel('reservas', list, reservaLinhaHtml, opcoesSelReservas()) : `<div class="empty"><div class="ic"><i class=ico data-i=note-pencil></i></div><p>Nenhuma reserva nesta lista.</p></div>`}`;
+}
+function opcoesSelReservas() {
+  const lote = r => { const l = getLote(r.loteId); return l ? loteLabel(l) : ''; };
+  return { titulo: 'Reservas', rotulo: r => `reserva de ${(r.cliente || {}).nome || ''}`, valor: r => (r.proposta || {}).valor,
+    colunas: [['Lote', lote], ['Empreendimento', r => (getLoteamento(r.loteamentoId) || {}).nome || ''], ['Cliente', r => (r.cliente || {}).nome || ''], ['Corretor', r => (r.corretor || {}).nome || ''],
+      ['Reservada em', r => fmtDate(r.dataReserva)], ['Vale até', r => r.validade ? fmtDate(r.validade) : ''], ['Situação', r => statusLabel(reservaStatus(r))], ['Proposta', r => num((r.proposta || {}).valor) ? fmtMoney(r.proposta.valor) : '', true]] };
 }
 /* Uma linha por reserva: até quando vale (e o aviso se vence ou venceu), o lote e o cliente, o
    corretor, e a proposta. Aguardando aprovação vem destacada: é o que espera o escritório. */
@@ -873,8 +891,15 @@ function renderAVendas() {
     <div class="filters ct-filtros">${escopoSelectHtml('renderAVendas()')}<input type="text" placeholder="Cliente, imóvel, nº do contrato ou corretor…" value="${esc(f.busca)}" oninput="aSetFiltro('avendas','busca',this.value,renderAVendas,this)">
       <select aria-label="Ordem da lista" onchange="state.filters.avendas.ordem=this.value;renderAVendas()">${CT_ORDENS.map(([k, l]) => `<option value="${k}" ${f.ordem === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     ${list.length ? `<p class="small muted mb">${list.length} contrato${list.length === 1 ? '' : 's'} · ${fmtMoney(soma(list, c => num(c.x.valorTotal)))} vendido${list.some(c => c.sit.r.restante > 0.005) ? ` · ${fmtMoney(soma(list, c => c.x.status === 'distrato' ? 0 : c.sit.r.restante))} a receber` : ''}</p>
-      <div class="ct-lista">${list.map(c => vendaCardHtml(c.x, c.sit)).join('')}</div>`
+      ${listaSelecionavel('contratos', list, c => vendaCardHtml(c.x, c.sit), opcoesSelContratos())}`
       : `<div class="empty"><div class="ic"><i class=ico data-i=file-text></i></div><p>${all.length ? 'Nenhum contrato nesta situação.' : 'Nenhum contrato ainda.<br>Converta uma reserva ou registre um contrato novo.'}</p></div>`}`;
+}
+function opcoesSelContratos() {
+  const sit = { atrasado: 'Atrasado', emdia: 'Em dia', quitado: 'Quitado', distrato: 'Distrato' };
+  return { titulo: 'Contratos', classe: 'ct-lista', id: c => c.x.id, rotulo: c => `contrato ${c.x.numeroContrato || 'sem número'} de ${c.x.cliente.nome}`, valor: c => c.x.valorTotal,
+    colunas: [['Contrato', c => c.x.numeroContrato || 'sem nº'], ['Comprador', c => c.x.cliente.nome], ['Imóvel', c => imovelLabel(c.x)], ['Empreendimento', c => (getLoteamento(c.x.loteamentoId) || {}).nome || ''],
+      ['Corretor', c => (c.x.corretor || {}).nome || ''], ['Venda', c => fmtDate(c.x.dataVenda)], ['Valor', c => fmtMoney(c.x.valorTotal), true], ['Saldo', c => c.x.status === 'distrato' ? '' : fmtMoney(c.sit.r.restante), true], ['Situação', c => sit[c.sit.tipo] || '']],
+    acoes: [{ rotulo: 'Excluir', icone: 'trash', perigo: true, pode: () => pode('vendas.distrato'), fn: itens => excluirVendasEmLote(itens.map(c => c.x)) }] };
 }
 /* Uma linha por contrato: quando vence e se está atrasado; qual é o contrato, de quem e do
    quê; quantas parcelas já foram pagas; e o valor do contrato, com o saldo embaixo. */
@@ -1355,6 +1380,10 @@ function confirmarExclusaoVenda(id) {
   const x = getVenda(id); if (!x) return;
   if (val('exVenda').trim().toUpperCase() !== 'EXCLUIR') { toast('⚠️', 'Escreva EXCLUIR', 'A palavra confirma que você quer mesmo apagar.', true); return; }
   const nome = x.cliente.nome, imovel = imovelLabel(x);
+  apagarVenda(x);
+  closeModal(); renderCurrent(); toast('🗑️', 'Contrato excluído', `${imovel} — ${nome}`);
+}
+function apagarVenda(x) {
   recebiveisDe(x.id).forEach(r => removeRec('recebiveis', r.id));
   db.cobrancas.filter(c => c.vendaId === x.id).forEach(c => removeRec('cobrancas', c.id));
   // a despesa já foi gasta: fica no empreendimento, só perde o vínculo com o contrato
@@ -1362,8 +1391,21 @@ function confirmarExclusaoVenda(id) {
   const l = x.loteId ? getLote(x.loteId) : null;
   if (l && l.vendaId === x.id) upsert('lotes', Object.assign({}, l, { status: 'disponivel', vendaId: null, reservaId: null }));
   removeRec('vendas', x.id);
-  logAct(`Contrato excluído: ${imovel} — ${nome}`);
-  closeModal(); renderCurrent(); toast('🗑️', 'Contrato excluído', `${imovel} — ${nome}`);
+  logAct(`Contrato excluído: ${imovelLabel(x)} — ${x.cliente.nome}`);
+}
+/* Vários contratos de uma vez: o mesmo aviso do contrato sozinho (parcelas que vão junto e o
+   dinheiro já recebido que some dos relatórios) e EXCLUIR digitado. */
+async function excluirVendasEmLote(vendas) {
+  if (!pode('vendas.distrato')) { toast('🔒', 'Sem permissão', 'Excluir contratos pede "fazer distrato".', true); return; }
+  const recs = vendas.flatMap(x => recebiveisDe(x.id)), pago = recs.reduce((s, r) => s + num(r.valorPago), 0);
+  const lotes = vendas.filter(x => x.loteId && (getLote(x.loteId) || {}).vendaId === x.id).length;
+  if (!(await confirmar({ titulo: `Excluir ${nPlural(vendas.length, 'contrato')}?`, texto: 'Não dá para desfazer.',
+    valores: [['Parcelas apagadas', String(recs.length)], ['Já recebido', pago > 0.005 ? fmtMoney(pago) : 'nada', pago > 0.005]].concat(lotes ? [['Lotes que voltam a ficar disponíveis', String(lotes)]] : []),
+    itens: pago > 0.005 ? ['O dinheiro já recebido some dos relatórios e do caixa. Se o negócio foi desfeito e você precisa do histórico, use o distrato em cada contrato.'] : [],
+    digitar: 'EXCLUIR', acao: `Excluir ${nPlural(vendas.length, 'contrato')}`, perigo: true }))) return;
+  vendas.forEach(apagarVenda);
+  selLimpar('contratos'); renderCurrent();
+  toast('🗑️', `${nPlural(vendas.length, 'contrato excluído', 'contratos excluídos')}`, vendas.map(x => x.cliente.nome).slice(0, 3).join(', ') + (vendas.length > 3 ? '…' : ''));
 }
 
 // ================================================================ CADASTROS
@@ -1593,12 +1635,34 @@ async function excluirLoteamento(id) {
   if (!(await confirmar({ titulo: `Excluir "${l.nome}"?`, texto: 'Isto não tem volta. Vai junto tudo o que é dele:',
     valores: (ehCarteira(l) ? [] : [['Lotes', String(conta.lotes)], ['Reservas', String(conta.reservas)]]).concat([['Contratos e parcelas', String(conta.vendas)], ['Despesas', String(conta.custos)]]),
     itens: ['Se quiser guardar o histórico, faça um backup antes em Configurações › Sistema › Backup.'], digitar: l.nome, acao: 'Excluir tudo', perigo: true }))) return;
+  apagarLoteamento(id);
+  closeModal(); renderCurrent(); toast('🗑️', 'Imóvel excluído', `${empLabel(l)} · ${l.nome}`);
+}
+function contagemDoImovel(id) {
+  return { lotes: db.lotes.filter(x => x.loteamentoId === id).length, reservas: db.reservas.filter(x => x.loteamentoId === id).length, vendas: db.vendas.filter(x => x.loteamentoId === id).length, custos: db.custos.filter(x => x.loteamentoId === id).length };
+}
+function apagarLoteamento(id) {
+  const l = getLoteamento(id); if (!l) return;
   db.lotes.filter(x => x.loteamentoId === id).forEach(x => removeRec('lotes', x.id));
   db.reservas.filter(x => x.loteamentoId === id).forEach(x => removeRec('reservas', x.id));
   db.vendas.filter(x => x.loteamentoId === id).forEach(x => { recebiveisDe(x.id).forEach(r => removeRec('recebiveis', r.id)); removeRec('vendas', x.id); });
   db.custos.filter(x => x.loteamentoId === id).forEach(x => removeRec('custos', x.id));
-  removeRec('loteamentos', id); state.lotId = null; state.plantaAdmin = null; state.plantaCorretor = null;
-  closeModal(); renderCurrent(); toast('🗑️', 'Imóvel excluído', `${empLabel(l)} · ${l.nome}`);
+  removeRec('loteamentos', id);
+  if (state.lotId === id) { state.lotId = null; state.plantaAdmin = null; state.plantaCorretor = null; }
+  logAct(`Imóvel excluído: ${empLabel(l)} · ${l.nome}`);
+}
+/* Vários de uma vez: mostra o que vai junto de todos e pede EXCLUIR digitado. Pelo menos um
+   imóvel fica (como na exclusão de um só). */
+async function excluirImoveisEmLote(itens) {
+  if (!pode('config.editar')) { toast('🔒', 'Sem permissão', 'Excluir imóveis pede "alterar configurações".', true); return; }
+  if (itens.length >= db.loteamentos.length) { avisar({ titulo: 'Fica pelo menos um imóvel', texto: 'O sistema precisa de pelo menos um imóvel cadastrado. Desmarque um deles e exclua os outros.' }); return; }
+  const t = itens.reduce((s, l) => { const c = contagemDoImovel(l.id); Object.keys(c).forEach(k => s[k] += c[k]); return s; }, { lotes: 0, reservas: 0, vendas: 0, custos: 0 });
+  if (!(await confirmar({ titulo: `Excluir ${nPlural(itens.length, 'imóvel', 'imóveis')}?`, texto: 'Isto não tem volta. Vai junto tudo o que é deles:',
+    valores: [['Imóveis', itens.map(l => l.nome).slice(0, 5).join(', ') + (itens.length > 5 ? ` e mais ${itens.length - 5}` : '')], ['Lotes', String(t.lotes)], ['Reservas', String(t.reservas)], ['Contratos e parcelas', String(t.vendas), t.vendas > 0], ['Despesas', String(t.custos)]],
+    itens: ['Se quiser guardar o histórico, faça um backup antes em Configurações › Sistema › Backup.'], digitar: 'EXCLUIR', acao: `Excluir ${nPlural(itens.length, 'imóvel', 'imóveis')}`, perigo: true }))) return;
+  itens.forEach(l => apagarLoteamento(l.id));
+  selLimpar('imoveis'); renderCurrent();
+  toast('🗑️', `${nPlural(itens.length, 'imóvel excluído', 'imóveis excluídos')}`, itens.map(l => l.nome).slice(0, 3).join(', ') + (itens.length > 3 ? '…' : ''));
 }
 function cadLoteamentosHtml() {
   return `<div class="card"><h2>Loteamentos <span class="h-actions"><button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo</button></span></h2>

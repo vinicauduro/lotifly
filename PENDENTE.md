@@ -760,6 +760,43 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z45. Seleção em lote nas listas, 30 por vez (22/10)
+
+Pedido seu: caixinhas para selecionar, "Selecionar todas", 30 itens por tela carregando mais ao
+rolar, e embaixo o que fazer com as selecionadas.
+
+- **Telas:** Imóveis, Contratos, Clientes, Reservas, A receber e A pagar.
+- **Caixinha em cada linha** e **"Selecionar todas (N)"** no alto. "Todas" pega a lista
+  inteira do filtro, inclusive o que ainda não apareceu na tela. Marcando só algumas, a caixinha
+  de cima fica pela metade.
+- **30 de cada vez:** o alto diz "mostrando 30 de 120". Chegando no fim, vêm mais 30 sozinhos;
+  o botão "Mostrar mais" faz o mesmo.
+- **Barra embaixo** com quantas estão marcadas e o total em reais, e as ações:
+  - em todas as telas: **Imprimir** (tabela das selecionadas) e **Planilha (CSV)**;
+  - **A pagar:** **Pagar** (cada uma no próprio vencimento ou todas numa data, saindo da conta do
+    caixa escolhida, com Desfazer) e **Excluir**;
+  - **Contratos:** **Excluir** (mostra as parcelas e o dinheiro já recebido que somem e pede
+    EXCLUIR digitado, como o contrato sozinho);
+  - **Clientes:** **Excluir** (some só a ficha; os contratos não mudam);
+  - **Imóveis:** **Excluir** (vai junto o que é deles, com EXCLUIR digitado; fica pelo menos um).
+- O que sai do filtro sai da seleção: "Excluir" nunca pega o que não está à vista. Trocando de
+  tela, a barra some.
+- Cada exclusão segue a permissão da pessoa (a mesma de excluir um só).
+
+Para você fazer:
+
+- [ ] Abrir A pagar, marcar algumas contas e testar Pagar, Imprimir e Planilha.
+- [ ] Dizer se quer mais ações na barra. Ideias: **enviar cobrança pelo WhatsApp** (A receber e
+  Cobrança), **registrar pagamento de várias parcelas**, **gerar boletos das selecionadas**,
+  **mudar a conta do plano** de várias despesas, **aprovar ou recusar reservas**.
+
+As **Outras receitas** (etapa 2 do financeiro, em andamento) ganham a mesma seleção quando
+forem publicadas.
+
+`testes/selecao-lote.test.js` (13 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z44. Caixa e bancos: etapa 1 do financeiro (22/10)
 
 Decidido com você: caixa **separado por empresa**, saldo a partir de uma **data de corte**, e
