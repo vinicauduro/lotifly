@@ -516,6 +516,7 @@ begin
   delete from public.cobrancas where org_id = p_org;
   delete from public.remessas where org_id = p_org;
   delete from public.movimentos where org_id = p_org;
+  delete from public.receitas where org_id = p_org;
   delete from public.contas_caixa where org_id = p_org;
   delete from public.contas_banco where org_id = p_org;
   delete from public.modelos where org_id = p_org;
@@ -1163,6 +1164,7 @@ begin
   delete from public.cobrancas where org_id = p_org;
   delete from public.remessas where org_id = p_org;
   delete from public.movimentos where org_id = p_org;
+  delete from public.receitas where org_id = p_org;
   delete from public.contas_caixa where org_id = p_org;
   delete from public.contas_banco where org_id = p_org;
   delete from public.modelos where org_id = p_org;
@@ -1345,3 +1347,62 @@ begin
 end $$;
 revoke all on public.contas_caixa, public.movimentos from anon;
 revoke execute on function public.contas_caixa_permissoes(), public.movimentos_permissoes() from public, anon;
+
+-- ---------------------------------------------------------------------
+-- 12. Receitas avulsas: o que entra fora das parcelas dos contratos
+-- ---------------------------------------------------------------------
+-- Comissões de corretagem da imobiliária, taxa de termo de cessão, rendimentos de aplicação,
+-- aporte de sócios, empréstimos e as receitas que a empresa criar. O tipo (tipo_id) vem da
+-- lista em organizacoes.config.tiposReceita; aporte e empréstimo entram no caixa, mas não no
+-- resultado. empresa_id: vazio é a empresa principal; senão, o id em vendedores.
+create table if not exists public.receitas (
+  org_id           uuid not null references public.organizacoes(id) on delete cascade,
+  id               text not null,
+  tipo_id          text not null default 'outras',
+  descricao        text not null default '',
+  pagador          text not null default '',
+  valor            double precision not null default 0,
+  empresa_id       text not null default '',
+  loteamento_id    text,
+  venda_id         text,
+  data_competencia date,
+  vencimento       date,
+  status           text not null default 'aberto' check (status in ('aberto','recebido')),
+  data_recebimento date,
+  forma            text,
+  obs              text not null default '',
+  criado_em        timestamptz not null default now(),
+  primary key (org_id, id)
+);
+alter table public.receitas enable row level security;
+drop policy if exists receitas_select on public.receitas;
+drop policy if exists receitas_write on public.receitas;
+create policy receitas_select on public.receitas for select to authenticated using (public.eh_financeiro(org_id));
+create policy receitas_write on public.receitas for all to authenticated using (public.eh_financeiro(org_id)) with check (public.eh_financeiro(org_id));
+
+-- Lançar, receber ou excluir receita pede "registrar pagamentos".
+create or replace function public.receitas_permissoes()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_org uuid := coalesce(new.org_id, old.org_id);
+begin
+  if public.limpando_dados() or auth.uid() is null then return coalesce(new, old); end if;
+  if tg_op = 'INSERT' and exists (select 1 from public.receitas where org_id = new.org_id and id = new.id) then return new; end if;
+  if tg_op = 'UPDATE' and public.colunas_mudadas(to_jsonb(new), to_jsonb(old)) = '{}' then return new; end if;
+  perform public.exigir_permissao(v_org, array['financeiro.baixar'], 'lançar receitas');
+  return coalesce(new, old);
+end $$;
+drop trigger if exists receitas_permissoes on public.receitas;
+create trigger receitas_permissoes before insert or update or delete on public.receitas
+  for each row execute function public.receitas_permissoes();
+
+alter table public.movimentos add column if not exists receita_id text;
+alter table public.receitas replica identity full;
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'receitas') then
+    alter publication supabase_realtime add table public.receitas;
+  end if;
+end $$;
+revoke all on public.receitas from anon;
+revoke execute on function public.receitas_permissoes() from public, anon;

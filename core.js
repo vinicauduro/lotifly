@@ -423,10 +423,10 @@ function defaultDB() {
     meta: { version: 1, createdAt: new Date().toISOString() },
     config: defaultConfig(),
     loteamentos: [], lotes: [], reservas: [], vendas: [], recebiveis: [], custos: [],
-    categorias: defaultCategorias(), corretores: [], vendedores: [], clientes: [], modelos: [], indices: [], cobrancas: [], contasBanco: [], remessas: [], contasCaixa: [], movimentos: [], log: []
+    categorias: defaultCategorias(), corretores: [], vendedores: [], clientes: [], modelos: [], indices: [], cobrancas: [], contasBanco: [], remessas: [], contasCaixa: [], movimentos: [], receitas: [], log: []
   };
 }
-const COLLECTIONS = ['loteamentos', 'lotes', 'reservas', 'vendas', 'recebiveis', 'custos', 'categorias', 'corretores', 'vendedores', 'clientes', 'modelos', 'indices', 'cobrancas', 'contasBanco', 'remessas', 'contasCaixa', 'movimentos', 'log'];
+const COLLECTIONS = ['loteamentos', 'lotes', 'reservas', 'vendas', 'recebiveis', 'custos', 'categorias', 'corretores', 'vendedores', 'clientes', 'modelos', 'indices', 'cobrancas', 'contasBanco', 'remessas', 'contasCaixa', 'movimentos', 'receitas', 'log'];
 function normalizeDB(data) {
   const d = data && typeof data === 'object' ? data : {};
   d.meta = d.meta || { version: 1 };
@@ -525,12 +525,13 @@ const TABLE_COLS = {
   cobrancas: ['id', 'vendaId', 'loteamentoId', 'data', 'canal', 'faixa', 'dias', 'valor', 'obs', 'quem', 'criadoEm'],
   remessas: ['id', 'loteamentoId', 'contaId', 'sequencial', 'data', 'arquivo', 'qtd', 'baixas', 'valor', 'recIds', 'primeiroNn', 'ultimoNn', 'criadoEm'],
   contasCaixa: ['id', 'nome', 'tipo', 'banco', 'empresaId', 'contaBancoId', 'saldoInicial', 'dataSaldo', 'ativa', 'criadoEm'],
-  movimentos: ['id', 'contaId', 'data', 'valor', 'natureza', 'descricao', 'recebivelId', 'custoId', 'vendaId', 'transferenciaId', 'obs', 'criadoEm'],
+  movimentos: ['id', 'contaId', 'data', 'valor', 'natureza', 'descricao', 'recebivelId', 'custoId', 'vendaId', 'transferenciaId', 'receitaId', 'obs', 'criadoEm'],
+  receitas: ['id', 'tipoId', 'descricao', 'pagador', 'valor', 'empresaId', 'loteamentoId', 'vendaId', 'dataCompetencia', 'vencimento', 'status', 'dataRecebimento', 'forma', 'obs', 'criadoEm'],
   log: ['id', 'ts', 'who', 'msg']
 };
 /* Tabelas criadas depois da primeira versão do schema: se faltarem, o app segue sem elas. */
-const TABELAS_NOVAS = ['clientes', 'contasCaixa', 'movimentos'];
-const NULLABLE_EMPTY = new Set(['loteamentoId', 'centroId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area', 'dataSaldo', 'recebivelId', 'custoId', 'transferenciaId']);
+const TABELAS_NOVAS = ['clientes', 'contasCaixa', 'movimentos', 'receitas'];
+const NULLABLE_EMPTY = new Set(['loteamentoId', 'centroId', 'validade', 'aprovadaEm', 'encerradaEm', 'dataEntrada', 'primeiroVencimento', 'comissaoData', 'distratoEm', 'dataPagamento', 'vencimento', 'reservaId', 'vendaId', 'loteId', 'categoriaId', 'forma', 'frente', 'fundos', 'planta', 'pts', 'proposta', 'corretorUserId', 'preco', 'area', 'dataSaldo', 'recebivelId', 'custoId', 'transferenciaId', 'receitaId', 'dataRecebimento', 'dataCompetencia']);
 const INT_FIELDS = new Set(['nParcelas', 'numero']);
 function snakeKey(k) { return k.replace(/[A-Z]/g, m => '_' + m.toLowerCase()); }
 /* No aplicativo a coleção é camelCase (contasBanco); no Postgres a tabela é snake_case

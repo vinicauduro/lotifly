@@ -760,6 +760,49 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z46. Receitas avulsas: etapa 2 do financeiro (22/10)
+
+Decidido com você: taxa de termo de cessão, comissões da imobiliária, rendimentos, aporte e
+empréstimo, e um campo para você criar os tipos de receita que precisar.
+
+- **A receber › Outras receitas** (aba ao lado de "Parcelas dos contratos"): faixa Todas, A
+  receber, Vencidas e Recebidas; filtro por tipo e busca; botão **Lançar receita**.
+- **Tipos de fábrica:**
+  - Comissões de corretagem;
+  - Taxa de termo de cessão;
+  - Rendimentos de aplicação;
+  - Aporte de sócios (fora do resultado);
+  - Empréstimos recebidos (fora do resultado);
+  - Outras receitas.
+- **Tipo novo:** no próprio lançamento ("+ Criar novo tipo…") ou em Configurações › Plano de
+  contas › Receitas avulsas. Marcando "Não é lucro", ele fica fora do resultado, como o aporte.
+- **Lançar:** tipo, de quem, descrição, valor, empresa que recebe (com mais de uma empresa no
+  grupo), empreendimento (opcional), competência, vencimento, e já recebida ou a receber.
+- **Receber:** data, forma e **"Entrou na conta"** do caixa, com Desfazer. Também dá para receber
+  várias de uma vez pela barra das selecionadas.
+- **Caixa:** recebida, a receita entra na conta escolhida. Excluir ou reabrir tira do caixa.
+- **Balancete:**
+  - cada tipo vira uma linha de receita;
+  - a taxa de cessão avulsa soma com as taxas de cessão dos contratos;
+  - **aporte e empréstimo ficam numa parte separada, "Fora do resultado"**: entraram no caixa,
+    mas não são lucro.
+  - No regime de caixa vale a data do recebimento; no de competência, a competência.
+- **Resumo gerencial:** "Outras receitas recebidas no período", "Aportes e empréstimos
+  recebidos" e o caixa do período somando tudo.
+
+Para você fazer:
+
+- [ ] **Rodar de novo o `supabase/schema.sql` no Supabase.** Ele cria a tabela `receitas`, com a
+  trava de permissão. Até lá, a aba Outras receitas avisa que falta atualizar o banco.
+- [ ] Lançar uma comissão de corretagem e um aporte, receber e conferir o caixa e o balancete.
+
+Quem pode: lançar, receber e excluir receitas pede "registrar pagamentos"; criar tipo novo pede
+"alterar configurações".
+
+`testes/receitas-avulsas.test.js` (12 casos) e um caso novo em `testes/permissoes-banco.test.mjs`.
+
+---
+
 ## 7z45. Seleção em lote nas listas, 30 por vez (22/10)
 
 Pedido seu: caixinhas para selecionar, "Selecionar todas", 30 itens por tela carregando mais ao
