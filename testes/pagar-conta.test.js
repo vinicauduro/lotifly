@@ -64,7 +64,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     if (r.barra && !/Em atraso no mês/.test(r.barra)) throw new Error('barra: ' + r.barra);
     if (!/todos os meses/.test(r.atr)) throw new Error('atrasadas: ' + r.atr);
     if (r.cobBarra) throw new Error('Cobrança ainda tem a barra do mês');
-    if (r.resumo && !/somando todos os meses/.test(r.resumo)) throw new Error('resumo: ' + r.resumo);
+    if (r.resumo && !/todos os meses/.test(r.resumo)) throw new Error('resumo: ' + r.resumo);
   });
   await browser.close();
   if (erros.length) { console.log('\nERROS:\n' + erros.join('\n')); process.exit(1); }

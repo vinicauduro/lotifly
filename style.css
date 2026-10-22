@@ -1121,3 +1121,5 @@ svg.area-miuda .lote-area { display: none; }
 /* Item simples (Imóveis, Corretores) dentro da lista contínua: linha, não cartão dentro de cartão. */
 .lista > .item:not(.linha) { margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
 .lista > .item:last-child { border-bottom: 0; }
+/* Segunda linha do resumo: o número do mês, mais discreto que o da carteira. */
+.ct-resumo.ct-resumo-sub { font-size: 0.78rem; margin-top: -6px; }
