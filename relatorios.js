@@ -100,6 +100,10 @@ function relResumo(escopo) {
   const vgv = ls.reduce((s, l) => s + num(l.preco), 0);
   const vendido = ls.filter(l => l.status === 'vendido').length;
   const comissoes = vendas.reduce((s, v) => s + num(v.comissaoValor), 0);
+  /* Receitas avulsas recebidas no período: as de resultado e as que só passam pelo caixa */
+  const avulsas = receitasDo(escopo).filter(x => x.status === 'recebido' && noPeriodo(x.dataRecebimento));
+  const avResultado = avulsas.filter(x => getTipoReceita(x.tipoId).resultado !== false).reduce((s, x) => s + num(x.valor), 0);
+  const avFora = avulsas.filter(x => getTipoReceita(x.tipoId).resultado === false).reduce((s, x) => s + num(x.valor), 0);
   const linhas = [
     ['Lotes cadastrados', String(ls.length)],
     ['Vendidos', `${vendido} (${ls.length ? fmtNum(vendido / ls.length * 100, 1) : '0,0'}%)`],
@@ -109,12 +113,14 @@ function relResumo(escopo) {
     ['Vendas no período', `${vendas.length} · ${fmtMoney(vendas.reduce((s, v) => s + num(v.valorTotal), 0))}`],
     ['Distratos no período', `${distratos.length} · ${fmtMoney(distratos.reduce((s, v) => s + num(v.valorTotal), 0))}`],
     ['Recebido no período', fmtMoney(recebido)],
+    ...(avResultado > 0.005 ? [['Outras receitas recebidas no período', fmtMoney(avResultado)]] : []),
+    ...(avFora > 0.005 ? [['Aportes e empréstimos recebidos no período', fmtMoney(avFora)]] : []),
     ['A receber (carteira)', fmtMoney(aReceber)],
     ['Em atraso', fmtMoney(atraso)],
     ['Comissões das vendas do período', fmtMoney(comissoes)],
     ['Custos no período', fmtMoney(custoPeriodo)],
     ['Custos pagos no período', fmtMoney(custoPago)],
-    ['Caixa do período (recebido - custos pagos)', fmtMoney(recebido - custoPago)]
+    ['Caixa do período (recebido + outras receitas - custos pagos)', fmtMoney(recebido + avResultado + avFora - custoPago)]
   ];
   const cols = [{ t: 'Indicador' }, { t: 'Valor', num: true }];
   return {
@@ -136,6 +142,18 @@ function relResumo(escopo) {
    Competência: receitas pelo vencimento das parcelas e despesas pelo mês de competência,
    pagas ou não; comissão no mês da venda. */
 const LINHAS_RECEITA = [['entrada', 'Entradas (sinal)'], ['parcela', 'Parcelas'], ['balao', 'Reforços'], ['taxa', 'Taxas de cessão'], ['encargos', 'Correção, juros e multas'], ['outras', 'Outras receitas']];
+/* As linhas de receita do balancete: as dos contratos, uma por tipo de receita avulsa que é
+   resultado (corretagem, rendimentos, as criadas pela empresa) e "Outras receitas" no fim.
+   Taxa de cessão avulsa soma na linha das taxas de cessão. */
+function linhasReceitaBalancete() {
+  const proprias = tiposReceita().filter(t => t.resultado !== false && !t.linha).map(t => [linhaDoTipoReceita(t), t.nome]);
+  return LINHAS_RECEITA.filter(l => l[0] !== 'outras').concat(proprias, LINHAS_RECEITA.filter(l => l[0] === 'outras'));
+}
+/* Receita avulsa vira lançamento: aporte e empréstimo (fora do resultado) ficam à parte */
+function lancamentoReceitaAvulsa(x, data) {
+  const t = getTipoReceita(x.tipoId);
+  return { data, tipo: t.resultado === false ? 'fora' : 'receita', linha: t.resultado === false ? 'rt:' + t.id : linhaDoTipoReceita(t), valor: num(x.valor), centro: centroDe(x) };
+}
 function lancamentosBalancete(escopo, regime) {
   const out = [];
   const linhaRec = r => (LINHAS_RECEITA.some(l => l[0] === r.tipo) && r.tipo !== 'encargos' ? r.tipo : 'outras');
@@ -150,6 +168,7 @@ function lancamentosBalancete(escopo, regime) {
       .forEach(c => out.push({ data: c.dataPagamento, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor), centro: centroDoCusto(c) }));
     vendasDo(escopo).filter(v => v.comissaoPaga && num(v.comissaoValor) > 0 && noPeriodo(v.comissaoData))
       .forEach(v => out.push({ data: v.comissaoData, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor), centro: centroDe(v) }));
+    receitasDo(escopo).filter(x => x.status === 'recebido' && noPeriodo(x.dataRecebimento)).forEach(x => out.push(lancamentoReceitaAvulsa(x, x.dataRecebimento)));
   } else {
     recebiveisDo(escopo).filter(r => noPeriodo(r.vencimento)).forEach(r => {
       out.push({ data: r.vencimento, tipo: 'receita', linha: linhaRec(r), valor: num(r.valor), centro: centroDe(r) });
@@ -160,6 +179,7 @@ function lancamentosBalancete(escopo, regime) {
       .forEach(c => out.push({ data: c.dataCompetencia, tipo: 'despesa', linha: grupoDoCusto(c), sub: c.categoriaId, valor: num(c.valor), centro: centroDoCusto(c) }));
     vendasDo(escopo).filter(v => v.status !== 'distrato' && num(v.comissaoValor) > 0 && noPeriodo(v.dataVenda))
       .forEach(v => out.push({ data: v.dataVenda, tipo: 'despesa', linha: 'comissoes', valor: num(v.comissaoValor), centro: centroDe(v) }));
+    receitasDo(escopo).filter(x => noPeriodo(x.dataCompetencia)).forEach(x => out.push(lancamentoReceitaAvulsa(x, x.dataCompetencia)));
   }
   /* Um centro de custo da empresa escolhido (sem empreendimento no alto da tela): só ele */
   const centro = !escopo && centroDoFiltro();
@@ -204,7 +224,7 @@ function relBalancete(escopo) {
   /* As linhas, na ordem do balancete: seção, contas, total. Linha zerada no período some. */
   const linhas = [];
   linhas.push({ classe: 'sec', rot: 'Receitas' });
-  LINHAS_RECEITA.forEach(([k, rot]) => { const v = porColuna(l => l.tipo === 'receita' && l.linha === k); if (Math.abs(v[v.length - 1]) > 0.005) linhas.push({ classe: 'conta', rot, v }); });
+  linhasReceitaBalancete().forEach(([k, rot]) => { const v = porColuna(l => l.tipo === 'receita' && l.linha === k); if (Math.abs(v[v.length - 1]) > 0.005) linhas.push({ classe: 'conta', rot, v }); });
   linhas.push({ classe: 'tot', rot: 'Receita total', v: receita });
   linhas.push({ classe: 'sec', rot: 'Despesas' });
   gruposDespesa().forEach(([g, rot]) => {
@@ -219,6 +239,12 @@ function relBalancete(escopo) {
   });
   linhas.push({ classe: 'tot', rot: 'Despesa total', v: despesa });
   linhas.push({ classe: 'res', rot: totRes >= 0 ? 'Resultado do período: lucro' : 'Resultado do período: prejuízo', v: resultado });
+  /* Aporte e empréstimo: entraram no caixa, mas não são lucro. Ficam embaixo, à parte. */
+  const fora = tiposReceita().filter(t => t.resultado === false).map(t => [t.nome, porColuna(l => l.tipo === 'fora' && l.linha === 'rt:' + t.id)]).filter(([, v]) => Math.abs(v[v.length - 1]) > 0.005);
+  if (fora.length) {
+    linhas.push({ classe: 'sec', rot: 'Fora do resultado (entrou no caixa, não é lucro)' });
+    fora.forEach(([rot, v]) => linhas.push({ classe: 'conta', rot, v, semPct: true }));
+  }
   const cols = [{ t: 'Conta' }].concat(col.chaves.map(k => ({ t: col.rotulo(k), num: true })), [{ t: col.chaves.length > 1 ? 'Total' : 'Valor', num: true }, { t: '% da receita', num: true }]);
   const umaColuna = col.chaves.length <= 1 && !col.porCentro;
   const cel = (v, i, l) => {
@@ -230,7 +256,7 @@ function relBalancete(escopo) {
     <thead><tr><th>Conta</th>${umaColuna ? '' : col.chaves.map(k => `<th class="num">${esc(col.rotulo(k))}</th>`).join('')}<th class="num">${umaColuna ? 'Valor' : 'Total'}</th><th class="num">% da receita</th></tr></thead>
     <tbody>${linhas.map(l => l.classe === 'sec'
       ? `<tr class="bal-sec"><td colspan="${(umaColuna ? 0 : col.chaves.length) + 3}">${esc(l.rot)}</td></tr>`
-      : `<tr class="bal-${l.classe}"><td>${esc(l.rot)}</td>${l.v.map((_, i) => cel(l.v, i, l)).filter(Boolean).join('')}<td class="num">${pct(l.v[l.v.length - 1])}</td></tr>`).join('')}</tbody>
+      : `<tr class="bal-${l.classe}"><td>${esc(l.rot)}</td>${l.v.map((_, i) => cel(l.v, i, l)).filter(Boolean).join('')}<td class="num">${l.semPct ? '—' : pct(l.v[l.v.length - 1])}</td></tr>`).join('')}</tbody>
   </table></div></div>` : `<div class="empty"><div class="ic"><i class=ico data-i=file-text></i></div><p>Nada ${regime === 'caixa' ? 'recebido nem pago' : 'lançado'} neste período.</p></div>`;
   /* O que o regime deixa de fora, para ninguém confundir caixa com resultado */
   const naoPagas = regime === 'caixa' ? custosDo(escopo).filter(c => c.status !== 'pago' && noPeriodo(c.dataCompetencia)).reduce((s, c) => s + num(c.valor), 0) : 0;
@@ -246,10 +272,11 @@ function relBalancete(escopo) {
     emp ? `Só o empreendimento <b>${esc(emp.nome)}</b>: as despesas da empresa sem empreendimento (escritório, folha) não entram. Para o resultado da empresa inteira, escolha "Todos" no alto da tela.` : '',
     !emp && centro ? `Só o centro de custo <b>${esc(nomeCentro(centro))}</b>: as despesas lançadas nele${centro === CENTRO_ADM ? ' (as da empresa sem outro centro)' : ''}. As receitas dos contratos são dos empreendimentos, por isso não aparecem aqui.` : '',
     col.porCentro ? 'Cada coluna é um centro de custo: as receitas e comissões vão para o empreendimento do contrato, e cada despesa para o centro escolhido no lançamento. O resultado da Administração e dos outros centros da empresa costuma ser negativo, porque eles só gastam: é o custo da estrutura que os empreendimentos sustentam.' : '',
+    fora.length ? 'Aporte de sócios e empréstimos entraram no caixa, mas não são receita: ficam fora do resultado, na última parte da tabela.' : '',
     'As comissões vêm da marcação "paga" nos contratos. Se a comissão também foi lançada como despesa, ela aparece duas vezes: deixe só uma.',
     temFolha ? '' : 'Para ver a folha separada, lance salários e encargos na conta <b>Folha de pagamento</b> (e a retirada dos sócios em <b>Pró-labore</b>). O grupo de cada conta se ajusta em Configurações › Plano de contas.'
   ].filter(Boolean);
-  const csv = linhas.filter(l => l.classe !== 'sec').map(l => [l.classe === 'sub' ? '   ' + l.rot : l.rot].concat((umaColuna ? [l.v[l.v.length - 1]] : l.v).map(v => fmtNum(v)), [pct(l.v[l.v.length - 1])]));
+  const csv = linhas.filter(l => l.classe !== 'sec').map(l => [l.classe === 'sub' ? '   ' + l.rot : l.rot].concat((umaColuna ? [l.v[l.v.length - 1]] : l.v).map(v => fmtNum(v)), [l.semPct ? '' : pct(l.v[l.v.length - 1])]));
   return {
     titulo: `Balancete (${regime === 'caixa' ? 'caixa' : 'competência'})${!emp && centro ? ' · ' + nomeCentro(centro) : ''}${col.porCentro ? ' por centro de custo' : ''}`,
     filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label for="relRegime">Regime</label><select id="relRegime" onchange="relSet('regime',this.value)">

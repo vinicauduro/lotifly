@@ -9,14 +9,14 @@ function filtroRec() {
   return (state.filters.rec = Object.assign({ status: 'aberto', mes: mesAtual(), busca: '' }, state.filters.rec || {}));
 }
 function mostrarRecebiveis(st) {
-  const f = filtroRec();
+  const f = filtroRec(); f.sub = 'parcelas';
   if (st) f.status = st;
   switchTab('recebiveis');
 }
 /* A carteira inteira em aberto: todos os meses e todos os empreendimentos, para a lista
    bater com o número do Início. */
 function mostrarCarteira() {
-  const f = filtroRec(); f.status = 'aberto'; f.mes = 'all'; state.escopo = '';
+  const f = filtroRec(); f.status = 'aberto'; f.mes = 'all'; f.sub = 'parcelas'; state.escopo = '';
   switchTab('recebiveis');
 }
 function abrirPainelCobranca() { filtroRec(); switchTab('cobranca'); }
@@ -26,6 +26,8 @@ function renderRecebiveis() {
      parcelas vira uma lista que ninguém lê. O extrato completo de um contrato fica na tela
      da venda, e quem quiser tudo aqui escolhe "Todos os meses". */
   const f = filtroRec();
+  /* Outras receitas (receitas.js): comissões de corretagem, rendimentos, aporte… */
+  if (f.sub === 'receitas') return renderReceitas(v);
   const all = recebiveisDo(esc0);
   const grupos = { aberto: r => recStatus(r) !== 'pago', atrasado: r => recStatus(r) === 'atrasado', pago: r => recStatus(r) === 'pago', all: () => true,
     avencer: r => recStatus(r) !== 'pago' && r.vencimento >= todayStr(), atrasadoMes: r => recStatus(r) === 'atrasado' };
@@ -42,6 +44,7 @@ function renderRecebiveis() {
   const mesKey = todayStr().slice(0, 7);
   const somaLista = list.reduce((s, r) => s + (f.status === 'pago' ? num(r.valorPago) : recRestante(r)), 0);
   v.innerHTML = `
+    ${abasRecebiveisHtml('parcelas')}
     ${avisoRemessaHtml(esc0)}
     ${faixaHtml(REC_FAIXA.map(([k, l, sub]) => { const cs = all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)); return { k, l, n: cs.length, v: (cs.length ? fmtMoneyShort(cs.reduce((t, r) => t + (k === 'pago' ? num(r.valorPago) : k === 'all' ? recValor(r) : recRestante(r)), 0)) + ' ' + sub : '—') + (k === 'atrasado' ? ' · todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}` : ''), ativo: f.status === k, acao: `mostrarRecebiveis('${k}')` }; }), 'Situação das parcelas')}
     <div class="ct-resumo">${f.mes === 'all' ? 'Parcelas de todos os meses' : `Parcelas de ${monthLabel(f.mes)}; as atrasadas, de todos os meses`} · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
@@ -54,7 +57,7 @@ function renderRecebiveis() {
       <button class="btn btn-secondary btn-sm" onclick="abrirRetorno()">Retorno</button>` : ''}
     </div>
     <p class="small muted mb">${nPlural(list.length, 'parcela')} · ${fmtMoney(somaLista)}${f.status === 'avencer' ? ` · a vencer em ${monthLabel(f.mes)}` : f.status === 'atrasadoMes' ? ` · vencidas em ${monthLabel(f.mes)} e não pagas. <a href="#" onclick="mostrarRecebiveis('atrasado');return false">Ver os atrasos de todos os meses</a>` : f.status === 'atrasado' ? ' · atrasos de todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}. O extrato completo de um contrato fica na tela da venda.` : ''}</p>
-    ${list.length ? `<div class="lista">${list.map(r => recRowHtml(r)).join('')}</div>`
+    ${list.length ? listaSelecionavel('recebiveis', list, recRowHtml, opcoesSelRecebiveis())
       : !all.length ? `<div class="empty"><div class="ic"><i class=ico data-i=calendar-blank></i></div><p>Ainda não há parcelas a receber.</p><p>Elas aparecem aqui quando você registra um contrato com parcelas.</p></div>`
       : f.busca ? `<div class="empty"><div class="ic"><i class=ico data-i=magnifying-glass></i></div><p>Nenhuma parcela de “${esc(f.busca)}” nesta lista.</p><p><button class="btn btn-secondary btn-sm" onclick="filtroRec().busca='';renderRecebiveis()">Limpar busca</button></p></div>`
       : f.status === 'atrasado' ? `<div class="empty"><div class="ic"><i class=ico data-i=check-circle></i></div><p>Nenhuma parcela em atraso.</p></div>`
@@ -87,7 +90,7 @@ function cobrancasDoMes(escopo, mes = mesAtual()) {
   c.total = c.recebido + c.aVencer + c.atraso;
   return c;
 }
-function verParcelasDoMes(st) { const f = filtroRec(); f.status = st; f.mes = mesAtual(); f.busca = ''; switchTab('recebiveis'); }
+function verParcelasDoMes(st) { const f = filtroRec(); f.sub = 'parcelas'; f.status = st; f.mes = mesAtual(); f.busca = ''; switchTab('recebiveis'); }
 function barraMesHtml(escopo) {
   const c = cobrancasDoMes(escopo);
   if (c.total < 0.005) return '';
@@ -111,6 +114,13 @@ function prazoHtml(venc, st, dataPg, rotAtraso = 'Atrasada') {
   if (venc < hoje) { const d = daysBetween(venc, hoje); return `<div class="ct-data"><span class="tiny muted">venceu</span> ${fmtDate(venc)}</div><span class="pill atrasado">${rotAtraso} há ${d} dia${d === 1 ? '' : 's'}</span>`; }
   const d = daysBetween(hoje, venc);
   return `<div class="ct-data"><span class="tiny muted">vence</span> ${fmtDate(venc)}</div>${d <= 5 ? `<span class="pill vence">${d === 0 ? 'Vence hoje' : d === 1 ? 'Vence amanhã' : `Vence em ${d} dias`}</span>` : ''}`;
+}
+function opcoesSelRecebiveis() {
+  const st = { pago: 'Paga', parcial: 'Pago em parte', atrasado: 'Atrasada', pendente: 'A vencer' };
+  return { titulo: 'Parcelas a receber', rotulo: r => `${clienteDe(r)} ${r.descricao}`, valor: r => recValor(r),
+    colunas: [['Vencimento', r => fmtDate(r.vencimento)], ['Cliente', r => (getVenda(r.vendaId) || { cliente: {} }).cliente.nome || ''], ['Contrato', r => (getVenda(r.vendaId) || {}).numeroContrato || ''],
+      ['Parcela', r => r.descricao], ['Imóvel', r => getVenda(r.vendaId) ? imovelLabel(getVenda(r.vendaId)) : ''], ['Valor', r => fmtMoney(recValor(r)), true], ['Pago', r => num(r.valorPago) ? fmtMoney(r.valorPago) : '', true],
+      ['Em aberto', r => fmtMoney(recRestante(r)), true], ['Situação', r => st[recStatus(r)] || '']] };
 }
 /* Uma linha por parcela: quando vence, de quem é (cliente, contrato, imóvel), quanto falta e
    as ações. */
@@ -340,9 +350,56 @@ function renderCustos(alvo) {
       </div>
     </div>
     <p class="small muted mb">${nPlural(list.length, 'lançamento')} · ${fmtMoney(list.reduce((s, c) => s + num(c.valor), 0))}</p>
-    ${list.length ? `<div class="lista">${list.map(c => custoRowHtml(c)).join('')}</div>` : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
+    ${list.length ? listaSelecionavel('custos', list, custoRowHtml, opcoesSelCustos()) : `<div class="empty"><div class="ic"><i class=ico data-i=receipt></i></div><p>${vinc === 'empresa' ? 'Nenhuma despesa da empresa lançada.<br>Toque em <b>Lançar</b> para registrar aluguel, salários, contador…' : 'Nenhum custo lançado.<br>Toque em <b>Lançar</b> para registrar despesas da obra, documentação, marketing…'}</p></div>`}
     ${global ? graficosCustos : ''}`;
   drawDonut($('#chartCustos'), $('#chartCustosLegend'), catData, true);
+}
+function opcoesSelCustos() {
+  return { titulo: 'Contas a pagar', rotulo: c => c.descricao, valor: c => c.valor,
+    colunas: [['Vencimento', c => c.vencimento ? fmtDate(c.vencimento) : ''], ['Descrição', c => c.descricao], ['Fornecedor', c => c.fornecedor || ''], ['Conta', c => (getCategoria(c.categoriaId) || {}).nome || ''],
+      ['De quem', c => vinculoDoCusto(c).rotulo], ['Competência', c => monthLabel(monthKey(c.dataCompetencia))], ['Valor', c => fmtMoney(c.valor), true], ['Situação', c => statusLabel(custoStatus(c))], ['Pago em', c => c.dataPagamento ? fmtDate(c.dataPagamento) : '']],
+    acoes: [{ rotulo: 'Pagar', icone: 'money', principal: true, pode: () => pode('custos.editar'), fn: pagarCustosEmLote },
+      { rotulo: 'Excluir', icone: 'trash', perigo: true, pode: () => pode('custos.editar'), fn: excluirCustosEmLote }] };
+}
+/* Pagar várias contas de uma vez: cada uma no próprio vencimento (o que vence depois de hoje
+   fica com a data de hoje) ou todas numa data; a conta do caixa vale para todas. */
+function pagarCustosEmLote(itens) {
+  const abertas = itens.filter(c => c.status !== 'pago');
+  if (!abertas.length) { toast('ℹ️', 'Já estão pagas', 'Nenhuma das selecionadas está em aberto.'); return; }
+  const tot = abertas.reduce((s, c) => s + num(c.valor), 0);
+  Sel.pagando = abertas.map(c => c.id);
+  openModal({ title: `Pagar ${nPlural(abertas.length, 'conta')}`,
+    body: `<div class="detail-grid"><div><div class="k">Contas</div><div class="v">${abertas.length}${itens.length > abertas.length ? ` <span class="tiny muted">(${itens.length - abertas.length} já paga${itens.length - abertas.length === 1 ? '' : 's'}, fica${itens.length - abertas.length === 1 ? '' : 'm'} como está${itens.length - abertas.length === 1 ? '' : 'o'})</span>` : ''}</div></div><div><div class="k">Total</div><div class="v">${fmtMoney(tot)}</div></div></div>
+      <fieldset class="pg-encargos"><legend>Data do pagamento</legend>
+        <label class="pg-opcao"><input type="radio" name="plData" value="venc" checked onchange="document.getElementById('plDataBox').style.display='none'"><span><b>No vencimento de cada uma</b><span class="tiny muted">Sem vencimento ou vencendo depois de hoje, fica a data de hoje.</span></span></label>
+        <label class="pg-opcao"><input type="radio" name="plData" value="uma" onchange="document.getElementById('plDataBox').style.display=''"><span><b>Todas numa data</b></span></label>
+        <div class="fg" id="plDataBox" style="display:none;margin-top:8px"><input type="date" id="plData" value="${todayStr()}" max="${todayStr()}" aria-label="Data do pagamento"></div></fieldset>
+      <div class="frow"><div class="fg"><label for="plForma">Forma</label><select id="plForma"><option value="">A de cada conta</option>${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option>${o}</option>`).join('')}</select></div>${contaCaixaCampoHtml('plConta', 'Saiu da conta', '')}</div>`,
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarPagamentoEmLote()">Pagar ${nPlural(abertas.length, 'conta')}</button>` });
+}
+function salvarPagamentoEmLote() {
+  if (!pode('custos.editar')) { toast('🔒', 'Sem permissão', 'Seu perfil não paga contas.', true); return; }
+  const umaData = (document.querySelector('input[name="plData"]:checked') || {}).value === 'uma', data = val('plData'), hoje = todayStr();
+  if (umaData && (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data > hoje)) { toast('⚠️', 'Data do pagamento', 'Informe um dia de hoje para trás.', true); return; }
+  const contas = (Sel.pagando || []).map(id => db.custos.find(c => c.id === id)).filter(c => c && c.status !== 'pago');
+  const antes = contas.map(c => Object.assign({}, c)), forma = val('plForma'), cx = getContaCaixa(val('plConta'));
+  comConta(val('plConta'), () => contas.forEach(c => upsert('custos', Object.assign({}, c, { status: 'pago', dataPagamento: umaData ? data : (c.vencimento && c.vencimento <= hoje ? c.vencimento : hoje), formaPagamento: forma || c.formaPagamento }))));
+  const tot = contas.reduce((s, c) => s + num(c.valor), 0);
+  logAct(`${nPlural(contas.length, 'conta paga', 'contas pagas')} de uma vez — ${fmtMoney(tot)}${cx ? ` (${cx.nome})` : ''}`);
+  Sel.pagando = null; selLimpar('custos'); closeModal(); renderCurrent();
+  toast('✅', `${nPlural(contas.length, 'conta paga', 'contas pagas')}`, `${fmtMoney(tot)}${cx ? ` · saiu de ${cx.nome}` : ''}`, false, { rotulo: 'Desfazer', fn: () => {
+    antes.forEach(c => upsert('custos', c)); logAct(`Pagamento em lote desfeito: ${nPlural(antes.length, 'conta')}`); renderCurrent(); toast('↩️', 'Pagamentos desfeitos', `${nPlural(antes.length, 'conta voltou', 'contas voltaram')} para em aberto.`);
+  } });
+}
+async function excluirCustosEmLote(itens) {
+  if (!pode('custos.editar')) { toast('🔒', 'Sem permissão', '', true); return; }
+  const tot = itens.reduce((s, c) => s + num(c.valor), 0), pagas = itens.filter(c => c.status === 'pago').length;
+  if (!(await confirmar({ titulo: `Excluir ${nPlural(itens.length, 'despesa')}?`, valores: [['Total', fmtMoney(tot), true]].concat(pagas ? [['Já pagas', String(pagas)]] : []),
+    itens: pagas ? ['As que já foram pagas saem também do caixa e dos relatórios.'] : [], acao: `Excluir ${nPlural(itens.length, 'despesa')}`, perigo: true }))) return;
+  itens.forEach(c => removeRec('custos', c.id));
+  logAct(`${nPlural(itens.length, 'despesa excluída', 'despesas excluídas')} — ${fmtMoney(tot)}`);
+  selLimpar('custos'); renderCurrent();
+  toast('🗑️', `${nPlural(itens.length, 'despesa excluída', 'despesas excluídas')}`, fmtMoney(tot));
 }
 /* Uma linha por conta: quando vence (ou quando foi paga), o que é e de quem, a conta do plano e
    o fornecedor, o valor e o botão de pagar. */

@@ -112,8 +112,25 @@ function renderClientes() {
     ${faixaHtml(GRUPOS.map(([k, l, fn]) => { const n = db.clientes.filter(fn).length; return { k: k === 'incompleto' ? 'aguardando' : k, l, n, v: k === 'incompleto' ? (n ? 'precisa completar' : 'todos prontos') : k === 'com' ? 'comprador em contrato' : k === 'sem' ? 'só no cadastro' : 'no cadastro', ativo: f.grupo === k, acao: `state.filters.clientes.grupo='${k}';renderClientes()` }; }), 'Clientes por situação')}
     <div class="filters"><input type="text" placeholder="Nome, CPF, telefone, e-mail ou cidade…" value="${esc(f.busca)}" oninput="aSetFiltro('clientes','busca',this.value,renderClientes,this)">
       ${edita ? '<button class="btn btn-primary btn-sm" onclick="abrirClienteForm()"><i class=ico data-i=plus></i>Novo cliente</button>' : ''}</div>
-    ${lista.length ? `<div class="lista">${lista.map(clienteItemHtml).join('')}</div>`
+    ${lista.length ? listaSelecionavel('clientes', lista, clienteItemHtml, opcoesSelClientes())
       : `<div class="empty"><div class="ic"><i class=ico data-i=users></i></div><p><b>${db.clientes.length ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}</b></p><p class="small">${db.clientes.length ? 'Tente outro nome ou parte do CPF.' : 'Cadastre aqui ou registre um contrato: o comprador entra no cadastro sozinho.'}</p></div>`}`;
+}
+function opcoesSelClientes() {
+  return { titulo: 'Clientes', rotulo: c => c.nome,
+    colunas: [['Nome', c => c.nome], ['CPF/CNPJ', c => fmtCPF(c.cpf)], ['Telefone', c => fmtPhone(c.telefone)], ['E-mail', c => c.email || ''], ['Cidade', c => [c.cidade, c.uf].filter(Boolean).join('/')], ['Contratos', c => String(contratosDoCliente(c).length), true]],
+    acoes: [{ rotulo: 'Excluir', icone: 'trash', perigo: true, pode: podeEditarClientes, fn: excluirClientesEmLote }] };
+}
+/* Some só a ficha: os contratos guardam os dados como estavam no dia */
+async function excluirClientesEmLote(itens) {
+  if (!podeEditarClientes()) { toast('🔒', 'Sem permissão', '', true); return; }
+  const comContrato = itens.filter(c => contratosDoCliente(c).length).length;
+  if (!(await confirmar({ titulo: `Excluir ${nPlural(itens.length, 'cliente')} do cadastro?`, texto: 'Não dá para desfazer.',
+    valores: [['Clientes', itens.map(c => c.nome).slice(0, 5).join(', ') + (itens.length > 5 ? ` e mais ${itens.length - 5}` : '')]].concat(comContrato ? [['Compradores em contratos', String(comContrato)]] : []),
+    itens: comContrato ? ['Os contratos não mudam: guardam os dados como estavam no dia. Some só a ficha do cadastro.'] : [], acao: `Excluir ${nPlural(itens.length, 'cliente')}`, perigo: true }))) return;
+  itens.forEach(c => removeRec('clientes', c.id));
+  logAct(`${nPlural(itens.length, 'cliente excluído', 'clientes excluídos')} do cadastro: ${itens.map(c => c.nome).slice(0, 5).join(', ')}${itens.length > 5 ? '…' : ''}`);
+  selLimpar('clientes'); renderCurrent();
+  toast('🗑️', `${nPlural(itens.length, 'cliente excluído', 'clientes excluídos')}`, '');
 }
 /* Uma linha por cliente: quem é (e o cônjuge), documento e contato, se a qualificação está
    completa para o contrato, e quantos contratos tem. */
