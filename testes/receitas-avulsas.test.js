@@ -45,7 +45,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   });
   await passo('lança comissão de corretagem a receber; aparece na lista com o tipo e o pagador', async () => {
     await lancar({ tipo: 'corretagem', desc: 'Comissão apto 302 — Ed. Aurora', valor: 8000, comp: '2026-10-05', venc: '2026-10-25', pagador: 'Construtora Aurora' });
-    const t = (await page.locator('#av-recebiveis .item.linha').innerText()).replace(/\s+/g, ' ');
+    const t = (await page.locator('#av-recebiveis .item.linha').textContent()).replace(/\s+/g, ' ');
     for (const s of ['Comissão apto 302 — Ed. Aurora', 'Comissões de corretagem', 'Construtora Aurora', 'R$ 8.000,00', 'vence 25/10/2026']) if (!t.includes(s)) throw new Error(`faltou "${s}": ${t}`);
     if (await saldo() !== 1000) throw new Error('a receber já mexeu no caixa');
   });
@@ -78,8 +78,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     const t = await page.evaluate(() => ({ extra: db.config.tiposReceitaExtra.map(t => t.nome + ':' + t.resultado).join(), tipo: getTipoReceita(db.receitas.find(x => x.descricao.startsWith('Aluguel')).tipoId).nome }));
     if (t.extra !== 'Aluguel do stand:true' || t.tipo !== 'Aluguel do stand') throw new Error(JSON.stringify(t));
     await page.evaluate(() => { state.sub.cad = 'categorias'; switchTab('cadastros'); }); await page.waitForTimeout(150);
-    const pc = (await page.locator('#pcReceitas').innerText()).replace(/\s+/g, ' ');
-    if (!pc.includes('Aluguel do stand') || !pc.includes('criado pela empresa') || !/Aporte de sócios fora do resultado/.test(pc)) throw new Error(pc);
+    const pc = (await page.locator('#pcReceitas').textContent()).replace(/\s+/g, ' ');
+    if (!pc.includes('Aluguel do stand') || !pc.includes('criado pela empresa') || !/Aporte de sócios fora do resultado/i.test(pc)) throw new Error(pc);
   });
   await passo('taxa de cessão avulsa e empréstimo lançados', async () => {
     await page.evaluate(() => { filtroRec().sub = 'receitas'; switchTab('recebiveis'); });
@@ -92,7 +92,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       const antes = (() => { Object.assign(relState(), { tipo: 'balancete', regime: 'caixa', de: '2026-10-01', ate: '2026-10-31' }); state.escopo = ''; db.receitas_ = db.receitas; db.receitas = []; const x = relBalancete(''); db.receitas = db.receitas_; return x; })();
       const rel = relBalancete('');
       const linha = (b, rot) => { const l = b.csv.find(x => x[0].trim() === rot); return l ? Math.round(Number(String(l[l.length - 2]).replace(/\./g, '').replace(',', '.')) * 100) / 100 : 0; };
-      return { corr: linha(rel, 'Comissões de corretagem'), alug: linha(rel, 'Aluguel do stand'), taxa: linha(rel, 'Taxas de cessão') - linha(antes, 'Taxas de cessão'), tot: linha(rel, 'Receita total') - linha(antes, 'Receita total'),
+      return { corr: linha(rel, 'Comissões de corretagem'), alug: linha(rel, 'Aluguel do stand'), taxa: linha(rel, 'Taxas de cessão') - linha(antes, 'Taxas de cessão'), tot: Math.round((linha(rel, 'Receita total') - linha(antes, 'Receita total')) * 100) / 100,
         aporte: linha(rel, 'Aporte de sócios'), emp: linha(rel, 'Empréstimos recebidos'), fora: rel.html.includes('Fora do resultado'), ordem: rel.csv.map(x => x[0].trim()).join('|') };
     });
     if (r.corr !== 8000 || r.alug !== 1200 || r.taxa !== 900 || r.tot !== 10100) throw new Error(JSON.stringify(r));
