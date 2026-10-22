@@ -142,7 +142,7 @@ function abrirPagamento(id, voltarVendaId) {
     <div class="detail-grid"><div><div class="k">Valor da parcela</div><div class="v">${fmtMoney(recValor(r))}${recCorrecao(r) > 0.005 ? `<div class="tiny muted">base ${fmtMoney(r.valor)} + ${fmtMoney(recCorrecao(r))} de correção</div>` : ''}</div></div><div><div class="k">Em aberto</div><div class="v">${fmtMoney(rest)}</div></div></div>
     ${encargos}
     <div class="frow"><div class="fg"><label for="pgValor">Valor recebido (R$) *</label><input type="number" id="pgValor" step="0.01" value="${atrasada ? '' : r2(rest)}" ${atrasada ? 'placeholder="escolha acima"' : ''}></div><div class="fg"><label for="pgData">Data do pagamento *</label><input type="date" id="pgData" value="${todayStr()}"></div></div>
-    <div class="fg"><label for="pgForma">Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div>
+    <div class="frow"><div class="fg"><label for="pgForma">Forma</label><select id="pgForma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option><option>Permuta</option></select></div>${contaCaixaCampoHtml('pgConta', 'Entrou na conta', empresaDaVenda(v))}</div>
     <div class="fg"><label for="pgObs">Observação</label><input type="text" id="pgObs" value="${esc(r.obsPagamento || '')}"></div>`;
   openModal({ title: 'Registrar pagamento', body, footer: `<button class="btn btn-secondary" onclick="${voltarVendaId ? `abrirVendaAdmin('${voltarVendaId}')` : 'closeModal()'}">Cancelar</button><button class="btn btn-outline" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}',true)">Confirmar e gerar recibo</button><button class="btn btn-primary" onclick="salvarPagamento('${r.id}','${voltarVendaId || ''}')">Confirmar</button>` });
 }
@@ -172,11 +172,11 @@ function salvarPagamento(id, voltarVendaId, comRecibo) {
   const obs = [val('pgObs'), notaDispensa].filter(Boolean).join(' · ');
   const upd = Object.assign({}, r, { valorPago: novoPago, dataPagamento: data, forma, obsPagamento: obs,
     valorCorrigido: quitou ? Math.round(Math.max(devido, novoPago) * 100) / 100 : (r.valorCorrigido || null) });
-  upsert('recebiveis', upd);
+  comConta(val('pgConta'), () => upsert('recebiveis', upd));
   atualizarStatusVenda(r.vendaId);
-  const v = getVenda(r.vendaId);
+  const v = getVenda(r.vendaId), cx = getContaCaixa(val('pgConta'));
   logAct(`Pagamento recebido: ${v ? v.cliente.nome : ''} — ${r.descricao} — ${fmtMoney(valor)}${dispensa ? ` — multa e juros dispensados (${fmtMoney(dispensa)})` : escolha === 'com' ? ' — com multa e juros' : ''}`);
-  toast('✅', 'Pagamento registrado', `${v ? v.cliente.nome + ' · ' : ''}${r.descricao} · ${fmtMoney(valor)}${quitou ? '' : ' (parcial)'}${dispensa ? ` · multa e juros dispensados (${fmtMoney(dispensa)})` : ''}`);
+  toast('✅', 'Pagamento registrado', `${v ? v.cliente.nome + ' · ' : ''}${r.descricao} · ${fmtMoney(valor)}${quitou ? '' : ' (parcial)'}${dispensa ? ` · multa e juros dispensados (${fmtMoney(dispensa)})` : ''}${cx ? ` · entrou em ${cx.nome}` : ''}`);
   if (voltarVendaId) abrirVendaAdmin(voltarVendaId); else closeModal();
   renderCurrent();
   /* O recibo é deste pagamento, não do total já pago na parcela. */
@@ -402,6 +402,7 @@ function abrirCustoForm(id, opc = {}) {
       <p class="help" id="cuParcResumo">Cada parcela entra como uma despesa: "parcela 1 de N", "parcela 2 de N"…</p></div>`}
     <div class="frow"><div class="fg"><label>Competência *</label><input type="date" id="cuComp" value="${c ? c.dataCompetencia : todayStr()}" oninput="cuParcMudou()"></div><div class="fg"><label>Vencimento</label><input type="date" id="cuVenc" value="${c ? c.vencimento || '' : ''}" oninput="cuStatusMudou();cuParcMudou()"></div></div>
     <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="cuStatusMudou();cuParcMudou()"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c && c.dataPagamento ? c.dataPagamento : ''}" oninput="this.dataset.mexido='1'"></div></div>
+    <div id="cuContaBox" style="${c && c.status === 'pago' ? '' : 'display:none'}">${contaCaixaCampoHtml('cuConta', 'Saiu da conta', '', c && (db.movimentos.find(m => m.id === 'mc-' + c.id) || {}).contaId)}</div>
     <div class="fg"><label>Observações</label><textarea id="cuObs">${esc(c ? c.obs || '' : '')}</textarea></div>`;
   openModal({ title: c ? 'Editar despesa' : 'Lançar despesa', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
   focarSeLivre('cuDesc');
@@ -412,6 +413,7 @@ function cuStatusMudou() {
   const pg = document.getElementById('cuDataPg'); if (!pg) return;
   const pago = val('cuStatus') === 'pago';
   pg.parentElement.style.display = pago ? '' : 'none';
+  const cb = document.getElementById('cuContaBox'); if (cb) cb.style.display = pago ? '' : 'none';
   if (pago && !pg.dataset.mexido && (!pg.value || pg.dataset.auto)) { pg.value = val('cuVenc') || todayStr(); pg.dataset.auto = '1'; }
 }
 /* Despesa parcelada: cada parcela vira uma despesa própria, com "(parcela i de N)" na
@@ -444,7 +446,7 @@ function salvarCusto(id) {
   /* O centro só vai para o banco quando existe: quem ainda não rodou o schema novo continua
      lançando normalmente as despesas sem centro. */
   if (centro) rec.centroId = centro; else if (prev && prev.centroId) rec.centroId = null; else delete rec.centroId;
-  upsert('custos', rec);
+  comConta(st === 'pago' ? val('cuConta') : '', () => upsert('custos', rec));
   if (!prev) logAct(`Despesa lançada: ${rec.descricao} — ${fmtMoney(rec.valor)} (${vinculoDoCusto(rec).rotulo})`);
   closeModal(); renderCurrent(); toast('✅', 'Despesa salva', `${rec.descricao} · ${vinculoDoCusto(rec).rotulo}`);
 }
@@ -466,7 +468,7 @@ function salvarCustoParcelado() {
     if (centro) rec.centroId = centro;
     return rec;
   });
-  recs.forEach(r => upsert('custos', r));
+  comConta(st === 'pago' ? val('cuConta') : '', () => recs.forEach(r => upsert('custos', r)));
   const rot = vinculoDoCusto(recs[0]).rotulo;
   logAct(`Despesa parcelada lançada: ${desc} — ${n}x de ${fmtMoney(v)} (${per}, ${rot})`);
   closeModal(); renderCurrent();
@@ -482,6 +484,7 @@ function pagarCusto(id) {
   const body = `<p class="small mb"><b>${esc(c.descricao)}</b>${c.fornecedor ? ` · ${esc(c.fornecedor)}` : ''}${cat ? ` · ${esc(cat.nome)}` : ''}</p>
     <div class="detail-grid"><div><div class="k">Valor</div><div class="v">${fmtMoney(c.valor)}</div></div><div><div class="k">Vencimento</div><div class="v">${c.vencimento ? fmtDate(c.vencimento) : '—'}</div></div></div>
     <div class="frow"><div class="fg"><label for="cpData">Data do pagamento *</label><input type="date" id="cpData" value="${todayStr()}" max="${todayStr()}"></div><div class="fg"><label for="cpForma">Forma</label><select id="cpForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
+    ${contaCaixaCampoHtml('cpConta', 'Saiu da conta', '')}
     <div class="fg"><label for="cpObs">Observação</label><input type="text" id="cpObs" value="${esc(c.obs || '')}"></div>`;
   openModal({ title: 'Pagar conta', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarPagamentoCusto('${c.id}')">Confirmar pagamento</button>` });
 }
@@ -492,10 +495,11 @@ function salvarPagamentoCusto(id) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) { toast('⚠️', 'Informe a data do pagamento', 'Use o calendário do campo "Data do pagamento".', true); return; }
   if (data > todayStr()) { toast('⚠️', 'Data no futuro', 'Uma conta só é paga hoje ou antes. Para agendar, deixe em aberto com o vencimento.', true); return; }
   const antes = Object.assign({}, c);
-  upsert('custos', Object.assign({}, c, { status: 'pago', dataPagamento: data, formaPagamento: val('cpForma'), obs: val('cpObs') }));
-  logAct(`Custo pago: ${c.descricao} — ${fmtMoney(c.valor)}`);
+  const cx = getContaCaixa(val('cpConta'));
+  comConta(val('cpConta'), () => upsert('custos', Object.assign({}, c, { status: 'pago', dataPagamento: data, formaPagamento: val('cpForma'), obs: val('cpObs') })));
+  logAct(`Custo pago: ${c.descricao} — ${fmtMoney(c.valor)}${cx ? ` (${cx.nome})` : ''}`);
   closeModal(); renderCurrent();
-  toast('✅', 'Conta paga', `${c.descricao} · ${fmtMoney(c.valor)} em ${fmtDate(data)}`, false, { rotulo: 'Desfazer', fn: () => {
+  toast('✅', 'Conta paga', `${c.descricao} · ${fmtMoney(c.valor)} em ${fmtDate(data)}${cx ? ` · saiu de ${cx.nome}` : ''}`, false, { rotulo: 'Desfazer', fn: () => {
     upsert('custos', antes); logAct(`Pagamento desfeito: ${c.descricao}`); renderCurrent(); toast('↩️', 'Pagamento desfeito', `${c.descricao} voltou para em aberto.`);
   } });
 }
@@ -526,9 +530,29 @@ function renderComissoes(v, f) {
 }
 function toggleComissao(id) {
   const x = getVenda(id); if (!x) return;
+  /* Com o caixa ligado, pagar comissão pergunta o dia e a conta de onde saiu */
+  if (!x.comissaoPaga && caixaLigado()) return abrirPagarComissao(id);
   const paga = !x.comissaoPaga;
   upsert('vendas', Object.assign({}, x, { comissaoPaga: paga, comissaoData: paga ? todayStr() : null }));
   logAct(`Comissão ${paga ? 'paga' : 'reaberta'}: ${x.corretor.nome} — ${fmtMoney(x.comissaoValor)}`); renderCurrent();
+}
+
+function abrirPagarComissao(id) {
+  const x = getVenda(id); if (!x) return;
+  const body = `<p class="small mb"><b>${esc((x.corretor || {}).nome || 'Corretor')}</b> · ${esc(imovelShort(x))} · ${esc(x.cliente.nome)}</p>
+    <div class="detail-grid"><div><div class="k">Comissão</div><div class="v">${fmtMoney(x.comissaoValor)}</div></div><div><div class="k">Percentual</div><div class="v">${fmtNum(x.comissaoPct, 1)}%</div></div></div>
+    <div class="frow"><div class="fg"><label for="kmData">Data do pagamento *</label><input type="date" id="kmData" value="${todayStr()}" max="${todayStr()}"></div>${contaCaixaCampoHtml('kmConta', 'Saiu da conta', empresaDaVenda(x))}</div>`;
+  openModal({ title: 'Pagar comissão', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarComissaoPaga('${x.id}')">Confirmar pagamento</button>` });
+}
+function salvarComissaoPaga(id) {
+  const x = getVenda(id), data = val('kmData'); if (!x) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) { toast('⚠️', 'Informe a data do pagamento', '', true); return; }
+  if (data > todayStr()) { toast('⚠️', 'Data no futuro', 'A comissão é marcada no dia em que foi paga.', true); return; }
+  const cx = getContaCaixa(val('kmConta'));
+  comConta(val('kmConta'), () => upsert('vendas', Object.assign({}, x, { comissaoPaga: true, comissaoData: data })));
+  logAct(`Comissão paga: ${x.corretor.nome} — ${fmtMoney(x.comissaoValor)}${cx ? ` (${cx.nome})` : ''}`);
+  closeModal(); renderCurrent();
+  toast('✅', 'Comissão paga', `${x.corretor.nome} · ${fmtMoney(x.comissaoValor)}${cx ? ` · saiu de ${cx.nome}` : ''}`);
 }
 
 // ================================================================ GRÁFICOS (canvas)

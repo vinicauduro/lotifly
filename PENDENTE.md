@@ -760,6 +760,57 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z44. Caixa e bancos: etapa 1 do financeiro (22/10)
+
+Decidido com você: caixa **separado por empresa**, saldo a partir de uma **data de corte**, e
+primeiro as contas; as receitas avulsas vêm na etapa 2.
+
+- **Tela nova "Caixa e bancos"** (menu Financeiro), com o total em caixa e bancos e o saldo de
+  hoje de cada conta, agrupado por empresa do grupo (a principal e as "outras empresas do
+  grupo" de Configurações).
+- **Conta:** nome, empresa, tipo (conta corrente, poupança, aplicação, caixa em dinheiro), banco,
+  **saldo inicial** e **data de corte**. Pode-se ligar a conta ao **convênio de boletos**: a
+  baixa do retorno do banco cai nela. Conta com movimentos não se exclui, só se desativa.
+- **Os pagamentos dizem a conta:**
+  - **Registrar pagamento** e **antecipação** perguntam "Entrou na conta".
+  - **Pagar conta** e **despesa lançada já paga** perguntam "Saiu da conta".
+  - **Comissão paga** abre uma janela com a data e a conta.
+  - A conta vem sugerida: a última usada naquela empresa. O contrato da SPE sugere a conta da SPE.
+- **Estorno, "Desfazer", despesa que volta para a pagar e comissão reaberta** tiram o movimento
+  sozinhos. O saldo anda junto, sem lançamento manual.
+- **Transferência entre contas** (inclusive entre empresas do grupo): sai de uma e entra na
+  outra, com "Desfazer".
+- **Extrato da conta:** do mais novo para o mais antigo, com o saldo depois de cada movimento,
+  entradas e saídas, filtro por mês e o saldo inicial no fim. Tocando num movimento, dá para
+  **trocar a conta** em que ele caiu ou abrir o contrato ou a despesa de origem.
+- **Data de corte:** o que foi pago antes dela já está no saldo inicial e não entra de novo.
+  Pagamentos feitos depois dela que ficaram sem conta (registrados antes de a conta existir)
+  aparecem num aviso, **"N pagamentos desde a data de corte ainda sem conta"**, para escolher a
+  conta de cada um.
+- Sem nenhuma conta cadastrada, nada muda nas janelas de pagamento.
+
+Para você fazer:
+
+- [ ] **Rodar de novo o `supabase/schema.sql` no Supabase** (SQL Editor). Ele cria as tabelas
+  `contas_caixa` e `movimentos`, com as travas de permissão. Antes disso, a tela avisa que falta
+  atualizar o banco e não deixa cadastrar contas.
+- [ ] Cadastrar as contas reais de cada empresa com o saldo do extrato do banco numa data de
+  corte (sugestão: dia 1º do mês). Depois, conferir o aviso de pagamentos sem conta.
+- [ ] Registrar um recebimento, pagar uma conta e fazer uma transferência, e conferir o extrato.
+
+Ainda não entra (próximas etapas):
+
+- **Receitas avulsas:** taxa de termo de cessão, comissões da imobiliária, rendimentos, aporte
+  e empréstimo, e as receitas que você criar. É a etapa 2.
+- **Devolução do distrato** ainda não sai do caixa sozinha. Lance a devolução como despesa paga.
+- Os relatórios (balancete, fluxo) continuam como estão. A transferência não é receita nem
+  despesa, então não muda nada neles.
+
+Quem pode: ver o caixa pede "ver o financeiro"; cadastrar ou mudar conta (e o saldo inicial)
+pede "alterar configurações"; transferir pede "registrar pagamentos". O banco confere as mesmas
+permissões (`testes/permissoes-banco.test.mjs`).
+
+`testes/caixa-bancos.test.js` (15 casos, com a despesa parcelada paga; relógio fixo em 19/10/2026).
 ## 7z43. Despesa parcelada (22/10)
 
 Pedido seu: ao lançar uma despesa, marcar **"Parcelado"** e o sistema criar as parcelas.

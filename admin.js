@@ -23,6 +23,7 @@ function renderAdminTab() {
   else if (tab === 'cobranca') { if (!bloqueia('cobranca.ver', 'cobrança')) renderCobranca(); }
   else if (tab === 'boletos') { if (!bloqueia('financeiro.ver', 'boletos')) renderBoletos(); }
   else if (tab === 'custos') { if (!bloqueia('custos.ver', 'contas a pagar')) { renderCustos(); if (pode('custos.editar')) fabShow('novoCustoEscolhendoEmp()'); } }
+  else if (tab === 'caixa') { if (!bloqueia('financeiro.ver', 'caixa e bancos')) renderCaixa(); }
   else if (tab === 'indices') { if (!bloqueia('indices.editar', 'índices')) $('#av-indices').innerHTML = cadIndicesHtml(); }
   else if (tab === 'relatorios') renderRelatorios();
   else if (tab === 'cadastros') renderCadastros();
