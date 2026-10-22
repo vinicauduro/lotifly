@@ -122,6 +122,16 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.selectOption('#cuStatus', 'pendente'); await page.click('#modalFoot .btn-primary'); await page.waitForTimeout(150);
     if ((await saldos())['BB Corrente'] !== 11000) throw new Error(JSON.stringify(await saldos()));
   });
+  await passo('despesa parcelada lançada como paga: só a 1ª parcela sai da conta escolhida', async () => {
+    await page.evaluate(() => abrirCustoForm(null, { emp: null })); await page.waitForTimeout(150);
+    await page.fill('#cuDesc', 'Notebook'); await page.fill('#cuVenc', '2026-10-14');
+    await page.check('#cuParc'); await page.fill('#cuParcValor', '400'); await page.fill('#cuParcN', '3');
+    await page.selectOption('#cuStatus', 'pago'); await page.selectOption('#cuConta', { label: 'Caixa do escritório' });
+    await page.click('#modalFoot .btn-primary'); await page.waitForTimeout(150);
+    if ((await saldos())['Caixa do escritório'] !== 1100) throw new Error(JSON.stringify(await saldos()));
+    await page.locator('.toast .toast-acao', { hasText: 'Desfazer' }).last().click(); await page.waitForTimeout(100);
+    if ((await saldos())['Caixa do escritório'] !== 1500) throw new Error('desfazer: ' + JSON.stringify(await saldos()));
+  });
   await passo('comissão paga: janela com data e conta; reabrir tira o movimento', async () => {
     await page.evaluate(() => toggleComissao('vb')); await page.waitForTimeout(150);
     if (!/Pagar comissão/.test(await page.locator('#modalBox').innerText())) throw new Error('sem janela');

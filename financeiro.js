@@ -393,9 +393,15 @@ function abrirCustoForm(id, opc = {}) {
       <div class="fg" id="cuImovelBox" style="${empIni ? '' : 'display:none'}"><label>Imóvel (opcional)</label><select id="cuImovel">${empIni ? opcoesImovelCusto(empIni, imovelIni) : ''}</select></div></div>
     <div class="fg"><label>Descrição *</label><input type="text" id="cuDesc" value="${esc(c ? c.descricao : '')}" placeholder="Ex.: Pavimentação — 2ª medição"></div>
     <div class="frow"><div class="fg"><label for="cuCat">Conta (plano de contas) *</label><select id="cuCat">${opcoesContasHtml(c ? c.categoriaId : (categoriasParaLancar()[0] || db.categorias[0] || {}).id)}</select></div><div class="fg"><label>Fornecedor</label><input type="text" id="cuForn" list="fornList" value="${esc(c ? c.fornecedor || '' : '')}"><datalist id="fornList">${fornecedores.map(f => `<option value="${esc(f)}">`).join('')}</datalist></div></div>
-    <div class="frow"><div class="fg"><label>Valor (R$) *</label><input type="number" id="cuValor" step="0.01" value="${c ? c.valor : ''}"></div><div class="fg"><label>Forma de pagamento</label><select id="cuForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c && c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
-    <div class="frow"><div class="fg"><label>Competência *</label><input type="date" id="cuComp" value="${c ? c.dataCompetencia : todayStr()}"></div><div class="fg"><label>Vencimento</label><input type="date" id="cuVenc" value="${c ? c.vencimento || '' : ''}" oninput="cuStatusMudou()"></div></div>
-    <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="cuStatusMudou()"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c && c.dataPagamento ? c.dataPagamento : ''}" oninput="this.dataset.mexido='1'"></div></div>
+    <div class="frow"><div class="fg" id="cuValorBox"><label>Valor (R$) *</label><input type="number" id="cuValor" step="0.01" value="${c ? c.valor : ''}"></div><div class="fg"><label>Forma de pagamento</label><select id="cuForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option ${c && c.formaPagamento === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div></div>
+    ${c ? '' : `<label class="check"><input type="checkbox" id="cuParc" onchange="cuParcMudou()"> Parcelado</label>
+    <div class="fieldset" id="cuParcBox" style="display:none"><span class="lg">Parcelamento</span>
+      <div class="frow3"><div class="fg"><label for="cuParcPer">Periodicidade</label><select id="cuParcPer" onchange="cuParcMudou()"><option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option></select></div>
+        <div class="fg"><label for="cuParcValor">Valor da parcela (R$) *</label><input type="number" id="cuParcValor" step="0.01" inputmode="decimal" oninput="cuParcMudou()"></div>
+        <div class="fg"><label for="cuParcN">Número de vezes *</label><input type="number" id="cuParcN" min="2" max="120" step="1" inputmode="numeric" oninput="cuParcMudou()"></div></div>
+      <p class="help" id="cuParcResumo">Cada parcela entra como uma despesa: "parcela 1 de N", "parcela 2 de N"…</p></div>`}
+    <div class="frow"><div class="fg"><label>Competência *</label><input type="date" id="cuComp" value="${c ? c.dataCompetencia : todayStr()}" oninput="cuParcMudou()"></div><div class="fg"><label>Vencimento</label><input type="date" id="cuVenc" value="${c ? c.vencimento || '' : ''}" oninput="cuStatusMudou();cuParcMudou()"></div></div>
+    <div class="frow"><div class="fg"><label>Status</label><select id="cuStatus" onchange="cuStatusMudou();cuParcMudou()"><option value="pendente" ${!c || c.status !== 'pago' ? 'selected' : ''}>A pagar</option><option value="pago" ${c && c.status === 'pago' ? 'selected' : ''}>Pago</option></select></div><div class="fg" style="${c && c.status === 'pago' ? '' : 'display:none'}"><label>Data do pagamento</label><input type="date" id="cuDataPg" value="${c && c.dataPagamento ? c.dataPagamento : ''}" oninput="this.dataset.mexido='1'"></div></div>
     <div id="cuContaBox" style="${c && c.status === 'pago' ? '' : 'display:none'}">${contaCaixaCampoHtml('cuConta', 'Saiu da conta', '', c && (db.movimentos.find(m => m.id === 'mc-' + c.id) || {}).contaId)}</div>
     <div class="fg"><label>Observações</label><textarea id="cuObs">${esc(c ? c.obs || '' : '')}</textarea></div>`;
   openModal({ title: c ? 'Editar despesa' : 'Lançar despesa', body, footer: `${c ? `<button class="btn btn-outline-danger" onclick="excluirCusto('${c.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarCusto('${c ? c.id : ''}')">Salvar</button>` });
@@ -410,8 +416,28 @@ function cuStatusMudou() {
   const cb = document.getElementById('cuContaBox'); if (cb) cb.style.display = pago ? '' : 'none';
   if (pago && !pg.dataset.mexido && (!pg.value || pg.dataset.auto)) { pg.value = val('cuVenc') || todayStr(); pg.dataset.auto = '1'; }
 }
+/* Despesa parcelada: cada parcela vira uma despesa própria, com "(parcela i de N)" na
+   descrição, competência e vencimento andando um mês (ou 15 dias) por parcela. O primeiro
+   vencimento é o do campo Vencimento; sem ele, a competência. */
+function cuParcelado() { const el = document.getElementById('cuParc'); return !!(el && el.checked); }
+function datasParcelas(base, n, per) { return Array.from({ length: n }, (_, i) => per === 'quinzenal' ? addDays(base, 15 * i) : addMonths(base, i)); }
+function cuParcMudou() {
+  const box = document.getElementById('cuParcBox'); if (!box) return;
+  const on = cuParcelado();
+  box.style.display = on ? '' : 'none';
+  document.getElementById('cuValorBox').style.display = on ? 'none' : '';
+  if (!on) return;
+  const vp = document.getElementById('cuParcValor');
+  if (!vp.value && num(val('cuValor'))) vp.value = val('cuValor');
+  const n = Math.round(num(val('cuParcN'))), v = num(val('cuParcValor')), base = val('cuVenc') || val('cuComp');
+  const res = document.getElementById('cuParcResumo');
+  if (n < 2 || !v || !base) { res.innerHTML = 'Cada parcela entra como uma despesa: "parcela 1 de N", "parcela 2 de N"…'; return; }
+  const ds = datasParcelas(base, n, val('cuParcPer'));
+  res.innerHTML = `<b>${n} parcelas de ${fmtMoney(v)}</b> = ${fmtMoney(v * n)} · a 1ª vence em ${fmtDate(ds[0])}, a última em ${fmtDate(ds[n - 1])}.${val('cuStatus') === 'pago' ? ' Marcada como paga, só a 1ª parcela entra paga; as outras ficam a pagar.' : ''}`;
+}
 function salvarCusto(id) {
   const prev = id ? db.custos.find(x => x.id === id) : null;
+  if (!prev && cuParcelado()) return salvarCustoParcelado();
   if (!val('cuDesc') || !num(val('cuValor')) || !val('cuComp')) { toast('⚠️', 'Preencha descrição, valor e competência', '', true); return; }
   const st = val('cuStatus');
   const emp = cuEmpDoCampo() || null, imv = emp ? val('cuImovel') : '';
@@ -423,6 +449,32 @@ function salvarCusto(id) {
   comConta(st === 'pago' ? val('cuConta') : '', () => upsert('custos', rec));
   if (!prev) logAct(`Despesa lançada: ${rec.descricao} — ${fmtMoney(rec.valor)} (${vinculoDoCusto(rec).rotulo})`);
   closeModal(); renderCurrent(); toast('✅', 'Despesa salva', `${rec.descricao} · ${vinculoDoCusto(rec).rotulo}`);
+}
+function salvarCustoParcelado() {
+  const n = Math.round(num(val('cuParcN'))), v = Math.round(num(val('cuParcValor')) * 100) / 100, per = val('cuParcPer');
+  if (!val('cuDesc') || !val('cuComp')) { toast('⚠️', 'Preencha descrição e competência', '', true); return; }
+  if (!v || v < 0) { toast('⚠️', 'Informe o valor da parcela', '', true); return; }
+  if (!(n >= 2 && n <= 120)) { toast('⚠️', 'Número de vezes entre 2 e 120', 'Para uma despesa só, desmarque "Parcelado".', true); return; }
+  const st = val('cuStatus');
+  const emp = cuEmpDoCampo() || null, imv = emp ? val('cuImovel') : '';
+  const campo = val('cuEmp') || '', centro = !emp && campo.startsWith('c:') ? campo.slice(2) : null;
+  const comps = datasParcelas(val('cuComp'), n, per), vencs = datasParcelas(val('cuVenc') || val('cuComp'), n, per);
+  const agora = new Date().toISOString(), desc = val('cuDesc');
+  const recs = comps.map((comp, i) => {
+    const pago = i === 0 && st === 'pago';
+    const rec = { id: genId(), criadoEm: agora, loteamentoId: emp, loteId: imv.startsWith('l:') ? imv.slice(2) : null, vendaId: imv.startsWith('v:') ? imv.slice(2) : null,
+      descricao: `${desc} (parcela ${i + 1} de ${n})`, categoriaId: val('cuCat'), fornecedor: val('cuForn'), valor: v, formaPagamento: val('cuForma'),
+      dataCompetencia: comp, vencimento: vencs[i], status: pago ? 'pago' : 'pendente', dataPagamento: pago ? (val('cuDataPg') || vencs[0]) : null, obs: val('cuObs') };
+    if (centro) rec.centroId = centro;
+    return rec;
+  });
+  comConta(st === 'pago' ? val('cuConta') : '', () => recs.forEach(r => upsert('custos', r)));
+  const rot = vinculoDoCusto(recs[0]).rotulo;
+  logAct(`Despesa parcelada lançada: ${desc} — ${n}x de ${fmtMoney(v)} (${per}, ${rot})`);
+  closeModal(); renderCurrent();
+  toast('✅', `${n} parcelas lançadas`, `${desc} · ${n}x de ${fmtMoney(v)} = ${fmtMoney(v * n)}`, false, { rotulo: 'Desfazer', fn: () => {
+    recs.forEach(r => removeRec('custos', r.id)); logAct(`Despesa parcelada desfeita: ${desc}`); renderCurrent(); toast('↩️', 'Parcelamento desfeito', `As ${n} parcelas de ${desc} foram retiradas.`);
+  } });
 }
 /* Pagar uma conta: a mesma janela do recebimento de parcela (data, forma e observação), com o
    valor e o vencimento à vista; depois, "Desfazer" no aviso volta a conta para em aberto. */

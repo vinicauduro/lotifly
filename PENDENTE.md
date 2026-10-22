@@ -810,7 +810,29 @@ Quem pode: ver o caixa pede "ver o financeiro"; cadastrar ou mudar conta (e o sa
 pede "alterar configurações"; transferir pede "registrar pagamentos". O banco confere as mesmas
 permissões (`testes/permissoes-banco.test.mjs`).
 
-`testes/caixa-bancos.test.js` (14 casos, relógio fixo em 19/10/2026).
+`testes/caixa-bancos.test.js` (15 casos, com a despesa parcelada paga; relógio fixo em 19/10/2026).
+## 7z43. Despesa parcelada (22/10)
+
+Pedido seu: ao lançar uma despesa, marcar **"Parcelado"** e o sistema criar as parcelas.
+
+- No **Lançar despesa** apareceu a caixinha **Parcelado**. Marcando, abre **Periodicidade**
+  (mensal ou quinzenal), **Valor da parcela** e **Número de vezes** (de 2 a 120), com o resumo
+  na hora: "4 parcelas de R$ 850,00 = R$ 3.400,00 · a 1ª vence em 31/10/2026, a última em
+  31/01/2027".
+- Cada parcela entra como uma despesa própria, com **"(parcela 1 de 4)", "(parcela 2 de 4)"…**
+  na descrição. Vencimento e competência andam um mês (ou 15 dias) por parcela. O primeiro
+  vencimento é o do campo Vencimento; sem ele, vale a competência. Vencimento no dia 31 cai no
+  último dia dos meses mais curtos.
+- Lançando como **Pago**, só a 1ª parcela entra paga; as outras ficam a pagar. O resumo avisa.
+- O aviso de "parcelas lançadas" tem **Desfazer**, que retira todas de uma vez.
+- Depois de lançadas, cada parcela se edita e se paga sozinha. Editar não mostra a opção
+  Parcelado.
+
+Para você fazer:
+
+- [ ] Lançar uma despesa parcelada de verdade (mensal e quinzenal) e conferir no A pagar.
+
+`testes/despesa-parcelada.test.js` (7 casos, relógio fixo em 19/10/2026).
 
 ---
 
