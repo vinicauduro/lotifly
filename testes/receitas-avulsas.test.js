@@ -108,6 +108,17 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
     await page.evaluate(id => excluirReceita(id), id); await page.waitForTimeout(200);
     if (await saldo() !== 89900) throw new Error('saldo ' + await saldo());
   });
+  await passo('várias de uma vez: marcar duas a receber e receber juntas na conta escolhida', async () => {
+    await page.evaluate(() => { filtroRec().sub = 'receitas'; state.filters.receitas = null; switchTab('recebiveis'); });
+    await lancar({ tipo: 'rendimentos', desc: 'Rendimento CDB setembro', valor: 300, comp: '2026-10-01' });
+    await lancar({ tipo: 'rendimentos', desc: 'Rendimento CDB outubro', valor: 200, comp: '2026-10-15' });
+    const antes = await saldo();
+    await page.evaluate(() => db.receitas.filter(x => x.descricao.startsWith('Rendimento')).forEach(x => selMarcar('receitas', x.id, true)));
+    await page.locator('#selBarra button', { hasText: 'Receber' }).click(); await page.waitForTimeout(150);
+    if (!/Receber 2 receitas/.test(await page.locator('#modalTitle').innerText())) throw new Error('janela');
+    await page.click('#modalFoot .btn-primary'); await page.waitForTimeout(150);
+    if (await saldo() !== antes + 500 || await page.evaluate(() => db.receitas.filter(x => x.descricao.startsWith('Rendimento') && x.status === 'recebido').length) !== 2) throw new Error('saldo ' + await saldo());
+  });
   await passo('ir para A receber pelo Início volta às parcelas', async () => {
     await page.evaluate(() => mostrarRecebiveis('atrasado'));
     const ativa = await page.evaluate(() => document.querySelector('#av-recebiveis .subtabs .chip.active').textContent.trim());

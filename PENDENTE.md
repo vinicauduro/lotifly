@@ -760,6 +760,86 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z46. Receitas avulsas: etapa 2 do financeiro (22/10)
+
+Decidido com você: taxa de termo de cessão, comissões da imobiliária, rendimentos, aporte e
+empréstimo, e um campo para você criar os tipos de receita que precisar.
+
+- **A receber › Outras receitas** (aba ao lado de "Parcelas dos contratos"): faixa Todas, A
+  receber, Vencidas e Recebidas; filtro por tipo e busca; botão **Lançar receita**.
+- **Tipos de fábrica:**
+  - Comissões de corretagem;
+  - Taxa de termo de cessão;
+  - Rendimentos de aplicação;
+  - Aporte de sócios (fora do resultado);
+  - Empréstimos recebidos (fora do resultado);
+  - Outras receitas.
+- **Tipo novo:** no próprio lançamento ("+ Criar novo tipo…") ou em Configurações › Plano de
+  contas › Receitas avulsas. Marcando "Não é lucro", ele fica fora do resultado, como o aporte.
+- **Lançar:** tipo, de quem, descrição, valor, empresa que recebe (com mais de uma empresa no
+  grupo), empreendimento (opcional), competência, vencimento, e já recebida ou a receber.
+- **Receber:** data, forma e **"Entrou na conta"** do caixa, com Desfazer. Também dá para receber
+  várias de uma vez pela barra das selecionadas.
+- **Caixa:** recebida, a receita entra na conta escolhida. Excluir ou reabrir tira do caixa.
+- **Balancete:**
+  - cada tipo vira uma linha de receita;
+  - a taxa de cessão avulsa soma com as taxas de cessão dos contratos;
+  - **aporte e empréstimo ficam numa parte separada, "Fora do resultado"**: entraram no caixa,
+    mas não são lucro.
+  - No regime de caixa vale a data do recebimento; no de competência, a competência.
+- **Resumo gerencial:** "Outras receitas recebidas no período", "Aportes e empréstimos
+  recebidos" e o caixa do período somando tudo.
+
+Para você fazer:
+
+- [ ] **Rodar de novo o `supabase/schema.sql` no Supabase.** Ele cria a tabela `receitas`, com a
+  trava de permissão. Até lá, a aba Outras receitas avisa que falta atualizar o banco.
+- [ ] Lançar uma comissão de corretagem e um aporte, receber e conferir o caixa e o balancete.
+
+Quem pode: lançar, receber e excluir receitas pede "registrar pagamentos"; criar tipo novo pede
+"alterar configurações".
+
+`testes/receitas-avulsas.test.js` (12 casos) e um caso novo em `testes/permissoes-banco.test.mjs`.
+
+---
+
+## 7z45. Seleção em lote nas listas, 30 por vez (22/10)
+
+Pedido seu: caixinhas para selecionar, "Selecionar todas", 30 itens por tela carregando mais ao
+rolar, e embaixo o que fazer com as selecionadas.
+
+- **Telas:** Imóveis, Contratos, Clientes, Reservas, A receber e A pagar.
+- **Caixinha em cada linha** e **"Selecionar todas (N)"** no alto. "Todas" pega a lista
+  inteira do filtro, inclusive o que ainda não apareceu na tela. Marcando só algumas, a caixinha
+  de cima fica pela metade.
+- **30 de cada vez:** o alto diz "mostrando 30 de 120". Chegando no fim, vêm mais 30 sozinhos;
+  o botão "Mostrar mais" faz o mesmo.
+- **Barra embaixo** com quantas estão marcadas e o total em reais, e as ações:
+  - em todas as telas: **Imprimir** (tabela das selecionadas) e **Planilha (CSV)**;
+  - **A pagar:** **Pagar** (cada uma no próprio vencimento ou todas numa data, saindo da conta do
+    caixa escolhida, com Desfazer) e **Excluir**;
+  - **Contratos:** **Excluir** (mostra as parcelas e o dinheiro já recebido que somem e pede
+    EXCLUIR digitado, como o contrato sozinho);
+  - **Clientes:** **Excluir** (some só a ficha; os contratos não mudam);
+  - **Imóveis:** **Excluir** (vai junto o que é deles, com EXCLUIR digitado; fica pelo menos um).
+- O que sai do filtro sai da seleção: "Excluir" nunca pega o que não está à vista. Trocando de
+  tela, a barra some.
+- Cada exclusão segue a permissão da pessoa (a mesma de excluir um só).
+
+Para você fazer:
+
+- [ ] Abrir A pagar, marcar algumas contas e testar Pagar, Imprimir e Planilha.
+- [ ] Dizer se quer mais ações na barra. Ideias: **enviar cobrança pelo WhatsApp** (A receber e
+  Cobrança), **registrar pagamento de várias parcelas**, **gerar boletos das selecionadas**,
+  **mudar a conta do plano** de várias despesas, **aprovar ou recusar reservas**.
+
+As **Outras receitas** (etapa 2 do financeiro, em andamento) ganham a mesma seleção quando
+forem publicadas.
+
+`testes/selecao-lote.test.js` (13 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z44. Caixa e bancos: etapa 1 do financeiro (22/10)
 
 Decidido com você: caixa **separado por empresa**, saldo a partir de uma **data de corte**, e

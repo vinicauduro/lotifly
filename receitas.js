@@ -52,7 +52,7 @@ function renderReceitas(v) {
       ${podeLancar ? `<button class="btn btn-primary btn-sm" onclick="abrirReceitaForm()"><i class=ico data-i=plus></i>Lançar receita</button>` : ''}
     </div>
     <p class="small muted mb">${nPlural(list.length, 'receita')} · ${fmtMoney(list.reduce((s, x) => s + num(x.valor), 0))}</p>
-    ${list.length ? `<div class="lista">${list.map(receitaRowHtml).join('')}</div>`
+    ${list.length ? listaSelecionavel('receitas', list, receitaRowHtml, opcoesSelReceitas())
       : `<div class="empty"><div class="ic"><i class=ico data-i=hand-coins></i></div><p>${all.length ? 'Nenhuma receita nesta lista.' : 'Nenhuma receita avulsa lançada.'}</p>${all.length ? '' : '<p>Comissões de corretagem, taxa de cessão, rendimentos, aporte de sócios, empréstimos: o que entra fora das parcelas dos contratos.</p>'}${podeLancar && !all.length ? '<p><button class="btn btn-primary btn-sm" onclick="abrirReceitaForm()"><i class=ico data-i=plus></i>Lançar receita</button></p>' : ''}</div>`}`;
 }
 function receitaRowHtml(x) {
@@ -171,4 +171,46 @@ function salvarRecebimentoReceita(id) {
   toast('✅', 'Receita recebida', `${x.descricao} · ${fmtMoney(x.valor)}${cx ? ` · entrou em ${cx.nome}` : ''}`, false, { rotulo: 'Desfazer', fn: () => {
     upsert('receitas', antes); logAct(`Recebimento desfeito: ${x.descricao}`); renderCurrent(); toast('↩️', 'Recebimento desfeito', `${x.descricao} voltou para a receber.`);
   } });
+}
+
+// ---------------------------------------------------------------- várias de uma vez
+function opcoesSelReceitas() {
+  return { titulo: 'Outras receitas', rotulo: x => x.descricao, valor: x => x.valor,
+    colunas: [['Tipo', x => getTipoReceita(x.tipoId).nome], ['Descrição', x => x.descricao], ['De quem', x => x.pagador || ''], ['Competência', x => monthLabel(monthKey(x.dataCompetencia))],
+      ['Vencimento', x => x.vencimento ? fmtDate(x.vencimento) : ''], ['Valor', x => fmtMoney(x.valor), true], ['Situação', x => x.status === 'recebido' ? 'Recebida' : 'A receber'], ['Recebida em', x => x.dataRecebimento ? fmtDate(x.dataRecebimento) : '']],
+    acoes: [{ rotulo: 'Receber', icone: 'money', principal: true, pode: () => pode('financeiro.baixar'), fn: receberReceitasEmLote },
+      { rotulo: 'Excluir', icone: 'trash', perigo: true, pode: () => pode('financeiro.baixar'), fn: excluirReceitasEmLote }] };
+}
+function receberReceitasEmLote(itens) {
+  const abertas = itens.filter(x => x.status !== 'recebido');
+  if (!abertas.length) { toast('ℹ️', 'Já estão recebidas', 'Nenhuma das selecionadas está a receber.'); return; }
+  Sel.recebendo = abertas.map(x => x.id);
+  openModal({ title: `Receber ${nPlural(abertas.length, 'receita')}`,
+    body: `<div class="detail-grid"><div><div class="k">Receitas</div><div class="v">${abertas.length}${itens.length > abertas.length ? ` <span class="tiny muted">(${itens.length - abertas.length} já recebida${itens.length - abertas.length === 1 ? '' : 's'})</span>` : ''}</div></div><div><div class="k">Total</div><div class="v">${fmtMoney(abertas.reduce((s, x) => s + num(x.valor), 0))}</div></div></div>
+      <div class="frow"><div class="fg"><label for="rlData">Data do recebimento *</label><input type="date" id="rlData" value="${todayStr()}" max="${todayStr()}"></div>
+        <div class="fg"><label for="rlForma">Forma</label><select id="rlForma">${['PIX', 'Transferência', 'Boleto', 'Dinheiro', 'Cheque', 'Cartão'].map(o => `<option>${o}</option>`).join('')}</select></div></div>
+      ${contaCaixaCampoHtml('rlConta', 'Entrou na conta', abertas[0].empresaId || '')}`,
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarRecebimentoEmLote()">Receber ${nPlural(abertas.length, 'receita')}</button>` });
+}
+function salvarRecebimentoEmLote() {
+  if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', '', true); return; }
+  const data = val('rlData');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '') || data > todayStr()) { toast('⚠️', 'Data do recebimento', 'Informe um dia de hoje para trás.', true); return; }
+  const xs = (Sel.recebendo || []).map(id => db.receitas.find(r => r.id === id)).filter(x => x && x.status !== 'recebido');
+  const antes = xs.map(x => Object.assign({}, x)), cx = getContaCaixa(val('rlConta')), tot = xs.reduce((s, x) => s + num(x.valor), 0);
+  comConta(val('rlConta'), () => xs.forEach(x => upsert('receitas', Object.assign({}, x, { status: 'recebido', dataRecebimento: data, forma: val('rlForma') }))));
+  logAct(`${nPlural(xs.length, 'receita recebida', 'receitas recebidas')} de uma vez — ${fmtMoney(tot)}${cx ? ` (${cx.nome})` : ''}`);
+  Sel.recebendo = null; selLimpar('receitas'); closeModal(); renderCurrent();
+  toast('✅', `${nPlural(xs.length, 'receita recebida', 'receitas recebidas')}`, `${fmtMoney(tot)}${cx ? ` · entrou em ${cx.nome}` : ''}`, false, { rotulo: 'Desfazer', fn: () => {
+    antes.forEach(x => upsert('receitas', x)); logAct(`Recebimento em lote desfeito: ${nPlural(antes.length, 'receita')}`); renderCurrent();
+  } });
+}
+async function excluirReceitasEmLote(itens) {
+  if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', '', true); return; }
+  const tot = itens.reduce((s, x) => s + num(x.valor), 0), rec = itens.filter(x => x.status === 'recebido').length;
+  if (!(await confirmar({ titulo: `Excluir ${nPlural(itens.length, 'receita')}?`, valores: [['Total', fmtMoney(tot), true]].concat(rec ? [['Já recebidas', String(rec)]] : []),
+    itens: rec ? ['As que já foram recebidas saem também do caixa e dos relatórios.'] : [], acao: `Excluir ${nPlural(itens.length, 'receita')}`, perigo: true }))) return;
+  itens.forEach(x => removeRec('receitas', x.id));
+  logAct(`${nPlural(itens.length, 'receita excluída', 'receitas excluídas')} — ${fmtMoney(tot)}`);
+  selLimpar('receitas'); renderCurrent();
 }

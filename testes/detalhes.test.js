@@ -91,7 +91,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
 
     // ---------------------------------------------------------------- pagamento recebido
     await passo('pagamento: a linha paga fica tingida de verde e o aviso diz de quem foi', async () => {
-      await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); }); await page.waitForTimeout(200);
+      await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; f.busca = ''; switchTab('recebiveis'); while (document.querySelector('[data-sel-mais="recebiveis"]')) carregarMais('recebiveis'); }); await page.waitForTimeout(200);
       const id = await page.evaluate(() => db.recebiveis.find(r => !r.valorPago && document.querySelector(`[data-st="p:${r.id}"]`)).id);
       await page.evaluate(id => abrirPagamento(id), id); await page.waitForTimeout(250);
       await page.click('#modalFoot .btn-primary'); await page.waitForTimeout(80);
@@ -146,7 +146,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
       await page.waitForTimeout(300);
     });
     await passo('reduzir movimento: a linha muda de cor, mas o selo e o contorno não se mexem', async () => {
-      await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; switchTab('recebiveis'); });
+      await page.evaluate(() => { const f = filtroRec(); f.status = 'all'; f.mes = 'all'; switchTab('recebiveis'); while (document.querySelector('[data-sel-mais="recebiveis"]')) carregarMais('recebiveis'); });
       const id = await page.evaluate(() => db.recebiveis.find(r => !r.valorPago && document.querySelector(`[data-st="p:${r.id}"]`)).id);
       await page.evaluate(id => { abrirPagamento(id); salvarPagamento(id); }, id); await page.waitForTimeout(60);
       /* Paga, a linha só mostra a data (selo é para exceção); se houver selo, ele fica parado */
