@@ -9,14 +9,14 @@ function filtroRec() {
   return (state.filters.rec = Object.assign({ status: 'aberto', mes: mesAtual(), busca: '' }, state.filters.rec || {}));
 }
 function mostrarRecebiveis(st) {
-  const f = filtroRec();
+  const f = filtroRec(); f.sub = 'parcelas';
   if (st) f.status = st;
   switchTab('recebiveis');
 }
 /* A carteira inteira em aberto: todos os meses e todos os empreendimentos, para a lista
    bater com o número do Início. */
 function mostrarCarteira() {
-  const f = filtroRec(); f.status = 'aberto'; f.mes = 'all'; state.escopo = '';
+  const f = filtroRec(); f.status = 'aberto'; f.mes = 'all'; f.sub = 'parcelas'; state.escopo = '';
   switchTab('recebiveis');
 }
 function abrirPainelCobranca() { filtroRec(); switchTab('cobranca'); }
@@ -26,6 +26,8 @@ function renderRecebiveis() {
      parcelas vira uma lista que ninguém lê. O extrato completo de um contrato fica na tela
      da venda, e quem quiser tudo aqui escolhe "Todos os meses". */
   const f = filtroRec();
+  /* Outras receitas (receitas.js): comissões de corretagem, rendimentos, aporte… */
+  if (f.sub === 'receitas') return renderReceitas(v);
   const all = recebiveisDo(esc0);
   const grupos = { aberto: r => recStatus(r) !== 'pago', atrasado: r => recStatus(r) === 'atrasado', pago: r => recStatus(r) === 'pago', all: () => true,
     avencer: r => recStatus(r) !== 'pago' && r.vencimento >= todayStr(), atrasadoMes: r => recStatus(r) === 'atrasado' };
@@ -42,6 +44,7 @@ function renderRecebiveis() {
   const mesKey = todayStr().slice(0, 7);
   const somaLista = list.reduce((s, r) => s + (f.status === 'pago' ? num(r.valorPago) : recRestante(r)), 0);
   v.innerHTML = `
+    ${abasRecebiveisHtml('parcelas')}
     ${avisoRemessaHtml(esc0)}
     ${faixaHtml(REC_FAIXA.map(([k, l, sub]) => { const cs = all.filter(r => grupos[k](r) && (k === 'atrasado' || f.mes === 'all' || monthKey(r.vencimento) === f.mes)); return { k, l, n: cs.length, v: (cs.length ? fmtMoneyShort(cs.reduce((t, r) => t + (k === 'pago' ? num(r.valorPago) : k === 'all' ? recValor(r) : recRestante(r)), 0)) + ' ' + sub : '—') + (k === 'atrasado' ? ' · todos os meses' : f.mes !== 'all' ? ` · ${monthLabel(f.mes)}` : ''), ativo: f.status === k, acao: `mostrarRecebiveis('${k}')` }; }), 'Situação das parcelas')}
     <div class="ct-resumo">${f.mes === 'all' ? 'Parcelas de todos os meses' : `Parcelas de ${monthLabel(f.mes)}; as atrasadas, de todos os meses`} · <a href="#" onclick="mostrarCarteira();return false">ver a carteira inteira</a></div>
@@ -87,7 +90,7 @@ function cobrancasDoMes(escopo, mes = mesAtual()) {
   c.total = c.recebido + c.aVencer + c.atraso;
   return c;
 }
-function verParcelasDoMes(st) { const f = filtroRec(); f.status = st; f.mes = mesAtual(); f.busca = ''; switchTab('recebiveis'); }
+function verParcelasDoMes(st) { const f = filtroRec(); f.sub = 'parcelas'; f.status = st; f.mes = mesAtual(); f.busca = ''; switchTab('recebiveis'); }
 function barraMesHtml(escopo) {
   const c = cobrancasDoMes(escopo);
   if (c.total < 0.005) return '';

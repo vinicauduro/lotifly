@@ -13,7 +13,7 @@
 'use strict';
 
 const TIPOS_CONTA = { corrente: 'Conta corrente', poupanca: 'Poupança', aplicacao: 'Aplicação', caixa: 'Caixa (dinheiro)' };
-const NATUREZAS = { recebimento: 'Recebimento', pagamento: 'Conta paga', comissao: 'Comissão paga', transferencia: 'Transferência', manual: 'Lançamento' };
+const NATUREZAS = { recebimento: 'Recebimento', receita: 'Receita', pagamento: 'Conta paga', comissao: 'Comissão paga', transferencia: 'Transferência', manual: 'Lançamento' };
 const Caixa = { escolha: null };
 const r2c = x => Math.round(num(x) * 100) / 100;
 
@@ -72,11 +72,13 @@ function caixaAoGravar(col, rec, antes) {
   if (col === 'recebiveis') sincronizarRecebimento(rec, antes);
   else if (col === 'custos') sincronizarContaPaga(rec);
   else if (col === 'vendas') sincronizarComissao(rec);
+  else if (col === 'receitas') sincronizarReceita(rec);
 }
 function caixaAoApagar(col, antes) {
   if (col === 'recebiveis') movsDe('recebivelId', antes.id).forEach(m => removeRec('movimentos', m.id));
   else if (col === 'custos') { if (db.movimentos.some(m => m.id === 'mc-' + antes.id)) removeRec('movimentos', 'mc-' + antes.id); }
   else if (col === 'vendas') { if (db.movimentos.some(m => m.id === 'mk-' + antes.id)) removeRec('movimentos', 'mk-' + antes.id); }
+  else if (col === 'receitas') { if (db.movimentos.some(m => m.id === 'mr-' + antes.id)) removeRec('movimentos', 'mr-' + antes.id); }
 }
 /* Conta para um recebimento: a escolhida; pago por boleto, a conta ligada ao convênio que
    numerou o título; senão a padrão da empresa que assina o contrato. */
@@ -102,19 +104,24 @@ function sincronizarRecebimento(r, antes) {
   upsert('movimentos', { id: genId(), contaId: c.id, data: r.dataPagamento, valor, natureza: 'recebimento',
     descricao: `${v ? v.cliente.nome + ' · ' : ''}${r.descricao || 'Parcela'}`, recebivelId: r.id, vendaId: r.vendaId || null, obs: '', criadoEm: new Date().toISOString() });
 }
-/* Despesa paga: um movimento só (mc-<despesa>), que acompanha valor, data e conta */
-function sincronizarSaida(id, ativo, data, valor, campos, empresaId) {
+/* Despesa paga: um movimento só (mc-<despesa>), que acompanha valor, data e conta. A receita
+   avulsa recebida é o mesmo, com o valor positivo (entrada). */
+function sincronizarSaida(id, ativo, data, valor, campos, empresaId, entrada) {
   const m = db.movimentos.find(x => x.id === id);
   if (!ativo || !data || !(valor > 0)) { if (m) removeRec('movimentos', id); return; }
   const c = contaEscolhida() || (m && getContaCaixa(m.contaId)) || (caixaLigado() ? contaPadrao(empresaId) : null);
   if (!c || caixaSemTabela() || data < (c.dataSaldo || '9999')) { if (m) removeRec('movimentos', id); return; }
-  const novo = Object.assign({ id, contaId: c.id, data, valor: -r2c(valor), obs: '', criadoEm: (m && m.criadoEm) || new Date().toISOString() }, campos);
+  const novo = Object.assign({ id, contaId: c.id, data, valor: entrada ? r2c(valor) : -r2c(valor), obs: '', criadoEm: (m && m.criadoEm) || new Date().toISOString() }, campos);
   if (m && ['contaId', 'data', 'valor', 'descricao'].every(k => m[k] === novo[k])) return;
   upsert('movimentos', novo);
 }
 function sincronizarContaPaga(c) {
   sincronizarSaida('mc-' + c.id, c.status === 'pago', c.dataPagamento, num(c.valor),
     { natureza: 'pagamento', descricao: c.descricao + (c.fornecedor ? ' · ' + c.fornecedor : ''), custoId: c.id }, '');
+}
+function sincronizarReceita(x) {
+  sincronizarSaida('mr-' + x.id, x.status === 'recebido', x.dataRecebimento, num(x.valor),
+    { natureza: 'receita', descricao: x.descricao + (x.pagador ? ' · ' + x.pagador : ''), receitaId: x.id }, x.empresaId || '', true);
 }
 function sincronizarComissao(v) {
   sincronizarSaida('mk-' + v.id, !!v.comissaoPaga, v.comissaoData, num(v.comissaoValor),
@@ -148,6 +155,11 @@ function pendenciasCaixa() {
     if (v.comissaoPaga && num(v.comissaoValor) > 0 && v.comissaoData && corte && v.comissaoData >= corte && !db.movimentos.some(m => m.id === 'mk-' + v.id))
       out.push({ col: 'vendas', id: v.id, data: v.comissaoData, valor: -num(v.comissaoValor), desc: `Comissão · ${(v.corretor || {}).nome || 'corretor'}`, emp });
   });
+  db.receitas.forEach(x => {
+    const emp = x.empresaId || '', corte = corteDaEmpresa(emp);
+    if (x.status === 'recebido' && x.dataRecebimento && corte && x.dataRecebimento >= corte && !db.movimentos.some(m => m.id === 'mr-' + x.id))
+      out.push({ col: 'receitas', id: x.id, data: x.dataRecebimento, valor: num(x.valor), desc: x.descricao + (x.pagador ? ' · ' + x.pagador : ''), emp });
+  });
   return out.sort((a, b) => a.data.localeCompare(b.data));
 }
 
@@ -167,7 +179,7 @@ function renderCaixa() {
   if (!db.contasCaixa.length) {
     v.innerHTML = tituloTela('Caixa e bancos', acoes, sub) + `<div class="card"><div class="empty"><div class="ic"><i class=ico data-i=wallet></i></div>
       <p><b>Cadastre as contas de cada empresa</b>: banco, poupança, aplicação e o caixa em dinheiro, com o saldo de uma data de corte.</p>
-      <p>Daí em diante, todo recebimento de parcela, conta paga, comissão paga e baixa de boleto diz em qual conta o dinheiro entrou ou saiu, e o saldo anda sozinho.</p>
+      <p>Daí em diante, todo recebimento de parcela, receita avulsa, conta paga, comissão paga e baixa de boleto diz em qual conta o dinheiro entrou ou saiu, e o saldo anda sozinho.</p>
       ${podeConta ? '<div class="btn-row" style="justify-content:center"><button class="btn btn-primary" onclick="abrirContaCaixa()"><i class=ico data-i=plus></i>Cadastrar a primeira conta</button></div>' : '<p>Peça a quem pode alterar as configurações para cadastrar as contas.</p>'}</div></div>`;
     return;
   }
@@ -309,6 +321,7 @@ function abrirMovimento(id) {
   const c = getContaCaixa(m.contaId), podeMexer = pode('financeiro.baixar') || (m.natureza === 'pagamento' && pode('custos.editar')) || (m.natureza === 'comissao' && pode('comissao.gerenciar'));
   const origem = m.recebivelId && m.vendaId ? `<button class="btn btn-secondary btn-sm" onclick="closeModal();abrirVendaAdmin('${m.vendaId}')">Abrir o contrato</button>`
     : m.custoId ? `<button class="btn btn-secondary btn-sm" onclick="abrirCustoForm('${m.custoId}')">Abrir a despesa</button>`
+    : m.receitaId ? `<button class="btn btn-secondary btn-sm" onclick="abrirReceitaForm('${m.receitaId}')">Abrir a receita</button>`
     : m.natureza === 'comissao' && m.vendaId ? `<button class="btn btn-secondary btn-sm" onclick="closeModal();abrirVendaAdmin('${m.vendaId}')">Abrir o contrato</button>` : '';
   const body = `<p class="small mb"><b>${esc(m.descricao)}</b></p>
     <div class="detail-grid"><div><div class="k">Valor</div><div class="v ${m.valor > 0 ? 'pos' : 'neg'}">${m.valor > 0 ? '+' : '−'} ${fmtMoney(Math.abs(m.valor))}</div></div><div><div class="k">Data</div><div class="v">${fmtDate(m.data)}</div></div>

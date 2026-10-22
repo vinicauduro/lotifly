@@ -299,5 +299,17 @@ await passo('caixa e bancos: conta nova pede "alterar configurações"; o financ
   const r = (await db.query(`select c.saldo_inicial + coalesce(sum(m.valor), 0) as saldo from public.contas_caixa c left join public.movimentos m on m.org_id = c.org_id and m.conta_id = c.id and m.data >= c.data_saldo where c.id = 'cx1' group by c.saldo_inicial`)).rows[0];
   if (r.saldo !== 13500.5) throw new Error('saldo ' + r.saldo);
 });
+await passo('receitas avulsas: o financeiro lança e recebe; sem "registrar pagamentos", o banco recusa; o corretor nem vê', async () => {
+  await ajustar({ permissoesPessoas: {} });
+  const ins = id => `insert into public.receitas (org_id, id, tipo_id, descricao, valor, data_competencia) values ('${ORG}','${id}','corretagem','Comissão apto 302',8000,'2026-10-01')`;
+  await como('fin', ins('rc1'));
+  await como('fin', `update public.receitas set status = 'recebido', data_recebimento = '2026-10-10', forma = null where id = 'rc1'`);
+  await como('fin', `insert into public.movimentos (org_id, id, conta_id, data, valor, natureza, receita_id) values ('${ORG}','mr-rc1','cx1','2026-10-10',8000,'receita','rc1')`);
+  await recusa('cor', ins('rc2'), 'lançar receitas');
+  if ((await como('cor', `select * from public.receitas`)).rows.length) throw new Error('corretor viu as receitas');
+  await ajustar({ permissoesPessoas: { [U.fin]: { 'financeiro.baixar': false } } });
+  await recusa('fin', ins('rc3'), 'lançar receitas');
+  await ajustar({ permissoesPessoas: {} });
+});
 console.log(erros.length ? '\nERROS:\n' + erros.join('\n') : '\ntudo ok');
 process.exit(erros.length ? 1 : 0);

@@ -1735,10 +1735,46 @@ function cadCategoriasHtml() {
     <h3 class="pc-sec">Receitas</h3>
     <div class="pc-grupo"><div class="pc-gh"><div><b>Vendas de imóveis</b> <span class="tiny muted">automático</span><div class="tiny muted">Vêm das parcelas recebidas dos contratos, cada uma no centro de custo do seu empreendimento.</div></div></div>
       ${LINHAS_RECEITA.map(([, rot]) => `<div class="item pc-conta pc-auto"><div class="info"><div class="title">${esc(rot)}</div></div></div>`).join('')}</div>
+    ${tiposReceitaHtml(cfg)}
     <h3 class="pc-sec">Despesas</h3>
     ${grupos}
     ${soltas.length ? `<div class="pc-grupo" data-grupo=""><div class="pc-gh"><div><b>Sem grupo</b> <span class="tiny muted">${nPlural(soltas.length, 'conta')}</span><div class="tiny muted">No balancete entram em "Custo das obras" quando a despesa é de um empreendimento, e em "Despesas administrativas" quando é da empresa. Abra a conta para escolher o grupo.</div></div></div>${soltas.map(conta).join('')}</div>` : ''}
     ${cfg ? '' : '<p class="help">Criar e renomear grupos, mudar o grupo de uma conta ou desativá-la é com quem altera as configurações da empresa.</p>'}</div>`;
+}
+/* Tipos de receita avulsa (receitas.js): os de fábrica e os criados pela empresa. "Fora do
+   resultado" entra no caixa mas não no lucro (aporte, empréstimo). */
+function tiposReceitaHtml(cfg) {
+  const extras = new Set((db.config.tiposReceitaExtra || []).map(t => t.id));
+  return `<div class="pc-grupo" id="pcReceitas"><div class="pc-gh"><div><b>Receitas avulsas</b> <span class="tiny muted">${nPlural(tiposReceita().length, 'tipo')}</span><div class="tiny muted">Lançadas em A receber › Outras receitas: o que entra fora das parcelas dos contratos.</div></div>
+      ${cfg ? `<span class="h-actions"><button class="btn btn-secondary btn-sm" onclick="abrirTipoReceitaForm()"><i class=ico data-i=plus></i>Tipo</button></span>` : ''}</div>
+    ${tiposReceita().map(t => { const n = db.receitas.filter(x => x.tipoId === t.id).length; return `<div class="item pc-conta"><div class="info"><div class="title">${esc(t.nome)}${t.resultado === false ? ' <span class="badge neutral">fora do resultado</span>' : ''}</div><div class="meta"><span>${extras.has(t.id) ? 'criado pela empresa' : 'de fábrica'}</span><span>· ${nPlural(n, 'lançamento')}</span></div></div>
+      ${cfg && extras.has(t.id) ? `<div class="side"><button class="btn-icon" onclick="abrirTipoReceitaForm('${esc(t.id)}')" title="Editar" aria-label="Editar o tipo ${esc(t.nome)}"><i class=ico data-i=pencil-simple></i></button></div>` : ''}</div>`; }).join('')}</div>`;
+}
+function abrirTipoReceitaForm(id) {
+  const t = id ? (db.config.tiposReceitaExtra || []).find(x => x.id === id) : null;
+  const n = t ? db.receitas.filter(x => x.tipoId === t.id).length : 0;
+  openModal({ title: t ? 'Editar tipo de receita' : 'Novo tipo de receita',
+    body: `<div class="fg"><label for="trNome">Nome *</label><input type="text" id="trNome" value="${esc(t ? t.nome : '')}" placeholder="Ex.: Aluguel do stand, Venda de material"></div>
+      <label class="check"><input type="checkbox" id="trFora" ${t && t.resultado === false ? 'checked' : ''}> Não é lucro (entra no caixa, mas fica fora do resultado, como aporte e empréstimo)</label>`,
+    footer: `${t ? `<button class="btn btn-outline-danger" onclick="excluirTipoReceita('${esc(t.id)}')" ${n ? `disabled title="Tem ${nPlural(n, 'lançamento')}"` : ''}>Excluir</button>` : ''}<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarTipoReceita('${t ? esc(t.id) : ''}')">Salvar</button>` });
+  focarSeLivre('trNome');
+}
+function salvarTipoReceita(id) {
+  if (!pode('config.editar')) { toast('🔒', 'Sem permissão', 'Criar tipos de receita pede "alterar configurações".', true); return; }
+  const nome = val('trNome'), fora = document.getElementById('trFora').checked;
+  if (!nome) { toast('⚠️', 'Dê um nome ao tipo', '', true); return; }
+  if (tiposReceita().some(t => t.id !== id && semAcento(t.nome) === semAcento(nome))) { toast('⚠️', 'Já existe um tipo com esse nome', '', true); return; }
+  const lista = (db.config.tiposReceitaExtra || []).slice();
+  if (id) { const i = lista.findIndex(x => x.id === id); if (i >= 0) lista[i] = Object.assign({}, lista[i], { nome, resultado: !fora }); }
+  else lista.push({ id: 'r' + genId(), nome, resultado: !fora });
+  setConfig({ tiposReceitaExtra: lista });
+  logAct(`Tipo de receita ${id ? 'alterado' : 'criado'}: ${nome}${fora ? ' (fora do resultado)' : ''}`);
+  closeModal(); renderCurrent();
+}
+function excluirTipoReceita(id) {
+  if (db.receitas.some(x => x.tipoId === id)) return;
+  setConfig({ tiposReceitaExtra: (db.config.tiposReceitaExtra || []).filter(x => x.id !== id) });
+  closeModal(); renderCurrent();
 }
 function abrirCategoriaForm(id, grupoIni) {
   const c = id ? getCategoria(id) : null, cfg = pode('config.editar');
