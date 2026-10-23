@@ -660,7 +660,57 @@ function opcoesSelReservas() {
   const lote = r => { const l = getLote(r.loteId); return l ? loteLabel(l) : ''; };
   return { titulo: 'Reservas', rotulo: r => `reserva de ${(r.cliente || {}).nome || ''}`, valor: r => (r.proposta || {}).valor,
     colunas: [['Lote', lote], ['Empreendimento', r => (getLoteamento(r.loteamentoId) || {}).nome || ''], ['Cliente', r => (r.cliente || {}).nome || ''], ['Corretor', r => (r.corretor || {}).nome || ''],
-      ['Reservada em', r => fmtDate(r.dataReserva)], ['Vale até', r => r.validade ? fmtDate(r.validade) : ''], ['Situação', r => statusLabel(reservaStatus(r))], ['Proposta', r => num((r.proposta || {}).valor) ? fmtMoney(r.proposta.valor) : '', true]] };
+      ['Reservada em', r => fmtDate(r.dataReserva)], ['Vale até', r => r.validade ? fmtDate(r.validade) : ''], ['Situação', r => statusLabel(reservaStatus(r))], ['Proposta', r => num((r.proposta || {}).valor) ? fmtMoney(r.proposta.valor) : '', true]],
+    acoes: [{ rotulo: 'Aprovar', icone: 'check', principal: true, pode: () => pode('reservas.aprovar'), fn: aprovarReservasEmLote },
+      { rotulo: 'Recusar', icone: 'prohibit', pode: () => pode('reservas.aprovar'), fn: recusarReservasEmLote }] };
+}
+/* Aprovar várias: só as que aguardam aprovação. Fica de fora a que pede um lote que já está
+   vendido, reservado por outra reserva ou pedido por outra da mesma seleção (a mais antiga
+   leva). Cada uma vale pelo prazo padrão a partir de hoje, como a aprovação de uma só. */
+async function aprovarReservasEmLote(itens) {
+  if (!pode('reservas.aprovar')) { toast('🔒', 'Sem permissão', 'Aprovar reservas pede "aprovar reservas".', true); return; }
+  const pend = itens.filter(r => r.status === 'pendente').sort((a, b) => (a.criadoEm || '').localeCompare(b.criadoEm || ''));
+  if (!pend.length) { toast('ℹ️', 'Nada para aprovar', 'Nenhuma das selecionadas está aguardando aprovação.'); return; }
+  const usados = new Set(), ok = [], fora = [];
+  pend.forEach(r => {
+    const l = getLote(r.loteId), outra = l && l.reservaId && l.reservaId !== r.id ? getReserva(l.reservaId) : null;
+    const motivo = l && l.status === 'vendido' ? 'lote já vendido' : outra && reservaStatus(outra) === 'aprovada' ? 'lote reservado por outra' : usados.has(r.loteId) ? 'outra reserva da seleção pede o mesmo lote' : '';
+    if (motivo) fora.push(`${l ? loteLabel(l) : 'Lote'} — ${r.cliente.nome}: ${motivo}`); else { ok.push(r); usados.add(r.loteId); }
+  });
+  if (!ok.length) { avisar({ titulo: 'Nenhuma pode ser aprovada', itens: fora }); return; }
+  const validade = addDays(todayStr(), Number(db.config.reservaDias) || 7);
+  if (!(await confirmar({ titulo: `Aprovar ${nPlural(ok.length, 'reserva')}?`, valores: [['Válidas até', fmtDate(validade)], ['Valor das propostas', fmtMoney(ok.reduce((s, r) => s + num((r.proposta || {}).valor), 0))]],
+    itens: fora.length ? [`Ficam de fora (${fora.length}):`].concat(fora) : [], acao: `Aprovar ${nPlural(ok.length, 'reserva')}` }))) return;
+  const antes = ok.map(r => ({ r: Object.assign({}, r), l: getLote(r.loteId) ? Object.assign({}, getLote(r.loteId)) : null }));
+  ok.forEach(r => {
+    upsert('reservas', Object.assign({}, r, { status: 'aprovada', aprovadaEm: todayStr(), validade }));
+    const l = getLote(r.loteId); if (l) upsert('lotes', Object.assign({}, l, { status: 'reservado', reservaId: r.id }));
+  });
+  logAct(`${nPlural(ok.length, 'reserva aprovada', 'reservas aprovadas')} de uma vez: ${ok.map(r => r.cliente.nome).slice(0, 5).join(', ')}${ok.length > 5 ? '…' : ''}`);
+  selLimpar('reservas'); renderCurrent();
+  toast('✅', `${nPlural(ok.length, 'reserva aprovada', 'reservas aprovadas')}`, `Válidas até ${fmtDate(validade)}. Avise os corretores.${fora.length ? ` ${fora.length} ficou de fora.` : ''}`, false, { rotulo: 'Desfazer', fn: () => {
+    antes.forEach(({ r, l }) => { upsert('reservas', r); if (l) upsert('lotes', l); });
+    logAct(`Aprovação em lote desfeita: ${nPlural(antes.length, 'reserva')}`); renderCurrent(); toast('↩️', 'Aprovações desfeitas', `${nPlural(antes.length, 'reserva voltou', 'reservas voltaram')} a aguardar aprovação.`);
+  } });
+}
+/* Recusar várias: as que aguardam aprovação, com um motivo para todas (o corretor vê) */
+function recusarReservasEmLote(itens) {
+  const pend = itens.filter(r => r.status === 'pendente');
+  if (!pend.length) { toast('ℹ️', 'Nada para recusar', 'Nenhuma das selecionadas está aguardando aprovação.'); return; }
+  state.recusandoReservas = pend.map(r => r.id);
+  openModal({ title: `Recusar ${nPlural(pend.length, 'reserva')}`,
+    body: `<p class="small mb">${pend.length === 1 ? 'O pedido será recusado' : 'Os pedidos serão recusados'} e ${pend.length === 1 ? 'o lote volta' : 'os lotes voltam'} a ficar disponíveis.${itens.length > pend.length ? ` <span class="muted">${nPlural(itens.length - pend.length, 'selecionada não está', 'selecionadas não estão')} aguardando aprovação e fica${itens.length - pend.length === 1 ? '' : 'm'} como está${itens.length - pend.length === 1 ? '' : 'o'}.</span>` : ''}</p>
+      <div class="lista mb">${pend.slice(0, 8).map(r => { const l = getLote(r.loteId); return `<div class="item"><div class="info"><div class="title">${esc(r.cliente.nome)}</div><div class="meta"><span>${l ? esc(loteLabel(l)) : ''}</span><span>· ${esc((r.corretor || {}).nome || '')}</span></div></div></div>`; }).join('')}${pend.length > 8 ? `<div class="item"><div class="info"><div class="meta">e mais ${pend.length - 8}</div></div></div>` : ''}</div>
+      <div class="fg"><label for="rsMotivoLote">Motivo (opcional, vale para todas)</label><textarea id="rsMotivoLote" placeholder="Ex.: entrada abaixo do mínimo…"></textarea><div class="tiny muted mt">O corretor vê o motivo na reserva.</div></div>`,
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-danger" onclick="confirmarRecusaEmLote()">Recusar ${nPlural(pend.length, 'reserva')}</button>` });
+  focarSeLivre('rsMotivoLote');
+}
+function confirmarRecusaEmLote() {
+  if (!pode('reservas.aprovar')) { toast('🔒', 'Sem permissão', '', true); return; }
+  const rs = (state.recusandoReservas || []).map(getReserva).filter(r => r && r.status === 'pendente'), motivo = val('rsMotivoLote');
+  rs.forEach(r => liberarReserva(r, 'recusada', motivo));
+  state.recusandoReservas = null; selLimpar('reservas'); closeModal(); renderCurrent();
+  toast('↩️', `${nPlural(rs.length, 'reserva recusada', 'reservas recusadas')}`, rs.length === 1 ? 'O lote voltou a ficar disponível.' : 'Os lotes voltaram a ficar disponíveis.');
 }
 /* Uma linha por reserva: até quando vale (e o aviso se vence ou venceu), o lote e o cliente, o
    corretor, e a proposta. Aguardando aprovação vem destacada: é o que espera o escritório. */

@@ -120,7 +120,91 @@ function opcoesSelRecebiveis() {
   return { titulo: 'Parcelas a receber', rotulo: r => `${clienteDe(r)} ${r.descricao}`, valor: r => recValor(r),
     colunas: [['Vencimento', r => fmtDate(r.vencimento)], ['Cliente', r => (getVenda(r.vendaId) || { cliente: {} }).cliente.nome || ''], ['Contrato', r => (getVenda(r.vendaId) || {}).numeroContrato || ''],
       ['Parcela', r => r.descricao], ['Imóvel', r => getVenda(r.vendaId) ? imovelLabel(getVenda(r.vendaId)) : ''], ['Valor', r => fmtMoney(recValor(r)), true], ['Pago', r => num(r.valorPago) ? fmtMoney(r.valorPago) : '', true],
-      ['Em aberto', r => fmtMoney(recRestante(r)), true], ['Situação', r => st[recStatus(r)] || '']] };
+      ['Em aberto', r => fmtMoney(recRestante(r)), true], ['Situação', r => st[recStatus(r)] || '']],
+    acoes: [{ rotulo: 'Registrar pagamento', icone: 'money', principal: true, pode: () => pode('financeiro.baixar'), fn: pagarParcelasEmLote },
+      { rotulo: 'Gerar boletos', icone: 'bank', pode: () => pode('financeiro.baixar') && contasComLayout().length > 0, fn: gerarBoletosEmLote }] };
+}
+/* Multa e juros da parcela paga num dia: os mesmos do Início e da janela de pagamento, mas
+   contados até a data do pagamento (pagar no vencimento não tem encargo). */
+function encargosAte(r, data) {
+  const rest = recRestante(r);
+  if (rest <= 0 || !data || r.vencimento >= data) return 0;
+  const dias = daysBetween(r.vencimento, data);
+  return rest * (num(db.config.multaPct) / 100) + rest * (num(db.config.jurosMesPct) / 100) * (dias / 30);
+}
+function parcelasPagaveis(itens) { return itens.filter(r => recStatus(r) !== 'pago' && (getVenda(r.vendaId) || {}).status !== 'distrato'); }
+/* Registrar o pagamento de várias parcelas: cada uma no próprio vencimento (o que vence depois
+   de hoje fica com a data de hoje) ou todas numa data. Pagas depois do vencimento, a escolha
+   de multa e juros é obrigatória, como na parcela sozinha. Quita o que falta de cada uma. */
+function pagarParcelasEmLote(itens) {
+  const abertas = parcelasPagaveis(itens);
+  if (!abertas.length) { toast('ℹ️', 'Nada a registrar', 'As selecionadas já estão pagas ou são de contratos desfeitos.'); return; }
+  Sel.pagandoParcelas = abertas.map(r => r.id);
+  const fora = itens.length - abertas.length, ctas = contasCaixaAtivas();
+  openModal({ title: `Registrar pagamento de ${nPlural(abertas.length, 'parcela')}`,
+    body: `<div class="detail-grid"><div><div class="k">Parcelas</div><div class="v">${abertas.length}${fora ? ` <span class="tiny muted">(${fora} já paga${fora === 1 ? '' : 's'} ou de distrato, fica${fora === 1 ? '' : 'm'} de fora)</span>` : ''}</div></div><div><div class="k">Em aberto</div><div class="v">${fmtMoney(abertas.reduce((s, r) => s + recRestante(r), 0))}</div></div></div>
+      <fieldset class="pg-encargos"><legend>Data do pagamento</legend>
+        <label class="pg-opcao"><input type="radio" name="ppData" value="venc" checked onchange="ppMudou()"><span><b>No vencimento de cada uma</b><span class="tiny muted">Vencendo depois de hoje, fica a data de hoje. Sem multa e juros.</span></span></label>
+        <label class="pg-opcao"><input type="radio" name="ppData" value="uma" onchange="ppMudou()"><span><b>Todas numa data</b></span></label>
+        <div class="fg" id="ppDataBox" style="display:none;margin-top:8px"><input type="date" id="ppData" value="${todayStr()}" max="${todayStr()}" aria-label="Data do pagamento" oninput="ppMudou()"></div></fieldset>
+      <fieldset class="pg-encargos" id="ppEncargos" style="display:none"><legend id="ppEncLeg">Multa e juros *</legend>
+        <label class="pg-opcao"><input type="radio" name="ppEnc" value="com" onchange="ppMudou()"><span><b>Cobrar multa e juros</b><span class="tiny muted" id="ppEncCom"></span></span></label>
+        <label class="pg-opcao"><input type="radio" name="ppEnc" value="sem" onchange="ppMudou()"><span><b>Sem multa e juros</b><span class="tiny muted" id="ppEncSem"></span></span></label></fieldset>
+      <div class="frow"><div class="fg"><label for="ppForma">Forma</label><select id="ppForma">${['PIX', 'Boleto', 'Transferência', 'Dinheiro', 'Cartão', 'Cheque', 'Permuta'].map(o => `<option>${o}</option>`).join('')}</select></div>
+        ${caixaLigado() ? `<div class="fg"><label for="ppConta">Entrou na conta</label><select id="ppConta"><option value="">A conta de cada empresa</option>${opcoesContasCaixa('')}</select></div>` : ''}</div>
+      <p class="small" id="ppTotal"></p>`,
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarPagamentoParcelasEmLote()">Registrar ${nPlural(abertas.length, 'pagamento')}</button>` });
+  ppMudou();
+}
+/* Data de cada parcela e o que entra de cada uma, conforme as escolhas da janela */
+function ppPlano() {
+  const hoje = todayStr(), umaData = (document.querySelector('input[name="ppData"]:checked') || {}).value === 'uma', data = val('ppData');
+  const enc = (document.querySelector('input[name="ppEnc"]:checked') || {}).value || '';
+  return (Sel.pagandoParcelas || []).map(id => db.recebiveis.find(r => r.id === id)).filter(r => r && recStatus(r) !== 'pago').map(r => {
+    const d = umaData ? data : (r.vencimento <= hoje ? r.vencimento : hoje);
+    const e = Math.round(encargosAte(r, d) * 100) / 100, rest = Math.round(recRestante(r) * 100) / 100;
+    return { r, data: d, rest, encargos: e, valor: e > 0.005 && enc === 'com' ? rest + e : rest };
+  });
+}
+function ppMudou() {
+  const umaData = (document.querySelector('input[name="ppData"]:checked') || {}).value === 'uma';
+  const box = document.getElementById('ppDataBox'); if (box) box.style.display = umaData ? '' : 'none';
+  const plano = ppPlano(), atras = plano.filter(p => p.encargos > 0.005), fs = document.getElementById('ppEncargos');
+  if (fs) {
+    fs.style.display = atras.length ? '' : 'none';
+    const e = atras.reduce((s, p) => s + p.encargos, 0);
+    $('#ppEncLeg').textContent = `Multa e juros · ${nPlural(atras.length, 'parcela paga', 'parcelas pagas')} depois do vencimento *`;
+    $('#ppEncCom').textContent = `mais ${fmtMoney(e)} no total`;
+    $('#ppEncSem').textContent = `dispensa ${fmtMoney(e)}`;
+  }
+  const t = document.getElementById('ppTotal'); if (t) t.innerHTML = `Total a registrar: <b>${fmtMoney(plano.reduce((s, p) => s + p.valor, 0))}</b>`;
+}
+function salvarPagamentoParcelasEmLote() {
+  if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', 'Seu perfil não registra pagamentos.', true); return; }
+  const umaData = (document.querySelector('input[name="ppData"]:checked') || {}).value === 'uma', data = val('ppData');
+  if (umaData && (!/^\d{4}-\d{2}-\d{2}$/.test(data || '') || data > todayStr())) { toast('⚠️', 'Data do pagamento', 'Informe um dia de hoje para trás.', true); return; }
+  const plano = ppPlano(), enc = (document.querySelector('input[name="ppEnc"]:checked') || {}).value || '';
+  if (plano.some(p => p.encargos > 0.005) && !enc) {
+    const f = document.getElementById('ppEncargos'); if (f) { f.classList.add('erro'); f.scrollIntoView({ block: 'nearest' }); }
+    toast('⚠️', 'Escolha se cobra multa e juros', 'Há parcelas pagas depois do vencimento: marque "Cobrar multa e juros" ou "Sem multa e juros".', true); return;
+  }
+  const forma = val('ppForma'), contaId = val('ppConta'), cx = getContaCaixa(contaId);
+  const antes = plano.map(p => Object.assign({}, p.r)), vendas = new Set();
+  comConta(contaId, () => plano.forEach(p => {
+    const r = p.r, novoPago = Math.round((num(r.valorPago) + p.valor) * 100) / 100, devido = recValor(r);
+    const nota = p.encargos > 0.005 && enc === 'sem' ? `Multa e juros dispensados: ${fmtMoney(p.encargos)} (${fmtDate(todayStr())})` : '';
+    upsert('recebiveis', Object.assign({}, r, { valorPago: novoPago, dataPagamento: p.data, forma, obsPagamento: [r.obsPagamento, nota].filter(Boolean).join(' · '),
+      valorCorrigido: Math.round(Math.max(devido, novoPago) * 100) / 100 }));
+    vendas.add(r.vendaId);
+  }));
+  vendas.forEach(atualizarStatusVenda);
+  const tot = plano.reduce((s, p) => s + p.valor, 0);
+  logAct(`${nPlural(plano.length, 'pagamento registrado', 'pagamentos registrados')} de uma vez — ${fmtMoney(tot)}${enc === 'sem' ? ' (multa e juros dispensados)' : enc === 'com' ? ' (com multa e juros)' : ''}`);
+  Sel.pagandoParcelas = null; selLimpar('recebiveis'); closeModal(); renderCurrent();
+  toast('✅', `${nPlural(plano.length, 'pagamento registrado', 'pagamentos registrados')}`, `${fmtMoney(tot)}${cx ? ` · entrou em ${cx.nome}` : ''}`, false, { rotulo: 'Desfazer', fn: () => {
+    antes.forEach(r => upsert('recebiveis', r)); vendas.forEach(atualizarStatusVenda);
+    logAct(`Pagamentos em lote desfeitos: ${nPlural(antes.length, 'parcela')}`); renderCurrent(); toast('↩️', 'Pagamentos desfeitos', `${nPlural(antes.length, 'parcela voltou', 'parcelas voltaram')} para em aberto.`);
+  } });
 }
 /* Uma linha por parcela: quando vence, de quem é (cliente, contrato, imóvel), quanto falta e
    as ações. */
