@@ -426,6 +426,53 @@ function gerarCobrancas(contaId, mes) {
   closeModal(); renderCurrent();
   toast('✅', 'Cobranças geradas', `${prontas.length} título(s) em ${monthLabel(mes)}${pend.length ? ' + ' + pend.length + ' alteração(ões)' : ''}. Envie o arquivo ao banco.`);
 }
+/* Boletos das parcelas marcadas em A receber: as que ainda não foram ao banco ganham o nosso
+   número e entram na remessa da conta de cobrança delas (um arquivo por conta); as que já foram
+   registradas só são impressas de novo. Paga, de contrato desfeito ou esperando índice fica de
+   fora, com o motivo. */
+function planoBoletosEmLote(itens) {
+  const porConta = new Map(), fora = [];
+  itens.forEach(r => {
+    const c = contaDoRec(r), v = getVenda(r.vendaId);
+    const quem = `${v ? v.cliente.nome + ' · ' : ''}${r.descricao}`;
+    if (recStatus(r) === 'pago') { fora.push(`${quem}: já paga`); return; }
+    if (!c || !layoutCnab(c.banco)) { fora.push(`${quem}: sem conta de cobrança`); return; }
+    const g = porConta.get(c.id) || { conta: c, novas: [], registradas: [] }; porConta.set(c.id, g);
+    if (registradaNoBanco(r)) { g.registradas.push(r); return; }
+    const b = bloqueioRemessa(r); if (b) { fora.push(`${quem}: ${b}`); porConta.set(c.id, g); return; }
+    g.novas.push(r);
+  });
+  return { grupos: [...porConta.values()].filter(g => g.novas.length || g.registradas.length), fora };
+}
+function gerarBoletosEmLote(itens) {
+  if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', 'Seu perfil não gera cobranças.', true); return; }
+  if (!contasComLayout().length) { avisoSemConta(); return; }
+  const { grupos, fora } = planoBoletosEmLote(itens);
+  Sel.boletos = itens.map(r => r.id);
+  const nNovas = grupos.reduce((s, g) => s + g.novas.length, 0), nReg = grupos.reduce((s, g) => s + g.registradas.length, 0);
+  openModal({ title: `Boletos de ${nPlural(itens.length, 'parcela')}`,
+    body: grupos.length ? `${grupos.map(g => `<div class="item"><div class="info"><div class="title">${esc(contaLabel(g.conta))}</div><div class="meta">${g.novas.length ? `<span><b>${nPlural(g.novas.length, 'nova', 'novas')}</b> para registrar · ${fmtMoney(g.novas.reduce((s, r) => s + recValor(r), 0))}</span>` : ''}${g.registradas.length ? `<span>${g.novas.length ? '· ' : ''}${nPlural(g.registradas.length, 'já registrada', 'já registradas')} (só imprime)</span>` : ''}</div></div></div>`).join('')}
+      <p class="help mt">${nNovas ? `As novas ganham o nosso número e vão num arquivo de remessa por conta, que baixa agora para você enviar ao banco. ` : ''}Depois abre a impressão dos boletos. O boleto só vale depois que o banco registrar a remessa.</p>
+      ${fora.length ? `<div class="alert warn" style="cursor:default"><span><b>${nPlural(fora.length, 'parcela fica', 'parcelas ficam')} de fora:</b> ${fora.slice(0, 6).map(esc).join('; ')}${fora.length > 6 ? `; e mais ${fora.length - 6}` : ''}.</span></div>` : ''}`
+      : `<div class="empty"><div class="ic"><i class=ico data-i=tray></i></div><p><b>Nenhuma das selecionadas vira boleto.</b></p><p class="small">${fora.slice(0, 6).map(esc).join('<br>')}</p></div>`,
+    footer: `<button class="btn btn-secondary" onclick="closeModal()">${grupos.length ? 'Cancelar' : 'Fechar'}</button>${grupos.length ? `<button class="btn btn-primary" onclick="confirmarBoletosEmLote()">${nNovas ? `Gerar remessa e imprimir ${nPlural(nNovas + nReg, 'boleto')}` : `Imprimir ${nPlural(nReg, 'boleto')}`}</button>` : ''}` });
+}
+function confirmarBoletosEmLote() {
+  if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', '', true); return; }
+  const itens = (Sel.boletos || []).map(id => db.recebiveis.find(r => r.id === id)).filter(Boolean);
+  const { grupos } = planoBoletosEmLote(itens);
+  let novas = 0;
+  try { grupos.forEach(g => { if (g.novas.length && emitirRemessa(g.conta, g.novas, [])) novas += g.novas.length; }); }
+  catch (e) { toast('⚠️', 'Falha ao montar o arquivo', e.message, true); return; }
+  /* Depois da remessa, todas têm nosso número: imprime as das contas, na ordem da lista */
+  const imprimir = itens.map(r => db.recebiveis.find(x => x.id === r.id)).filter(r => r && registradaNoBanco(r) && recStatus(r) !== 'pago');
+  Sel.boletos = null; selLimpar('recebiveis'); closeModal(); renderCurrent();
+  if (novas) toast('✅', `${nPlural(novas, 'boleto registrado', 'boletos registrados')} na remessa`, `${grupos.filter(g => g.novas.length).length > 1 ? 'Um arquivo por conta baixou' : 'O arquivo baixou'}: envie ao banco.`);
+  if (!imprimir.length) return;
+  try { $('#printArea').innerHTML = imprimir.map(r => `<div class="boleto-pagina">${boletoHtml(dadosBoleto(r))}</div>`).join(''); }
+  catch (e) { toast('⚠️', 'Não deu para montar os boletos', e.message, true); return; }
+  window.print();
+}
 /* Só as alterações e baixas pendentes, sem gerar cobrança nova. É o botão do aviso. */
 function gerarRemessaPendente(contaId) {
   if (!pode('financeiro.baixar')) { toast('🔒', 'Sem permissão', '', true); return; }

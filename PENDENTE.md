@@ -760,6 +760,41 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z47. Mais ações na barra das selecionadas (23/10)
+
+Pedido seu: aprovar e recusar várias reservas, registrar pagamento e gerar boletos.
+
+- **Reservas › Aprovar:**
+  - aprova as que estão aguardando, pelo prazo padrão a partir de hoje, e reserva os lotes;
+  - fica de fora, com o motivo, a reserva de lote já vendido ou reservado por outra;
+  - quando duas da seleção pedem o mesmo lote, a mais antiga leva;
+  - "Desfazer" volta tudo.
+- **Reservas › Recusar:** as que estão aguardando, com um motivo só para todas (o corretor vê).
+  Os lotes voltam a ficar disponíveis.
+- **A receber › Registrar pagamento:**
+  - quita o que falta de cada parcela marcada, **no vencimento de cada uma** (sem multa e
+    juros; o que vence depois de hoje fica com a data de hoje) ou **todas numa data**;
+  - paga depois do vencimento, a escolha **cobrar ou dispensar multa e juros** é obrigatória,
+    como na parcela sozinha, e a dispensa fica anotada em cada uma;
+  - forma, "Entrou na conta" (ou a conta de cada empresa) e Desfazer;
+  - fica de fora o que já está pago ou é de contrato desfeito.
+- **A receber › Gerar boletos:**
+  - as parcelas que ainda não foram ao banco ganham o nosso número e entram na remessa da conta
+    de cobrança delas (um arquivo por conta, que baixa na hora);
+  - depois abre a impressão dos boletos, um por página. As já registradas só são impressas de
+    novo, sem outra remessa;
+  - fica de fora, com o motivo, o que já está pago, é de distrato ou espera índice;
+  - sem conta de cobrança cadastrada, o botão não aparece.
+
+Para você fazer:
+
+- [ ] Testar com dados reais: aprovar duas reservas, pagar três parcelas e gerar os boletos de
+  um cliente.
+
+`testes/acoes-lote.test.js` (10 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z46. Receitas avulsas: etapa 2 do financeiro (22/10)
 
 Decidido com você: taxa de termo de cessão, comissões da imobiliária, rendimentos, aporte e

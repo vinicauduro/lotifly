@@ -1164,3 +1164,4 @@ body.com-selecao .fab { display: none !important; }
 @media (min-width: 901px) { .sel-barra { left: calc(50% + 120px); width: min(760px, calc(100vw - 292px)); } }
 @media (max-width: 520px) { .sel-barra { padding: 10px 12px; } .sel-acoes { width: 100%; } .sel-acoes .btn { flex: 1 1 auto; } .sel-limpar { flex: 0 0 auto !important; } }
 @media print { .sel-barra { display: none !important; } }
+@media print { #printArea .boleto-pagina { break-after: page; } #printArea .boleto-pagina:last-child { break-after: auto; } }
