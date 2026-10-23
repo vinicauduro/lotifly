@@ -760,6 +760,25 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z49. Logo na aba do navegador (23/10)
+
+Pedido seu: a marca do Lotifly na aba.
+
+- **Ícone da aba (`favicon.svg`):** quadrado azul da marca com um "L" branco e um lote verde.
+  Fica nítido no tamanho pequeno da aba, no tema claro e no escuro.
+- **Ícones do app instalado** (`icon-192.png` e `icon-512.png`, usados no celular e na tela de
+  início) foram refeitos com a mesma marca. Os antigos estavam quebrados.
+- Se você tiver uma logo própria, mande o arquivo que eu troco.
+
+Para você fazer:
+
+- [ ] Recarregar o app e ver a aba. Pode precisar de um Ctrl+Shift+R, porque o navegador guarda
+  o ícone antigo.
+
+`testes/icone.test.js` (2 casos).
+
+---
+
 ## 7z48. Atualização dos preços de venda: mensal e manual (23/10)
 
 Pedido seu: atualizar o valor dos imóveis à venda todo mês (por %, valor cheio ou índice, como o
