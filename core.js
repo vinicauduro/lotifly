@@ -1846,6 +1846,7 @@ function switchTab(tab) {
 function renderCurrent() {
   if (state.role === 'landing' || !state.role) { renderLanding(); return; }
   liberarReservasVencidas();
+  if (typeof aplicarReajustesMensais === 'function') aplicarReajustesMensais();
   const mudou = registrarMudancas();
   const kpisAntes = mudou ? lerKpis() : null;
   if (state.role === 'corretor') renderCorretorTab();
