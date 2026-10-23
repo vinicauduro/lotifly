@@ -176,7 +176,7 @@ function listaEmpreendimentosHtml() {
   const podeCriar = pode('config.editar') || pode('lotes.editar');
   /* Mesmo cabeçalho das outras telas (título e ações à direita) e a lista contínua, sem cartão
      em volta. */
-  return `${tituloTela('Imóveis', (db.loteamentos.length ? '<button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Gerar tabela</button>' : '') + (podeCriar ? '<button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo imóvel</button>' : ''), 'Empreendimentos, com planta e lotes, e imóveis avulsos. Abra um para ver preços e situação.')}
+  return `${tituloTela('Imóveis', (db.loteamentos.length && podeAtualizarPrecos() ? '<button class="btn btn-secondary btn-sm" onclick="abrirReajuste(\'empresa\')"><i class=ico data-i=chart-line-up></i>Atualizar preços</button>' : '') + (db.loteamentos.length ? '<button class="btn btn-secondary btn-sm" onclick="abrirTabelaForm()"><i class=ico data-i=file-text></i>Gerar tabela</button>' : '') + (podeCriar ? '<button class="btn btn-primary btn-sm" onclick="abrirLoteamentoForm()"><i class=ico data-i=plus></i>Novo imóvel</button>' : ''), 'Empreendimentos, com planta e lotes, e imóveis avulsos. Abra um para ver preços e situação.')}
     ${db.loteamentos.length ? listaSelecionavel('imoveis', db.loteamentos.slice().sort((a, b) => (ehCarteira(a) - ehCarteira(b)) || naturalCmp(a.nome, b.nome)), empLinhaHtml, opcoesSelImoveis())
       : `<div class="empty"><div class="ic"><i class=ico data-i=house></i></div><p><b>Nenhum imóvel cadastrado ainda.</b></p><p class="small">Cadastre um empreendimento, com planta e lotes, ou um imóvel avulso — apartamento, casa, lote — que você vai vender.</p></div>`}`;
 }
@@ -201,7 +201,8 @@ function opcoesSelImoveis() {
     colunas: [['Nome', l => l.nome], ['Tipo', l => ehCarteira(l) ? empLabel(l) : 'Empreendimento'], ['Cidade', l => l.cidade || ''],
       ['Lotes', l => ehCarteira(l) ? '' : String(lotesDo(l.id).length), true], ['Vendidos', l => ehCarteira(l) ? (vendaAtivaDoImovel(l) ? '1' : '0') : String(lotesDo(l.id).filter(x => x.status === 'vendido').length), true],
       ['Disponíveis', l => ehCarteira(l) ? (vendaAtivaDoImovel(l) ? '0' : '1') : String(lotesDo(l.id).filter(x => x.status === 'disponivel').length), true]],
-    acoes: [{ rotulo: 'Excluir', icone: 'trash', perigo: true, pode: () => pode('config.editar'), fn: excluirImoveisEmLote }] };
+    acoes: [{ rotulo: 'Atualizar preços', icone: 'chart-line-up', principal: true, pode: podeAtualizarPrecos, fn: itens => abrirReajuste(itens.map(l => l.id)) },
+      { rotulo: 'Excluir', icone: 'trash', perigo: true, pode: () => pode('config.editar'), fn: excluirImoveisEmLote }] };
 }
 function fabShow(action) { const f = $('#fab'); f.classList.add('show'); f.setAttribute('onclick', action); }
 
@@ -270,6 +271,7 @@ function renderPainel() {
   if (resPend.length && !pode('reservas.aprovar')) alerts += `<div class="alert warn" onclick="switchTab('reservas')"><span><b>${s(resPend.length, 'reserva aguardando', 'reservas aguardando')} aprovação</b></span><i class=ico data-i=caret-right></i></div>`;
   if (resExp.length) alerts += `<div class="alert" onclick="aSetFiltroRes('expirada')"><span><b>${s(resExp.length, 'reserva vencida', 'reservas vencidas')}</b> — libere o lote ou renove</span><i class=ico data-i=caret-right></i></div>`;
   if (resVencendo.length) alerts += `<div class="alert info" onclick="switchTab('reservas')"><span><b>${s(resVencendo.length, 'reserva vence', 'reservas vencem')} em até 2 dias</b></span><i class=ico data-i=caret-right></i></div>`;
+  alerts += avisoReajusteHtml();
   if (!alerts && !k.nAtrasados && !custosAtr.length && !resPend.length) alerts = `<div class="alert ok"><span>Tudo em dia. <i class=ico data-i=thumbs-up></i></span></div>`;
 
   const serie = recebimentosPorMes(12);
@@ -446,9 +448,10 @@ function renderALotes(alvo) {
       <button class="btn btn-primary btn-sm" onclick="abrirLoteForm()"><i class=ico data-i=plus></i>Lote</button>
       <button class="btn btn-outline btn-sm" onclick="abrirGerarLotes()">Gerar em massa</button>
       <button class="btn btn-outline btn-sm" onclick="abrirImportarLotes()">Importar CSV</button>
-      <button class="btn btn-outline btn-sm" onclick="abrirReajuste()">Reajustar preços</button>
+      ${podeAtualizarPrecos() ? `<button class="btn btn-outline btn-sm" onclick="abrirReajuste('${lot.id}')">Atualizar preços</button>` : ''}
       <button class="btn btn-secondary btn-sm" onclick="exportarLotesCSV()">Exportar</button>
     </div>
+    ${resumoReajusteCfg(lot) ? `<p class="small muted mb reaj-resumo"><i class=ico data-i=chart-line-up></i> ${esc(resumoReajusteCfg(lot))} · <a href="#" onclick="abrirLoteamentoForm('${lot.id}');return false">mudar</a></p>` : ''}
     <div class="chips">
       ${[['all', 'Todos', ls.length], ['disponivel', 'Disponíveis', cnt('disponivel')], ['reservado', 'Reservados', cnt('reservado')], ['vendido', 'Vendidos', cnt('vendido')], ['bloqueado', 'Indisponíveis', cnt('bloqueado')]].map(([k, l, n]) => `<div class="chip ${f.status === k ? 'active' : ''}" onclick="aSetFiltro('alotes','status','${k}',renderALotes)">${l}<span class="n">${n}</span></div>`).join('')}
     </div>
@@ -614,24 +617,6 @@ function importarLotes() {
   });
   logAct(`Importação de lotes: ${criados} criados, ${atualizados} atualizados`);
   closeModal(); renderCurrent(); toast('✅', 'Importação concluída', `${criados} criados · ${atualizados} atualizados${erros ? ' · ' + erros + ' linha(s) ignoradas' : ''}`);
-}
-function abrirReajuste() {
-  const lot = curLot();
-  const body = `<p class="help mb">Aplica um reajuste percentual ou um novo valor por m² nos lotes selecionados. Lotes vendidos não são alterados.</p>
-    <div class="frow"><div class="fg"><label>Quadra</label><select id="rjQuadra"><option value="all">Todas</option>${quadrasDo(lot.id).map(q => `<option value="${esc(q)}">Quadra ${esc(q)}</option>`).join('')}</select></div>
-      <div class="fg"><label>Aplicar em</label><select id="rjStatus"><option value="disponivel">Somente disponíveis</option><option value="all">Disponíveis, reservados e bloqueados</option></select></div></div>
-    <div class="frow"><div class="fg"><label>Reajuste (%)</label><input type="number" id="rjPct" step="0.1" placeholder="ex.: 5 ou -3"></div><div class="fg"><label>ou novo preço por m² (R$)</label><input type="number" id="rjM2" step="0.01" placeholder="ex.: 450"></div></div>
-    <label class="check"><input type="checkbox" id="rjArredonda" checked> Arredondar para centena (R$ 100)</label>`;
-  openModal({ title: 'Reajustar preços', body, footer: `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="aplicarReajuste()">Aplicar</button>` });
-}
-async function aplicarReajuste() {
-  const lot = curLot(); const q = val('rjQuadra'), st = val('rjStatus'); const pct = num(val('rjPct')), m2 = num(val('rjM2'));
-  if (!pct && !m2) { toast('⚠️', 'Informe o percentual ou o valor por m²', '', true); return; }
-  const alvo = lotesDo(lot.id).filter(l => l.status !== 'vendido' && (q === 'all' || l.quadra === q) && (st === 'all' || l.status === 'disponivel'));
-  if (!(await confirmar({ titulo: `Reajustar ${nPlural(alvo.length, 'lote')}?`, valores: [['Reajuste', m2 ? fmtMoney(m2) + ' por m²' : fmtNum(pct, 2) + '%', true], ['Lotes', String(alvo.length)]], texto: 'Lotes vendidos não mudam. O preço novo vale para tabelas e reservas daqui em diante.', acao: 'Reajustar preços' }))) return;
-  alvo.forEach(l => { let p = m2 ? l.area * m2 : l.preco * (1 + pct / 100); if (checked('rjArredonda')) p = Math.round(p / 100) * 100; upsert('lotes', Object.assign({}, l, { preco: Math.round(p * 100) / 100 })); });
-  logAct(`Reajuste de preços em ${nPlural(alvo.length, 'lote')}: ${m2 ? fmtMoney(m2) + '/m²' : pct + '%'}`);
-  closeModal(); renderCurrent(); toast('✅', 'Preços reajustados', `${nPlural(alvo.length, 'lote')}`);
 }
 function exportarLotesCSV() {
   const lot = curLot(); const rows = [['Quadra', 'Lote', 'Área m²', 'Frente', 'Fundos', 'Preço', 'R$/m²', 'Tipo', 'Status', 'Cliente', 'Corretor', 'Matrícula', 'Obs']];
@@ -1573,7 +1558,8 @@ function abrirLoteamentoForm(id, opc) {
       <div class="frow"><div class="fg"><label>Entrada mínima (%)</label><input type="number" id="lmEntrada" step="0.1" value="${c.entradaMinPct ?? 10}"></div><div class="fg"><label>Máximo de parcelas</label><input type="number" id="lmMaxP" value="${c.maxParcelas ?? 120}"></div></div>
       <div class="frow"><div class="fg"><label>Juros do parcelamento (% a.m.)</label><input type="number" id="lmJuros" step="0.01" value="${c.jurosMes ?? 0}"><div class="hint">0 = sem juros (parcelas lineares)</div></div><div class="fg"><label>Desconto à vista (%)</label><input type="number" id="lmDesc2" step="0.1" value="${c.descontoVistaPct ?? 0}"></div></div>
       <div class="fg"><label for="lmObsTab">Condições na tabela de preços</label><textarea id="lmObsTab" rows="3" placeholder="Ex.: Saldo em até 120 parcelas corrigidas pelo INPC. Desconto de 5% à vista. Esta tabela substitui as anteriores.">${esc(c.obsTabela || '')}</textarea>
-        <div class="hint">Sai embaixo da tabela que vai para os corretores. Em branco, o app escreve um resumo das condições acima.</div></div></details>`;
+        <div class="hint">Sai embaixo da tabela que vai para os corretores. Em branco, o app escreve um resumo das condições acima.</div></div></details>
+    ${reajusteFormHtml(l)}`;
   openModal({ title: l ? `Editar ${empLabel(l).toLowerCase()}` : 'Novo imóvel', body, footer: `${l && db.loteamentos.length > 1 ? `<button class="btn btn-outline-danger" onclick="excluirLoteamento('${l.id}')">Excluir</button>` : ''}<button class="btn btn-secondary" onclick="${opc.paraContrato ? 'novaVendaEscolhendoEmp()' : 'closeModal()'}">${opc.paraContrato ? '‹ Voltar' : 'Cancelar'}</button><button class="btn btn-primary" onclick="salvarLoteamento('${l ? l.id : ''}')">${opc.paraContrato ? 'Salvar e abrir o contrato' : 'Salvar'}</button>` });
   lmTipoChange(true);
   focarSeLivre('lmNome');
@@ -1665,8 +1651,10 @@ async function salvarLoteamento(id) {
     cep: val('lmCep'), logradouro: val('lmLogr'), numeroEnd: val('lmNum'), bairro: val('lmBairro'), uf: val('lmUf'),
     cartorio: val('lmCartorio'), matriculaMae: val('lmMatMae'), codigoIbge: onlyDigits(val('lmIbge')),
     ...(terc ? { categoria: sel.cat[0], preco: num(val('lmPreco')), matricula: val('lmMat'), area: num(val('lmArea')) || null, descricaoMatricula: val('lmDescMat') } : {}), cond: terc && !$('#lmCondBox').open ? ((prev && prev.cond) || {}) : { entradaMinPct: num(val('lmEntrada')), maxParcelas: Math.round(num(val('lmMaxP'))) || 120, jurosMes: num(val('lmJuros')), descontoVistaPct: num(val('lmDesc2')), obsTabela: val('lmObsTab') } });
+  if (!salvarReajusteDoForm(rec.id, true)) return;
   const paraContrato = !prev && val('lmParaContrato') === '1';
   upsert('loteamentos', rec);
+  salvarReajusteDoForm(rec.id);
   if (paraContrato) {
     logAct(`Imóvel cadastrado no contrato: ${empLabel(rec)} — ${nome}`);
     closeModal(); setCurLotSilencioso(rec.id); abrirVendaForm();

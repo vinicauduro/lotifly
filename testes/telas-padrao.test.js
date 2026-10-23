@@ -18,9 +18,9 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   const cab = t => page.evaluate(t => { switchTab(t); const v = document.getElementById('av-' + t); const h = v.querySelector(':scope > .pg-head');
     return { titulo: h ? h.querySelector('.pg-tit').textContent : null, acoes: h ? [...h.querySelectorAll('.pg-acoes .btn')].map(b => b.textContent.trim()) : [], cartaoComTitulo: !!v.querySelector(':scope > .card > h2'), itensSoltos: v.querySelectorAll(':scope > .card .item, :scope > .item').length }; }, t);
 
-  await passo('Imóveis: cabeçalho padrão com "Gerar tabela" e "Novo imóvel", lista contínua sem cartão em volta', async () => {
+  await passo('Imóveis: cabeçalho padrão com "Atualizar preços", "Gerar tabela" e "Novo imóvel", lista contínua sem cartão em volta', async () => {
     const r = await cab('emp');
-    if (r.titulo !== 'Imóveis' || r.acoes.join() !== 'Gerar tabela,Novo imóvel' || r.cartaoComTitulo || r.itensSoltos) throw new Error(JSON.stringify(r));
+    if (r.titulo !== 'Imóveis' || r.acoes.join() !== 'Atualizar preços,Gerar tabela,Novo imóvel' || r.cartaoComTitulo || r.itensSoltos) throw new Error(JSON.stringify(r));
     const borda = await page.evaluate(() => getComputedStyle(document.querySelector('#av-emp .lista > .item')).borderTopWidth);
     if (borda !== '0px') throw new Error('item ainda é cartão: ' + borda);
   });

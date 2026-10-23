@@ -1165,3 +1165,6 @@ body.com-selecao .fab { display: none !important; }
 @media (max-width: 520px) { .sel-barra { padding: 10px 12px; } .sel-acoes { width: 100%; } .sel-acoes .btn { flex: 1 1 auto; } .sel-limpar { flex: 0 0 auto !important; } }
 @media print { .sel-barra { display: none !important; } }
 @media print { #printArea .boleto-pagina { break-after: page; } #printArea .boleto-pagina:last-child { break-after: auto; } }
+.rj-previa { margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.reaj-resumo .ico { vertical-align: -0.15em; }
+.reaj-aviso { flex-wrap: wrap; }

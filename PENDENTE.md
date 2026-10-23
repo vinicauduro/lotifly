@@ -760,6 +760,43 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z48. Atualização dos preços de venda: mensal e manual (23/10)
+
+Pedido seu: atualizar o valor dos imóveis à venda todo mês (por %, valor cheio ou índice, como o
+CUB), ou na mão, um empreendimento inteiro ou todos os imóveis da empresa. Decidido com você:
+o valor cheio é **somado a cada lote**; a mensal **entra sozinha, com aviso**; muda
+**disponíveis, bloqueados e reservados** (vendido nunca).
+
+- **Mensal (por imóvel):** em Editar imóvel › **Atualização mensal do preço**:
+  - escolha entre **percentual ao mês**, **valor somado a cada lote (R$)** ou **índice** (os
+    cadastrados em Financeiro › Índices: CUB, IGP-M, INPC, IPCA…);
+  - informe o mês da primeira atualização e se arredonda para a centena.
+  - Percentual e valor entram no **dia 1º** de cada mês. O índice entra **assim que o do mês
+    anterior for lançado** (o CUB de setembro sai em outubro, e é ele que atualiza outubro).
+  - Se o app ficou dias sem abrir, os meses que faltaram entram um a um, na ordem.
+  - Quando atualiza, o **Início mostra o aviso "Preços atualizados sozinhos"** com
+    **Desfazer**. Desfazer volta os preços e **pausa a mensal** daquele imóvel até alguém revisar.
+  - A tela de lotes mostra "Atualização mensal: CUB · próxima em nov/26".
+- **Manual: botão "Atualizar preços"** (dentro do empreendimento, no alto de Imóveis para
+  **todos os imóveis da empresa**, e na barra dos imóveis selecionados):
+  - **percentual**, **valor somado a cada lote**, **novo preço por m²** ou **índice acumulado**
+    de um mês a outro (avisa se falta lançar algum mês);
+  - quadra, "só os disponíveis" e arredondamento;
+  - mostra antes quantos itens mudam e o total de/para; **Desfazer** no aviso.
+- Imóvel avulso entra enquanto não for vendido. Reserva já feita guarda o valor da proposta.
+- Índice que cai não reduz o preço (igual à correção dos contratos).
+- Quem pode: "alterar preços dos lotes" (e, na nuvem, "alterar configurações" para ligar a mensal).
+
+Para você fazer:
+
+- [ ] Ligar a mensal num empreendimento (sugestão: CUB) e conferir em novembro, depois de
+  lançar o CUB de outubro em Financeiro › Índices.
+- [ ] Fazer uma atualização manual de teste e usar o Desfazer.
+
+`testes/atualizacao-precos.test.js` (12 casos, relógio fixo em 19/10/2026).
+
+---
+
 ## 7z47. Mais ações na barra das selecionadas (23/10)
 
 Pedido seu: aprovar e recusar várias reservas, registrar pagamento e gerar boletos.
