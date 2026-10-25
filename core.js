@@ -510,7 +510,7 @@ function codigoConvite(n) {
 }
 
 const TABLE_COLS = {
-  loteamentos: ['id', 'nome', 'tipo', 'cidade', 'endereco', 'logradouro', 'numeroEnd', 'bairro', 'cep', 'uf', 'codigoIbge', 'cartorio', 'matriculaMae', 'categoria', 'matricula', 'descricaoMatricula', 'area', 'preco', 'descricao', 'cond', 'orcamento', 'planta', 'criadoEm'],
+  loteamentos: ['id', 'nome', 'tipo', 'cidade', 'endereco', 'logradouro', 'numeroEnd', 'bairro', 'cep', 'uf', 'codigoIbge', 'cartorio', 'matriculaMae', 'categoria', 'matricula', 'descricaoMatricula', 'area', 'preco', 'descricao', 'cond', 'orcamento', 'planta', 'logo', 'criadoEm'],
   categorias: ['id', 'nome', 'cor'],
   lotes: ['id', 'loteamentoId', 'quadra', 'numero', 'area', 'frente', 'fundos', 'preco', 'tipo', 'status', 'obs', 'matricula', 'descricaoMatricula', 'logradouro', 'numeroEnd', 'bairro', 'cep', 'pts', 'reservaId', 'vendaId', 'criadoEm'],
   reservas: ['id', 'loteamentoId', 'loteId', 'corretor', 'corretorUserId', 'cliente', 'dataReserva', 'validade', 'status', 'proposta', 'obs', 'motivo', 'aprovadaEm', 'encerradaEm', 'criadoEm'],
@@ -1927,6 +1927,11 @@ function updateTopbars() {
   $$('#screen-corretor .lot-name').forEach(el => { el.textContent = lot ? lot.nome : (empresa || 'Gestão de Loteamento'); });
   /* Na administração o menu é da empresa inteira: o topo mostra a empresa, não um empreendimento. */
   $$('#screen-admin .lot-name').forEach(el => { el.textContent = empresa || (lot ? lot.nome : 'Gestão de Loteamento'); });
+  /* A logo ao lado do nome: a da empresa na administração; para o corretor, a do empreendimento */
+  $$('.brand-logo').forEach(img => {
+    const src = typeof logoEmpresa !== 'function' ? '' : img.closest('#screen-corretor') ? logoDoEscopo(lot) : logoEmpresa();
+    if (src) { if (img.getAttribute('src') !== src) img.src = src; img.hidden = false; } else { img.hidden = true; img.removeAttribute('src'); }
+  });
   $$('.user-name').forEach(el => { el.textContent = Cloud.active ? (Cloud.membro.nome || Cloud.user.email || '') : ''; el.style.display = Cloud.active ? '' : 'none'; });
   $$('.btn-ver-corretor').forEach(el => { el.style.display = (state.role === 'admin') ? '' : 'none'; });
   $$('.btn-voltar-admin').forEach(el => { el.style.display = (state.role === 'corretor' && (Cloud.active ? Cloud.admin : sessionStorage.getItem('gl_admin') === '1')) ? '' : 'none'; });

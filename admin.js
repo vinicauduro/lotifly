@@ -156,10 +156,8 @@ function renderEmpreendimentos() {
   const subs = empSubsVisiveis(aberto);
   if (!subs.some(s => s[0] === state.empSub)) state.empSub = subs.length ? subs[0][0] : 'resumo';
   v.innerHTML = `
-    <div class="row-between mb">
-      <div><button class="btn btn-secondary btn-sm" onclick="fecharEmpreendimento()">‹ Imóveis</button></div>
-      <div class="small muted"><b>${esc(aberto.nome)}</b> · ${esc(empLabel(aberto))}${aberto.cidade ? ' · ' + esc(aberto.cidade) : ''}</div>
-    </div>
+    <div class="mb"><button class="btn btn-secondary btn-sm" onclick="fecharEmpreendimento()">‹ Imóveis</button></div>
+    <div class="emp-cab">${logoDoImovel(aberto) ? `<img class="emp-logo" src="${logoDoImovel(aberto)}" alt="Logo de ${esc(aberto.nome)}">` : ''}<div><h2 class="pg-tit">${esc(aberto.nome)}</h2><div class="pg-sub">${esc(empLabel(aberto))}${aberto.cidade ? ' · ' + esc(aberto.cidade) : ''}</div></div></div>
     <div class="subtabs">${subs.map(([k, rot]) => `<div class="chip ${state.empSub === k ? 'active' : ''}" onclick="state.empSub='${k}';renderEmpreendimentos()">${rot}</div>`).join('')}</div>
     <div id="empConteudo"></div>`;
   const alvo = $('#empConteudo');
@@ -185,14 +183,14 @@ function empLinhaHtml(l) {
   if (ehCarteira(l)) {
     const vd = vendaAtivaDoImovel(l);
     return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
-      <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">${esc(empLabel(l))}</span></div>
+      <div class="title">${l.logo ? `<img class="emp-logo-mini" src="${l.logo}" alt="">` : empIcone(l)} ${esc(l.nome)} <span class="badge neutral">${esc(empLabel(l))}</span></div>
       <div class="meta">${esc(l.cidade || '')}${l.matricula ? `<span>· matrícula ${esc(l.matricula)}</span>` : ''}${num(l.area) ? `<span>· ${fmtNum(l.area, 2)} m²</span>` : ''}${vd ? `<span>· vendido para ${esc(vd.cliente.nome)}</span>` : ''}</div>
     </div><div class="side">${num(l.preco) ? `<div class="value">${fmtMoney(l.preco)}</div>` : '<div class="tiny muted">sem valor de venda</div>'}<span class="badge ${vd ? 'vendido' : 'disponivel'}">${vd ? 'Vendido' : 'Disponível'}</span></div></div>`;
   }
   const ls = lotesDo(l.id);
   const pend = db.reservas.filter(r => r.loteamentoId === l.id && reservaStatus(r) === 'pendente').length;
   return `<div class="item" onclick="abrirEmpreendimento('${l.id}')"><div class="info">
-    <div class="title">${empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${nPlural(pend, 'reserva')} a aprovar</span>` : ''}</div>
+    <div class="title">${l.logo ? `<img class="emp-logo-mini" src="${l.logo}" alt="">` : empIcone(l)} ${esc(l.nome)} <span class="badge neutral">Empreendimento</span>${pend ? ` <span class="badge pendente">${nPlural(pend, 'reserva')} a aprovar</span>` : ''}</div>
     <div class="meta">${esc(l.cidade || '')}<span>· ${ls.length} lotes</span><span>· ${ls.filter(x => x.status === 'vendido').length} vendidos</span><span>· ${ls.filter(x => x.status === 'disponivel').length} disponíveis</span></div>
   </div><div class="side"><span class="muted">›</span></div></div>`;
 }
@@ -1536,6 +1534,7 @@ function abrirLoteamentoForm(id, opc) {
       <optgroup label="Imóvel avulso">${CATEGORIAS_IMOVEL.map(c => `<option value="carteira:${c[0]}" ${cat && cat[0] === c[0] ? 'selected' : ''}>${c[1]}</option>`).join('')}</optgroup></select>
       <div class="hint" id="lmHint"></div><div id="lmTrocaAviso"></div></div>
     <div class="fg"><label id="lmNomeLbl">${terc ? 'Qual é o imóvel *' : 'Nome do loteamento *'}</label><input type="text" id="lmNome" value="${esc(l ? l.nome : '')}" placeholder="${terc ? 'Ex.: Lote 15 da Quadra 300 · Apartamento 302 do Ed. Aurora' : 'Ex.: Residencial Vista Verde'}"></div>
+    ${campoLogoHtml('lmLogo', terc ? 'Logo do imóvel (opcional)' : 'Logo do empreendimento (opcional)', l ? l.logo || '' : '', 'Sai ao lado do nome, na tabela de preços e nos relatórios deste empreendimento.')}
     <div id="lmBoxTerceiro" style="${mostra(terc)}">
       <div class="frow3"><div class="fg"><label>Valor de venda (R$) *</label><input type="number" id="lmPreco" step="0.01" value="${l && num(l.preco) ? l.preco : ''}" placeholder="0,00"></div>
         <div class="fg"><label>Matrícula</label><input type="text" id="lmMat" value="${esc(l ? l.matricula || '' : '')}"></div>
@@ -1652,6 +1651,8 @@ async function salvarLoteamento(id) {
     cartorio: val('lmCartorio'), matriculaMae: val('lmMatMae'), codigoIbge: onlyDigits(val('lmIbge')),
     ...(terc ? { categoria: sel.cat[0], preco: num(val('lmPreco')), matricula: val('lmMat'), area: num(val('lmArea')) || null, descricaoMatricula: val('lmDescMat') } : {}), cond: terc && !$('#lmCondBox').open ? ((prev && prev.cond) || {}) : { entradaMinPct: num(val('lmEntrada')), maxParcelas: Math.round(num(val('lmMaxP'))) || 120, jurosMes: num(val('lmJuros')), descontoVistaPct: num(val('lmDesc2')), obsTabela: val('lmObsTab') } });
   if (!salvarReajusteDoForm(rec.id, true)) return;
+  /* A logo só vai no registro quando existe ou mudou: quem ainda não rodou o schema novo segue salvando */
+  const lg = logoDoCampo('lmLogo'); if (lg !== undefined) rec.logo = lg; else if (!rec.logo) delete rec.logo;
   const paraContrato = !prev && val('lmParaContrato') === '1';
   upsert('loteamentos', rec);
   salvarReajusteDoForm(rec.id);
@@ -1741,7 +1742,7 @@ function cadCorretoresHtml() {
 function cadEmpresaHtml() {
   const emp = vendedorPadrao();
   const reps = (db.config.representantes || []).filter(r => r && r.nome);
-  return `<div class="card"><h2>A sua empresa</h2>
+  return `${logoEmpresaCardHtml()}<div class="card"><h2>A sua empresa</h2>
     <p class="help mb">É com estes dados que a empresa é qualificada no contrato, no boleto e nos documentos.</p>
     ${pessoaFormHtml('emp', Object.assign({}, emp, { tipo: 'pj' }), { semTipo: true, semRepresentante: true })}
     <button class="btn btn-primary" onclick="salvarEmpresa()">Salvar dados da empresa</button></div>

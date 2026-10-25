@@ -249,7 +249,7 @@ function imprimirDemonstrativo(vendaId) {
   const data = val('anData') || todayStr();
   const s = saldoQuitacao(v, data);
   const lot = getLoteamento(v.loteamentoId);
-  $('#printArea').innerHTML = `
+  $('#printArea').innerHTML = `${marcaTopoHtml()}
     <h1>${esc(db.config.empresa || (lot ? lot.nome : ''))}</h1><div>${lot ? esc(lot.nome) : ''}${lot && lot.cidade ? ' · ' + esc(lot.cidade) : ''}</div>
     <h2>Demonstrativo de antecipação — ${esc(imovelLabel(v))}</h2>
     <table><tr><th>Cliente</th><td>${esc(v.cliente.nome)}</td><th>CPF/CNPJ</th><td>${esc(fmtCPF(v.cliente.cpf))}</td></tr>
@@ -264,6 +264,6 @@ function imprimirDemonstrativo(vendaId) {
     <tbody>${tabelaAmortizacao(v, data).map(x => `<tr><td>${esc(x.rec.descricao)}</td><td>${fmtDate(x.rec.vencimento)}</td><td class="num">${fmtMoney(x.parcela)}</td><td class="num">${fmtMoney(x.juros)}</td><td class="num">${fmtMoney(x.amortizacao)}</td><td class="num">${fmtMoney(x.saldo)}</td></tr>`).join('')}</tbody></table>
 
     <p style="margin-top:10px">As parcelas futuras são trazidas a valor presente pela mesma taxa de juros do contrato, o que devolve exatamente o saldo devedor da tabela de amortização: o cliente deixa de pagar apenas o juro dos meses que não vai utilizar. O cálculo é por mês fechado, então o valor vale para qualquer dia do mês de referência. Parcelas vencidas entram pelo valor cheio, acrescidas de multa e juros de mora.</p>
-    <p style="margin-top:6px">Emitido em ${fmtDate(todayStr())}.</p>`;
+    <p style="margin-top:6px">Emitido em ${fmtDate(todayStr())}.</p>${marcaRodapeHtml()}`;
   window.print();
 }

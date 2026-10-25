@@ -403,7 +403,7 @@ function simularCobrancas(contaId, mes) {
   const porVenda = {};
   prontas.forEach(r => { (porVenda[r.vendaId] = porVenda[r.vendaId] || []).push(r); });
   const total = prontas.reduce((s, r) => s + recValor(r), 0);
-  $('#printArea').innerHTML = `
+  $('#printArea').innerHTML = `${marcaTopoHtml()}
     <h1>${esc(db.config.empresa || '')}</h1>
     <h2>Simulação da geração de cobranças — ${monthLabel(mes)}</h2>
     <p>${esc(contaLabel(conta))} · convênio ${esc(conta.convenio)} · ${prontas.length} cobrança(s) · ${esc(fmtMoney(total))}</p>
@@ -412,7 +412,7 @@ function simularCobrancas(contaId, mes) {
         <table class="tbl"><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor base</th><th>Correção</th><th>Total</th></tr></thead><tbody>
         ${recs.map(r => `<tr><td>${esc(r.descricao || '')}</td><td>${fmtDate(r.vencimento)}</td><td>${esc(fmtMoney(r.valor))}</td><td>${esc(fmtMoney(recCorrecao(r)))}</td><td><b>${esc(fmtMoney(recValor(r)))}</b></td></tr>`).join('')}
         </tbody></table><p style="text-align:right"><b>Total do cliente: ${esc(fmtMoney(recs.reduce((s, r) => s + recValor(r), 0)))}</b></p>`; }).join('')}
-    <p style="margin-top:14px">Simulação emitida em ${fmtDate(todayStr())}. Nada foi gerado nem enviado ao banco.</p>`;
+    <p style="margin-top:14px">Simulação emitida em ${fmtDate(todayStr())}. Nada foi gerado nem enviado ao banco.</p>${marcaRodapeHtml()}`;
   window.print();
 }
 function gerarCobrancas(contaId, mes) {

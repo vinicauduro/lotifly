@@ -1406,3 +1406,9 @@ begin
 end $$;
 revoke all on public.receitas from anon;
 revoke execute on function public.receitas_permissoes() from public, anon;
+
+-- ---------------------------------------------------------------------
+-- 13. Logo de cada empreendimento ou imóvel (a da empresa fica em organizacoes.config)
+-- ---------------------------------------------------------------------
+-- Imagem reduzida, guardada como data URL: sai igual na tela, na impressão e no PDF da tabela.
+alter table public.loteamentos add column if not exists logo text;

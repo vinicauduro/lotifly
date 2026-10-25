@@ -550,7 +550,7 @@ function orcamentoHtml(escopo, lista) {
 function relCabecalhoImpressao(rel) {
   const lot = escopoAtual() ? getLoteamento(escopoAtual()) : null; const f = relState();
   const periodo = (f.de === '2000-01-01' && f.ate === '2099-12-31') ? 'todo o período' : `${fmtDate(f.de)} a ${fmtDate(f.ate)}`;
-  return `<h1>${esc(db.config.empresa || (lot ? lot.nome : ''))}</h1>
+  return `${marcaTopoHtml(lot || undefined)}<h1>${esc(db.config.empresa || (lot ? lot.nome : ''))}</h1>
     <div>${lot ? esc(lot.nome) + (lot.cidade ? ' · ' + esc(lot.cidade) : '') : 'Todos os empreendimentos'}</div>
     <h2>${esc(rel.titulo)} — ${esc(periodo)}</h2>`;
 }
@@ -559,7 +559,7 @@ function imprimirRelatorio() {
   const limpo = String(rel.html)
     .replace(/<div class="card"[^>]*>/g, '').replace(/<div class="table-wrap">/g, '').replace(/<\/div>/g, '')
     .replace(/ onclick="[^"]*"/g, '');
-  $('#printArea').innerHTML = relCabecalhoImpressao(rel) + limpo + `<p style="margin-top:10px">Emitido em ${fmtDate(todayStr())}${Cloud.active && Cloud.membro ? ' por ' + esc(Cloud.membro.nome || '') : ''}.</p>`;
+  $('#printArea').innerHTML = relCabecalhoImpressao(rel) + limpo + `<p style="margin-top:10px">Emitido em ${fmtDate(todayStr())}${Cloud.active && Cloud.membro ? ' por ' + esc(Cloud.membro.nome || '') : ''}.</p>${marcaRodapeHtml()}`;
   window.print();
 }
 function exportarRelatorioCSV() {

@@ -44,7 +44,7 @@
 <!-- ===================== CORRETOR ===================== -->
 <section class="screen" id="screen-corretor">
   <header class="topbar" role="banner">
-    <div class="brand"><div><h1 class="lot-name">Loteamento</h1><div class="role">Área do corretor</div></div></div>
+    <div class="brand"><img class="brand-logo" alt="" hidden><div><h1 class="lot-name">Loteamento</h1><div class="role">Área do corretor</div></div></div>
     <div class="right"><span class="user-name small" style="display:none;opacity:.85"></span><select class="lot-select" onchange="setCurLot(this.value)"></select><button class="top-link btn-voltar-admin" style="display:none" onclick="voltarAdmin()" title="Voltar à administração">Admin</button><button class="top-link" onclick="sair()">Sair</button></div>
   </header>
   <main class="corretor-main">
@@ -97,7 +97,7 @@
 
   <main class="admin-main">
     <div class="topbar">
-      <div class="brand"><button class="aside-burger" onclick="abrirMenu()" aria-label="Abrir menu"><i class=ico data-i=list></i></button><div><h1 class="lot-name">Loteamento</h1><div class="role">Administração</div></div></div>
+      <div class="brand"><button class="aside-burger" onclick="abrirMenu()" aria-label="Abrir menu"><i class=ico data-i=list></i></button><img class="brand-logo" alt="" hidden><div><h1 class="lot-name">Loteamento</h1><div class="role">Administração</div></div></div>
       <div class="right"><button type="button" class="top-busca" onclick="abrirBusca()" aria-label="Buscar contrato, cliente, lote ou tela (Ctrl+K)" aria-keyshortcuts="Control+K"><i class=ico data-i=magnifying-glass></i><span class="top-busca-txt">O que você procura?</span><kbd>Ctrl K</kbd></button><span class="user-name small" style="display:none;opacity:.85"></span><button class="top-link btn-ver-corretor" onclick="startRole('corretor')" title="Ver como o corretor vê" aria-label="Ver como o corretor vê"><i class=ico data-i=eye></i></button><button class="top-link" onclick="sair()">Sair</button></div>
     </div>
     <div class="sync-pendentes" id="syncPendentes"></div>
@@ -141,6 +141,7 @@
 <script src="core.js"></script>
 <script src="gestos.js"></script>
 <script src="permissoes.js"></script>
+<script src="marca.js"></script>
 <script src="planta.js"></script>
 <script src="planta-pdf.js"></script>
 <script src="planta-dxf.js"></script>

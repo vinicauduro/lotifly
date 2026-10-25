@@ -146,17 +146,34 @@ function libTabela() {
    moeda nem emoji: troca pelo espaço comum e tira o que a fonte não desenha. */
 function txtPdf(s) { return String(s ?? '').replace(/[   ]/g, ' ').replace(/[‐-‒]/g, '-').replace(/[^\x20-\x7e -ÿ–—‘’“”•…]/g, ''); }
 function rs(v) { return txtPdf(fmtMoney(v)); }
+/* Logo pronta para o PDF: formato e proporção (a imagem já vem reduzida do cadastro) */
+async function logoParaPdf(url) {
+  if (!url) return null;
+  const m = await medidasDaLogo(url); if (!m || !m.w || !m.h) return null;
+  return { url, fmt: /^data:image\/jpe?g/.test(url) ? 'JPEG' : 'PNG', w: m.w, h: m.h };
+}
+/* Desenha a logo dentro de uma caixa (mm), centrada e sem deformar */
+function logoNoPdf(doc, lg, x, y, bw, bh) {
+  const k = Math.min(bw / lg.w, bh / lg.h), w = lg.w * k, h = lg.h * k;
+  try { doc.addImage(lg.url, lg.fmt, x + (bw - w) / 2, y + (bh - h) / 2, w, h); } catch (e) { /* imagem que o PDF não aceita fica de fora */ }
+}
 async function gerarTabelaPDF(dados) {
   const { jsPDF, autoTable } = await libTabela();
+  /* Logo do empreendimento no canto superior esquerdo; a da empresa no fim de cada tabela */
+  const logoEmp = await logoParaPdf(logoEmpresa()), logos = {};
+  for (const sec of dados.secoes) if (sec.tipo === 'emp') logos[sec.emp.id] = await logoParaPdf(logoDoImovel(sec.emp));
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
   const W = doc.internal.pageSize.getWidth(), M = 12;
   const emissao = `${pad2(dados.emitida.getDate())}/${pad2(dados.emitida.getMonth() + 1)}/${dados.emitida.getFullYear()} ${pad2(dados.emitida.getHours())}:${pad2(dados.emitida.getMinutes())}`;
-  const cabecalho = (titulo, sub) => {
+  const cabecalho = (titulo, sub, lg) => {
     doc.setFillColor(...TABELA_COR); doc.rect(0, 0, W, 24, 'F');
+    /* A logo vai numa caixa branca à esquerda; o título anda para o lado */
+    const x0 = lg ? M + 31 : M;
+    if (lg) { doc.setFillColor(255, 255, 255); doc.roundedRect(M, 3, 27, 18, 1.5, 1.5, 'F'); logoNoPdf(doc, lg, M + 1.2, 4.2, 24.6, 15.6); }
     doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
-    doc.text(txtPdf(titulo), M, 11);
+    doc.text(txtPdf(titulo), x0, 11, { maxWidth: W - x0 - M - 58 });
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-    if (sub) doc.text(txtPdf(sub), M, 17, { maxWidth: W - 2 * M - 62 });
+    if (sub) doc.text(txtPdf(sub), x0, 17, { maxWidth: W - x0 - M - 58 });
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
     doc.text(txtPdf('Vigência: ' + mesExtenso(dados.mes)), W - M, 9, { align: 'right' });
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
@@ -172,8 +189,9 @@ async function gerarTabelaPDF(dados) {
       const e = sec.emp;
       const local = [e.logradouro ? [e.logradouro, e.numeroEnd].filter(Boolean).join(', ') : e.endereco, e.bairro, e.cidade, e.uf].filter(Boolean).join(' · ');
       const registro = [e.matriculaMae ? 'Matrícula ' + e.matriculaMae : '', e.cartorio || ''].filter(Boolean).join(' · ');
-      cabecalho(e.nome, [local, registro].filter(Boolean).join('   |   '));
-    } else cabecalho('Imóveis de terceiros', empresa ? 'Carteira de ' + empresa : '');
+      cabecalho(e.nome, [local, registro].filter(Boolean).join('   |   '), logos[e.id]);
+    } else cabecalho('Imóveis de terceiros', empresa ? 'Carteira de ' + empresa : '', logoEmp);
+    const lgSec = sec.tipo === 'emp' ? logos[sec.emp.id] : logoEmp;
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
     doc.text(txtPdf(`Tabela de preços${empresa ? ' · ' + empresa : ''}`), M, 31);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
@@ -197,16 +215,22 @@ async function gerarTabelaPDF(dados) {
       alternateRowStyles: { fillColor: [244, 247, 250] }, columnStyles: colunas,
       didParseCell: d => { if (d.section === 'body' && sec.tipo === 'emp' && sec.linhas[d.row.index] && sec.linhas[d.row.index].reservado) { d.cell.styles.textColor = [161, 98, 7]; if (d.column.index === head[0].length - 1) d.cell.styles.fontStyle = 'bold'; } },
       /* páginas seguintes da mesma seção ganham o cabeçalho */
-      willDrawPage: d => { if (d.pageNumber > 1) cabecalho(sec.tipo === 'emp' ? sec.emp.nome + ' (continuação)' : 'Imóveis de terceiros (continuação)', ''); }
+      willDrawPage: d => { if (d.pageNumber > 1) cabecalho(sec.tipo === 'emp' ? sec.emp.nome + ' (continuação)' : 'Imóveis de terceiros (continuação)', '', lgSec); }
     });
     if (!sec.linhas.length) { doc.setFontSize(9); doc.text(txtPdf(sec.tipo === 'emp' ? 'Nenhum lote disponível neste momento.' : 'Nenhum imóvel de terceiro à venda neste momento.'), M, y + 14); }
     let fy = (doc.lastAutoTable && doc.lastAutoTable.finalY || y) + 6;
     const obs = sec.tipo === 'emp' ? sec.obs : 'Condições de cada imóvel a confirmar com a empresa. Valores sujeitos a alteração sem aviso prévio.';
     const linhasObs = doc.splitTextToSize(txtPdf(obs), W - 2 * M);
     const altObs = linhasObs.length * 3.6 + 6;
-    if (fy + altObs > doc.internal.pageSize.getHeight() - 16) { doc.addPage(); cabecalho(sec.tipo === 'emp' ? sec.emp.nome + ' (continuação)' : 'Imóveis de terceiros (continuação)', ''); fy = 32; }
+    if (fy + altObs > doc.internal.pageSize.getHeight() - 16) { doc.addPage(); cabecalho(sec.tipo === 'emp' ? sec.emp.nome + ' (continuação)' : 'Imóveis de terceiros (continuação)', '', lgSec); fy = 32; }
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.text('Condições', M, fy);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(linhasObs, M, fy + 4.5);
+    /* No fim da tabela, a logo da empresa, centralizada na folha */
+    if (logoEmp) {
+      let ly = fy + altObs + 4;
+      if (ly + 16 > doc.internal.pageSize.getHeight() - 16) { doc.addPage(); cabecalho(sec.tipo === 'emp' ? sec.emp.nome + ' (continuação)' : 'Imóveis de terceiros (continuação)', '', lgSec); ly = 32; }
+      logoNoPdf(doc, logoEmp, (W - 50) / 2, ly, 50, 14);
+    }
   });
   /* Rodapé de todas as páginas: o contato da empresa e a numeração */
   const total = doc.internal.getNumberOfPages(), H = doc.internal.pageSize.getHeight(), contato = txtPdf(contatoDaEmpresa());

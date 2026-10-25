@@ -357,7 +357,7 @@ function extratoTexto(v) {
 function imprimirExtrato(vendaId) {
   const v = getVenda(vendaId); if (!v) return; const lot = getLoteamento(v.loteamentoId); const r = vendaResumo(v);
   const recs = recebiveisDe(v.id);
-  $('#printArea').innerHTML = `
+  $('#printArea').innerHTML = `${marcaTopoHtml()}
     <h1>${esc(db.config.empresa || lot.nome)}</h1><div>${esc(lot.nome)}${lot.cidade ? ' · ' + esc(lot.cidade) : ''}</div>
     <h2>Extrato de pagamentos — ${esc(imovelLabel(v))}</h2>
     <table><tr><th>Cliente</th><td>${esc(v.cliente.nome)}</td><th>CPF/CNPJ</th><td>${esc(fmtCPF(v.cliente.cpf))}</td></tr>
@@ -369,7 +369,7 @@ function imprimirExtrato(vendaId) {
     <tbody>${recs.map(x => `<tr><td>${esc(x.descricao)}</td><td>${fmtDate(x.vencimento)}</td><td class="num">${fmtMoney(recValor(x))}</td><td class="num">${x.valorPago ? fmtMoney(x.valorPago) : ''}</td><td>${x.dataPagamento ? fmtDate(x.dataPagamento) : ''}</td><td>${esc(x.forma || '')}</td><td>${statusLabel(recStatus(x))}</td></tr>`).join('')}</tbody>
     <tfoot><tr><th colspan="2">Total</th><th class="num">${fmtMoney(r.total)}</th><th class="num">${fmtMoney(r.pago)}</th><th colspan="3"></th></tr></tfoot></table>
     ${(v.cessoes || []).length ? `<p style="margin-top:10px"><b>Cessão de direitos:</b> ${(v.cessoes || []).map(c => `em ${fmtDate(c.data)}, de ${esc(nomesDasPartes(c.cedentes))} para ${esc(nomesDasPartes(c.cessionarios))}`).join('; ')}. Os pagamentos anteriores a cada cessão foram feitos pelos cedentes.</p>` : ''}
-    ${v.obs ? `<p style="margin-top:10px"><b>Observações:</b> ${esc(v.obs)}</p>` : ''}`;
+    ${v.obs ? `<p style="margin-top:10px"><b>Observações:</b> ${esc(v.obs)}</p>` : ''}${marcaRodapeHtml()}`;
   window.print();
 }
 

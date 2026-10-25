@@ -361,13 +361,17 @@ function modelosDo(tipo) {
 }
 
 // ---------------------------------------------------------------- prévia e impressão
-function docPreview({ titulo, html, arquivo, whatsTexto }) {
-  window.__docHtml = html;
+/* marca: 'agua' (contrato, distrato, cessão: a logo da empresa clarinha no fundo de cada página)
+   ou o padrão (recibo, proposta: a logo da empresa no alto do documento) */
+function docPreview({ titulo, html, arquivo, whatsTexto, marca }) {
+  const agua = marca === 'agua' && !!logoEmpresa();
+  if (marca !== 'agua') html = docLogoTopoHtml() + html;
+  window.__docHtml = html; window.__docMarca = agua;
   openModal({
     title: titulo,
     wide: true,
     body: `<p class="help mb">Confira o documento. Você pode <b>clicar no texto e editar</b> qualquer parte antes de imprimir ou salvar em PDF.</p>
-      <div class="doc-folha" id="docFolha" contenteditable="true">${html}</div>`,
+      <div class="doc-folha-wrap">${agua ? `<img class="doc-marca-prev" src="${logoEmpresa()}" alt="">` : ''}<div class="doc-folha" id="docFolha" contenteditable="true">${html}</div></div>`,
     footer: `<button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
       ${whatsTexto ? `<a class="btn btn-wa" target="_blank" href="${esc(whatsTexto)}">Enviar</a>` : ''}
       <button class="btn btn-primary" onclick="docImprimir('${esc(arquivo || 'documento')}')">Imprimir / salvar PDF</button>`
@@ -375,7 +379,7 @@ function docPreview({ titulo, html, arquivo, whatsTexto }) {
 }
 function docImprimir(nome) {
   const folha = $('#docFolha');
-  $('#printArea').innerHTML = `<div class="doc-folha">${folha ? folha.innerHTML : window.__docHtml || ''}</div>`;
+  $('#printArea').innerHTML = `${window.__docMarca ? marcaDaguaHtml() : ''}<div class="doc-folha">${folha ? folha.innerHTML : window.__docHtml || ''}</div>`;
   const antes = document.title;
   document.title = nome || antes;
   window.print();
@@ -572,7 +576,7 @@ function gerarContratoConfirma(vendaId) {
   });
   const html = docHtml(mod.corpo, ctx);
   logAct(`Contrato gerado: ${l ? loteLabel(l) : ''} — ${v.cliente.nome}`);
-  docPreview({ titulo: 'Contrato · ' + (l ? loteShort(l) : ''), html, arquivo: `Contrato ${l ? loteShort(l) : ''} - ${v.cliente.nome}` });
+  docPreview({ titulo: 'Contrato · ' + (l ? loteShort(l) : ''), html, arquivo: `Contrato ${l ? loteShort(l) : ''} - ${v.cliente.nome}`, marca: 'agua' });
 }
 
 // ================================================================ CADASTRO DE MODELOS
