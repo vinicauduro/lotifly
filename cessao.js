@@ -180,5 +180,5 @@ function gerarTermoCessao(vendaId, cessaoId, modeloId) {
   const mod = mods.find(m => m.id === modeloId) || mods[0];
   const html = docHtml(mod.corpo, contextoCessao(v, c));
   logAct(`Termo de cessão gerado: ${imovelLabel(v)} — ${nomesDasPartes(c.cessionarios)}`);
-  docPreview({ titulo: 'Termo de cessão · ' + imovelShort(v), html, arquivo: `Cessão ${imovelShort(v)} - ${c.cessionarios[0].nome}` });
+  docPreview({ titulo: 'Termo de cessão · ' + imovelShort(v), html, arquivo: `Cessão ${imovelShort(v)} - ${c.cessionarios[0].nome}`, marca: 'agua' });
 }

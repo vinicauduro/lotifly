@@ -246,5 +246,5 @@ function gerarTermoDistrato(vendaId, modeloId) {
   const mod = mods.find(m => m.id === modeloId) || mods[0];
   const html = docHtml(mod.corpo, contextoDistrato(v));
   logAct(`Termo de distrato gerado: ${imovelLabel(v)} — ${v.cliente.nome}`);
-  docPreview({ titulo: 'Termo de distrato · ' + imovelShort(v), html, arquivo: `Distrato ${imovelShort(v)} - ${v.cliente.nome}` });
+  docPreview({ titulo: 'Termo de distrato · ' + imovelShort(v), html, arquivo: `Distrato ${imovelShort(v)} - ${v.cliente.nome}`, marca: 'agua' });
 }

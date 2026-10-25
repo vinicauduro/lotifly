@@ -760,6 +760,54 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z50. A cara do cliente: logo da empresa e logo do empreendimento (25/10)
+
+Pedido seu: dar a cara do cliente ao sistema, com a logo da empresa e a de cada empreendimento
+na tela e em tudo o que sai impresso.
+
+- **Onde cadastrar:**
+  - **Logo da empresa:** Configurações › Empresa › Dados da empresa, no primeiro cartão. Salva
+    na hora em que você escolhe o arquivo.
+  - **Logo do empreendimento:** em Editar imóvel, logo abaixo do nome. Salva junto com o cadastro.
+  - Aceita PNG, JPG, WEBP e SVG. O sistema reduz a imagem sozinho (até 480 px), então pode
+    mandar o arquivo grande. PNG com fundo transparente fica melhor.
+  - "Trocar" e "Remover" nos dois campos.
+- **Na tela:**
+  - **Topo do sistema:** a logo da empresa ao lado do nome. O corretor vê a logo do
+    empreendimento em que está; se ele não tiver, vê a da empresa.
+  - **Tela do empreendimento:** a logo dele ao lado do nome.
+  - **Lista de Imóveis:** a logo pequena no lugar do ícone.
+- **Tabela de preços (PDF):**
+  - a logo do empreendimento no **canto superior esquerdo**, numa caixinha branca, em todas as
+    páginas da tabela;
+  - a logo da empresa **centralizada no fim** de cada tabela.
+- **Contrato, distrato e cessão de direitos:** a logo da empresa como **marca d'água**,
+  bem clara, no meio de **todas as páginas**. Ela já aparece na prévia, antes de imprimir.
+- **Recibos, declarações, propostas e os outros documentos:** a logo da empresa no alto. Ela
+  entra no texto do documento, então dá para tirar na prévia se um dia não quiser.
+- **Relatórios e listas impressas** (relatórios, itens selecionados, extrato, demonstrativo de
+  antecipação, simulação de cobrança):
+  - no alto, a logo do empreendimento quando o relatório é dele; senão, a da empresa;
+  - a logo da empresa centralizada no fim.
+- **Sem logo cadastrada, nada muda.** Não aparece espaço vazio nem imagem quebrada.
+- **Boletos não mudam.** O boleto segue o modelo do banco, que não tem lugar para logo.
+
+Para você fazer:
+
+- [ ] **Rodar o `supabase/schema.sql` de novo.** Ele cria a coluna da logo do empreendimento
+  (seção 13). Sem rodar, a logo do empreendimento fica só neste computador. A logo da empresa
+  já sincroniza sem isso, porque fica nas configurações da empresa. O schema é cumulativo: se
+  você ainda não rodou desde as receitas avulsas (7z46), esta vez cobre as duas coisas.
+- [ ] Cadastrar a logo da empresa e a de um empreendimento, depois imprimir a tabela de preços e
+  um contrato para conferir.
+
+`testes/logos.test.js` (9 casos): envio e redução da logo, topo, tela e lista do empreendimento,
+salvar sem mexer não apaga, Remover, PDF da tabela (canto e fim), relatório da empresa e do
+empreendimento, recibo, marca d'água do contrato, sem logo nada muda, e celular sem rolagem
+lateral.
+
+---
+
 ## 7z49. Logo na aba do navegador (23/10)
 
 Pedido seu: a marca do Lotifly na aba.

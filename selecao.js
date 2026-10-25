@@ -120,10 +120,10 @@ function executarAcaoSel(chave, i) {
 function imprimirSelecao(chave, itens) {
   const t = Sel.telas[chave], cols = t.opcoes.colunas;
   const empresa = db.config.empresa || (Cloud.org && Cloud.org.nome) || '';
-  $('#printArea').innerHTML = `<h1>${esc(empresa)}</h1><h2>${esc(t.opcoes.titulo || 'Lista')} — ${nPlural(itens.length, 'item', 'itens')}</h2>
+  $('#printArea').innerHTML = `${marcaTopoHtml()}<h1>${esc(empresa)}</h1><h2>${esc(t.opcoes.titulo || 'Lista')} — ${nPlural(itens.length, 'item', 'itens')}</h2>
     <table><thead><tr>${cols.map(c => `<th${c[2] ? ' class="num"' : ''}>${esc(c[0])}</th>`).join('')}</tr></thead>
     <tbody>${itens.map(x => `<tr>${cols.map(c => `<td${c[2] ? ' class="num"' : ''}>${esc(c[1](x) ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>
-    <p style="margin-top:10px">Emitido em ${fmtDate(todayStr())}${Cloud.active && Cloud.membro ? ' por ' + esc(Cloud.membro.nome || '') : ''}.</p>`;
+    <p style="margin-top:10px">Emitido em ${fmtDate(todayStr())}${Cloud.active && Cloud.membro ? ' por ' + esc(Cloud.membro.nome || '') : ''}.</p>${marcaRodapeHtml()}`;
   window.print();
 }
 function exportarSelecao(chave, itens) {

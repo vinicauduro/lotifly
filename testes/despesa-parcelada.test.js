@@ -69,6 +69,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8765/gestao/';
   await passo('celular: a caixa de parcelamento cabe na largura', async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => abrirCustoForm(null, { emp: null })); await page.waitForTimeout(200);
+    // no celular a janela sobe de baixo: espera ela parar antes de marcar (com a bateria toda rodando, o clique caía no meio da subida)
+    await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
     await page.check('#cuParc');
     const r = await page.evaluate(() => { const b = document.getElementById('cuParcBox').getBoundingClientRect(); return { dentro: b.right <= innerWidth, rol: document.documentElement.scrollWidth <= innerWidth }; });
     if (!r.dentro || !r.rol) throw new Error(JSON.stringify(r));
