@@ -1,4 +1,4 @@
-# Lotifly
+# Lotfly
 
 Gestão para loteadora, incorporadora e imobiliária: imóveis e empreendimentos com planta,
 contratos, clientes, recebíveis, cobrança, boletos e remessa bancária, contas a pagar,

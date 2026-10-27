@@ -79,15 +79,17 @@ cliente aparece dentro do app.
   - **Total a receber**: a carteira em aberto.
 - Todo número do Início leva à lista que o compõe, e a soma da lista bate com o número.
 - Em aberto:
-  - o nome Lotifly ainda depende de confirmar domínio e marca (INPI);
+  - o domínio lotfly.com.br está registrado (27/10); falta a busca de marca no INPI;
   - a identidade visual (cores e marca) ainda não foi decidida;
   - permissões por funcionário definidas pelo dono (Fase 6);
   - despesas da empresa vinculadas a empreendimento ou imóvel (Fase 4).
 
 ## Brand Commitments
 
-- Nome do produto: **Lotifly**. Dentro do app aparece o nome da empresa cliente (por exemplo
-  "Cauduro Loteamentos"); não carrega a marca da Cocal Imóveis.
+- Nome do produto: **Lotfly** (era Lotifly até 27/10, quando o domínio lotfly.com.br foi
+  registrado). O sistema fica em app.lotfly.com.br; lotfly.com.br fica para a página de
+  vendas. Dentro do app aparece o nome da empresa cliente (por exemplo "Cauduro
+  Loteamentos"); não carrega a marca da Cocal Imóveis.
 - Tom: profissional, confiável, direto. Frases curtas, linguagem simples, sem jargão técnico de
   software. Mensagem de erro diz o que aconteceu e o que fazer.
 - Ícones do app: `icon-192.png`, `icon-512.png`.

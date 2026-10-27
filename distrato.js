@@ -1,4 +1,4 @@
-/* ===== Lotifly — distrato =====
+/* ===== Lotfly — distrato =====
    Desfaz a venda guardando a história: o contrato fica como "Distrato", com o que foi pago,
    quanto a empresa retém, quanto devolve e como devolve. As parcelas em aberto deixam de ser
    cobradas (e os boletos já registrados vão para a baixa na próxima remessa), o lote volta a

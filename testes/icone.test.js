@@ -1,4 +1,4 @@
-// Ícone do Lotifly: a aba do navegador mostra a marca (favicon.svg, com PNG de reserva) e o app
+// Ícone do Lotfly: a aba do navegador mostra a marca (favicon.svg, com PNG de reserva) e o app
 // instalado usa os PNGs do manifesto, que precisam ser imagens válidas no tamanho certo.
 // Rodar: BASE=http://127.0.0.1:8765/gestao/ node testes/icone.test.js
 const { chromium } = require('playwright');
