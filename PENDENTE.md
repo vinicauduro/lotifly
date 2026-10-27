@@ -760,6 +760,45 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z51. Fluxo de caixa projetado e "A receber no próximo mês" no Início (27/10)
+
+Pedido seu: o fluxo de caixa projetado e, no Início, quanto tem a receber no próximo mês.
+
+- **Relatórios › Fluxo de caixa projetado:** de hoje para a frente, mês a mês.
+  - **Ponto de partida:** o saldo de hoje das contas em Caixa e bancos. O que já entrou ou saiu
+    está nesse saldo, então o relatório só soma o que falta.
+  - Sem contas cadastradas, ou com um empreendimento escolhido no topo, a última coluna vira
+    **sobra acumulada** (entradas − saídas), porque a conta do banco é da empresa inteira.
+  - **O que entra:** o que falta receber das parcelas (já com a correção do índice) e das
+    outras receitas, no mês do vencimento.
+  - **O que sai:** as despesas em aberto, inclusive as parceladas, no mês do vencimento.
+  - **Vencido e sem data:** as despesas vencidas e as comissões ainda não pagas (que não têm
+    data) entram no mês atual.
+  - **Parcelas atrasadas a receber:** ficam **fora da conta**, o que é mais prudente. Dá para
+    escolher contá-las como recebidas no mês atual.
+  - **Período:** 6, 12 ou 24 meses.
+  - **Aviso:** se o caixa ficar negativo, aparece em vermelho o mês em que isso acontece.
+  - Imprime e exporta CSV. No celular, a tabela vira uma lista mês a mês com o saldo à direita.
+- **Início:** dois cartões novos.
+  - **A receber em (próximo mês):** o que vence no mês que vem e ainda não foi pago (parcela
+    antecipada já sai da conta). Tocando, abre as parcelas daquele mês.
+  - **Saldo previsto no fim do próximo mês:** vem do fluxo projetado; sem contas, aparece como
+    sobra prevista. Tocando, abre o relatório.
+  - O cartão "Fluxo previsto (12 meses)" ganhou o atalho "Fluxo de caixa projetado ›".
+- Os cartões do Início foram reorganizados para os sete caberem: no computador, o Total a
+  receber à esquerda e 3 × 2 ao lado; em tela média, 3 por linha; no celular, 2 por linha.
+- Detalhe corrigido: valor negativo abreviado agora sai "-R$ 200 mil", e não "R$ -200 mil".
+
+Para você fazer:
+
+- [ ] Cadastrar as contas em Caixa e bancos com o saldo certo, se ainda não fez: é daí que o
+  fluxo parte.
+- [ ] Abrir o fluxo e conferir os três primeiros meses com o que você sabe.
+
+`testes/fluxo-caixa.test.js` (11 casos, com contas feitas à mão).
+
+---
+
 ## 7z50. A cara do cliente: logo da empresa e logo do empreendimento (25/10)
 
 Pedido seu: dar a cara do cliente ao sistema, com a logo da empresa e a de cada empreendimento

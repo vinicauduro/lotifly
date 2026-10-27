@@ -214,6 +214,8 @@ function inicioMes() {
   /* Parcela de contrato distratado não é dinheiro a receber: fica fora de todos os números. */
   const recs = recebiveisDo('');
   const recsMes = recs.filter(r => monthKey(r.vencimento) === m);
+  /* Próximo mês: o que vence nele e ainda não foi pago (parcela antecipada já sai da conta) */
+  const recsProx = recs.filter(r => monthKey(r.vencimento) === mesSeguinte(m));
   const custosMes = db.custos.filter(c => c.status !== 'pago' && monthKey(c.vencimento || c.dataCompetencia) === m);
   const atrasados = recs.filter(r => recStatus(r) === 'atrasado');
   /* Carteira: tudo que ainda falta receber, de todos os meses e contratos. */
@@ -228,6 +230,8 @@ function inicioMes() {
     atrasado: atrasados.reduce((s, r) => s + recRestante(r), 0), nAtrasados: atrasados.length,
     inadMes: inadimplenciaDoMes(''),   // a mesma conta da Cobrança (financeiro.js)
     clientesAtraso: new Set(atrasados.map(r => r.vendaId)).size,
+    proximo: recsProx.reduce((s, r) => s + recRestante(r), 0), nProximo: recsProx.filter(r => recRestante(r) > 0.005).length,
+    contratosProximo: new Set(recsProx.filter(r => recRestante(r) > 0.005).map(r => r.vendaId)).size,
     carteira: carteira.reduce((s, r) => s + recRestante(r), 0), nCarteira: carteira.length,
     contratosCarteira: new Set(carteira.map(r => r.vendaId)).size
   };
@@ -253,6 +257,15 @@ function recebimentosPorMes(n) {
   });
   return out;
 }
+/* Saldo previsto no fim do próximo mês, pelo fluxo de caixa projetado (relatorios.js): parte do
+   saldo das contas de hoje, quando cadastradas; sem elas, é a sobra (entradas − saídas). */
+function kpiCaixaPrevistoHtml() {
+  if (!pode('relatorios.ver')) return '';
+  const p = fluxoProjetado('', 2, 'fora'), fim = p.meses[1];
+  const neg = fim.saldoFim < -0.005;
+  return `<div class="kpi ${neg ? 'c-red' : 'c-primary'}" onclick="abrirFluxoProjetado()" style="cursor:pointer"><div class="lbl">${p.comSaldo ? 'Saldo previsto' : 'Sobra prevista'} no fim de ${monthLabel(fim.mes)}</div><div class="val">${fmtMoney(fim.saldoFim)}</div><div class="sub">${p.comSaldo ? `hoje ${fmtMoneyShort(p.saldoHoje)} nas contas` : 'entradas − saídas, sem o saldo das contas'} · fluxo projetado ›</div></div>`;
+}
+function abrirFluxoProjetado() { relState().tipo = 'fluxo'; state.escopo = ''; switchTab('relatorios'); }
 function renderPainel() {
   const v = $('#av-painel'); const k = inicioMes();
   const resPend = db.reservas.filter(r => r.status === 'pendente');
@@ -279,13 +292,15 @@ function renderPainel() {
     <div class="kpi-grid inicio">
       <div class="kpi destaque c-primary" onclick="mostrarCarteira()" style="cursor:pointer"><div class="lbl">Total a receber</div><div class="val">${fmtMoney(k.carteira)}</div><div class="sub">carteira em aberto · ${nPlural(k.contratosCarteira, 'contrato')} ›</div></div>
       <div class="kpi c-red ${k.atrasado > 0.005 ? '' : 'zero'}" onclick="abrirPainelCobranca()" style="cursor:pointer"><div class="lbl">Em atraso</div><div class="val">${fmtMoney(k.atrasado)}</div><div class="sub">${nPlural(k.nAtrasados, 'parcela')} · ${nPlural(k.clientesAtraso, 'contrato')}<br>somando todos os meses ›</div></div>
-      <div class="kpi c-amber" onclick="mostrarRecebiveis('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
+      <div class="kpi c-amber" onclick="verParcelasDoMes('aberto')" style="cursor:pointer"><div class="lbl">A receber no mês</div><div class="val">${fmtMoney(k.aReceber)}</div><div class="sub">${fmtMoneyShort(k.recebidoMes)} já recebido de ${fmtMoneyShort(k.previsto)} ›</div></div>
       <div class="kpi c-primary" onclick="switchTab('custos')" style="cursor:pointer"><div class="lbl">A pagar no mês</div><div class="val">${fmtMoney(k.aPagar)}</div><div class="sub">${nPlural(k.nPagar, 'conta')}${k.pagarVencido ? ` · ${nPlural(k.pagarVencido, 'vencida')}` : ''} ›</div></div>
+      <div class="kpi c-amber ${k.proximo > 0.005 ? '' : 'zero'}" onclick="verParcelasDoMes('aberto', mesSeguinte(mesAtual()))" style="cursor:pointer"><div class="lbl">A receber em ${monthLabel(mesSeguinte(mesAtual()))}</div><div class="val">${fmtMoney(k.proximo)}</div><div class="sub">próximo mês · ${nPlural(k.nProximo, 'parcela')} · ${nPlural(k.contratosProximo, 'contrato')} ›</div></div>
       <div class="kpi c-green ${k.vendido > 0.005 ? '' : 'zero'}" onclick="switchTab('vendas')" style="cursor:pointer"><div class="lbl">Vendas de ${monthLabel(mesAtual())}</div><div class="val">${fmtMoney(k.vendido)}</div><div class="sub">${nPlural(k.vendas, 'contrato')} ›</div></div>
+      ${kpiCaixaPrevistoHtml()}
     </div>
     ${barraMesHtml('')}
     <div class="grid2">
-      <div class="card"><h2>Fluxo previsto (12 meses)</h2><div style="position:relative"><canvas class="chart" id="chartFluxo" height="220"></canvas><div class="chart-tip" id="chartFluxoTip"></div></div>
+      <div class="card"><h2>Fluxo previsto (12 meses) <a href="#" class="h-link" onclick="abrirFluxoProjetado();return false">Fluxo de caixa projetado ›</a></h2><div style="position:relative"><canvas class="chart" id="chartFluxo" height="220"></canvas><div class="chart-tip" id="chartFluxoTip"></div></div>
         <div class="legend-list" style="flex-direction:row;gap:14px"><div><span class="dot" style="background:#2563eb"></span>Recebimentos</div><div><span class="dot" style="background:#f97316"></span>Despesas</div><div class="muted">tom mais escuro: mês atual</div></div>
         <p class="tiny muted">O que já foi pago conta no mês do pagamento (parcela antecipada inclusive); o que falta, no mês do vencimento.</p></div>
       <div class="card"><h2>Recebido × inadimplência (12 meses)</h2>
