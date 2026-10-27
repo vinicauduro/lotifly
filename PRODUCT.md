@@ -64,7 +64,7 @@ cliente aparece dentro do app.
 ## Capabilities and Constraints
 
 - App web estático (HTML, CSS e JavaScript, sem etapa de build), instalável como PWA, publicado
-  no GitHub Pages (https://vinicauduro.github.io/lotifly/). O banco é atualizado rodando
+  no GitHub Pages em https://app.lotfly.com.br/ (arquivo `CNAME`). O banco é atualizado rodando
   `supabase/schema.sql`; mudança que depende de coluna nova precisa funcionar, ou avisar com
   clareza, enquanto o schema não foi rodado.
 - Idioma: português do Brasil, com os termos do mercado imobiliário. Dinheiro em R$ com vírgula
