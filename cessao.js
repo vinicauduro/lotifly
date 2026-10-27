@@ -1,4 +1,4 @@
-/* ===== Lotifly — cessão de direitos =====
+/* ===== Lotfly — cessão de direitos =====
    O comprador (cedente) passa o contrato para outra pessoa (cessionário), com a anuência da
    empresa. O contrato continua o mesmo — número, lote, parcelas, índice — e muda quem é o
    comprador: daqui em diante as cobranças, os boletos novos e a escritura são do cessionário.

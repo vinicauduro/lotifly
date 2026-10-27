@@ -1,6 +1,6 @@
 {
-  "name": "Lotifly",
-  "short_name": "Lotifly",
+  "name": "Lotfly",
+  "short_name": "Lotfly",
   "description": "Gestão para loteadora, incorporadora e imobiliária: imóveis, contratos, clientes, financeiro e cobrança",
   "start_url": "./",
   "display": "standalone",

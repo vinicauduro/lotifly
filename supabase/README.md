@@ -1,4 +1,4 @@
-# Lotifly — configuração da nuvem (Supabase)
+# Lotfly — configuração da nuvem (Supabase)
 
 Com a nuvem ativa o app passa a ter login por usuário, empresas (uma por incorporadora),
 papéis (dono, administrador, financeiro, corretor), convites por link, dados compartilhados

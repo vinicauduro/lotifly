@@ -242,6 +242,6 @@ async function gerarTabelaPDF(dados) {
     doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
     doc.text(`Página ${p} de ${total}`, W - M, H - 7.5, { align: 'right' });
   }
-  doc.setProperties({ title: txtPdf('Tabela de preços ' + mesExtenso(dados.mes)), subject: txtPdf(empresa), creator: 'Lotifly' });
+  doc.setProperties({ title: txtPdf('Tabela de preços ' + mesExtenso(dados.mes)), subject: txtPdf(empresa), creator: 'Lotfly' });
   return doc.output('blob');
 }

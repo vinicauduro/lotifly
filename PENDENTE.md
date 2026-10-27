@@ -760,6 +760,56 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z52. Nome novo: Lotfly, e o domínio lotfly.com.br (27/10)
+
+Você registrou **lotfly.com.br**. Decidido com você:
+- o sistema passa a se chamar **Lotfly**, igual ao domínio;
+- o sistema fica em **app.lotfly.com.br**;
+- lotfly.com.br fica para a página de vendas e, até ela existir, leva para o sistema.
+
+**Feito neste PR:** o nome Lotfly na tela de entrada, na aba, no ícone instalado, no PDF da
+tabela de preços e nos documentos do projeto. Os nomes internos (memória offline, versão do
+app) continuam iguais, para nada guardado se perder.
+
+**O endereço muda num segundo PR**, que só entra depois do passo 1, para o sistema não ficar
+fora do ar nesse meio-tempo.
+
+Para você fazer, nesta ordem:
+
+- [ ] **1. registro.br › lotfly.com.br › DNS › Editar zona.** Criar a entrada:
+  - tipo **CNAME**, nome **app**, valor **vinicauduro.github.io**
+  - Depois me avisar. A propagação leva de alguns minutos a algumas horas.
+- [ ] **2. Eu ponho o segundo PR no ar** (ele grava o endereço novo no GitHub). A partir daí,
+  quem abrir o endereço antigo (vinicauduro.github.io/lotifly) cai sozinho no novo.
+- [ ] **3. GitHub › repositório lotifly › Settings › Pages:**
+  - conferir que aparece **app.lotfly.com.br**;
+  - marcar **Enforce HTTPS** quando o GitHub liberar (o certificado sai em até uma hora,
+    às vezes um pouco mais).
+- [ ] **4. Supabase › Authentication › URL Configuration:**
+  - *Site URL*: `https://app.lotfly.com.br/`
+  - *Redirect URLs*: acrescentar `https://app.lotfly.com.br/` e deixar a antiga por um
+    tempo.
+  - Sem isso, o e-mail de "esqueci a senha" e o de confirmação levam para o endereço antigo.
+- [ ] **5. Todo mundo entra de novo** no endereço novo, com o mesmo e-mail e senha. O
+  navegador trata o endereço novo como outro site:
+  - é preciso fazer login de novo;
+  - o ícone do app instalado no celular ou no computador tem que ser instalado de novo.
+  - Antes da troca, cada um confere se o app está sincronizado (nada esperando para
+    enviar). Os dados ficam na nuvem e não mudam.
+- [ ] **6. (Recomendado) GitHub › seu perfil › Settings › Pages › Add a verified domain:**
+  - informar lotfly.com.br;
+  - criar no registro.br a entrada TXT que o GitHub mostrar.
+  - Isso impede que outra conta do GitHub use o seu domínio.
+- [ ] **7. Endereço principal (lotfly.com.br):** precisa de um repositório pequeno separado no
+  GitHub (por exemplo `lotfly-site`), que hoje leva para o sistema e depois vira a página de
+  vendas. Eu crio quando você autorizar.
+  - Depois disso, no registro.br: quatro entradas **A** no nome em branco (185.199.108.153,
+    185.199.109.153, 185.199.110.153, 185.199.111.153) e **CNAME www** para
+    **vinicauduro.github.io**.
+- [ ] Busca de marca **Lotfly** no INPI, na classe de software e serviços imobiliários.
+
+---
+
 ## 7z51. Fluxo de caixa projetado e "A receber no próximo mês" no Início (27/10)
 
 Pedido seu: o fluxo de caixa projetado e, no Início, quanto tem a receber no próximo mês.
@@ -2896,7 +2946,8 @@ vendas e área de login.
       registrador internacional antes de contar como certo. Falta também a busca de marca no
       INPI em classe parecida (software e serviços imobiliários). Se estiver livre, registrar
       antes de falar do nome por aí.
-- [ ] Registrar o domínio (registro.br para .com.br).
+- [x] ~~Registrar o domínio~~ — feito por você em 27/10: **lotfly.com.br** (sem o "i"); o
+      nome do produto passou a ser Lotfly (seção 7z52).
 - [ ] Definir se o e-mail profissional será Zoho gratuito ou Google Workspace.
 
 Depois disso eu faço a página de vendas e movo o aplicativo para o domínio novo. O Supabase

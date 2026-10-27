@@ -1,4 +1,4 @@
-/* ===== Lotifly — o contrato como página =====
+/* ===== Lotfly — o contrato como página =====
    Cada contrato tem um número sequencial por ano (0041/2026) e uma página própria: em cima,
    quem comprou o quê, quanto já entrou e as ações; embaixo, as abas Resumo, Partes,
    Parcelas, Documentos e Histórico. */
