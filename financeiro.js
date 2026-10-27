@@ -90,7 +90,7 @@ function cobrancasDoMes(escopo, mes = mesAtual()) {
   c.total = c.recebido + c.aVencer + c.atraso;
   return c;
 }
-function verParcelasDoMes(st) { const f = filtroRec(); f.sub = 'parcelas'; f.status = st; f.mes = mesAtual(); f.busca = ''; switchTab('recebiveis'); }
+function verParcelasDoMes(st, mes) { const f = filtroRec(); f.sub = 'parcelas'; f.status = st; f.mes = mes || mesAtual(); f.busca = ''; switchTab('recebiveis'); }
 function barraMesHtml(escopo) {
   const c = cobrancasDoMes(escopo);
   if (c.total < 0.005) return '';

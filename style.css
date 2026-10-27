@@ -194,6 +194,15 @@ html { scroll-padding-top: calc(var(--topbar-h) + var(--safe-top) + 12px); }
 }
 .card h2, .card h3 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
 .card h2 .h-actions, .card h3 .h-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.card h2 .h-link { font-size: 0.82rem; font-weight: 500; letter-spacing: 0; }
+/* Fluxo de caixa projetado (relatorios.js) */
+.alert.fluxo-alerta { cursor: default; }
+.fluxo-notas { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.fluxo-lista { display: none; }
+.fluxo-lista .fl-mes { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.fluxo-lista .fl-mes:last-child { border-bottom: 0; }
+.fluxo-lista .fl-saldo { text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+@media screen and (max-width: 719px) { .fluxo-tabela { display: none; } .fluxo-lista { display: block; } }
 .card p.help { font-size: 0.84rem; color: var(--muted); line-height: 1.55; max-width: 72ch; }
 .kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 @media (min-width: 720px) { .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi-grid.cols3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -201,11 +210,12 @@ html { scroll-padding-top: calc(var(--topbar-h) + var(--safe-top) + 12px); }
 @media (max-width: 719px) { .kpi-grid.cols5 > :last-child { grid-column: 1 / -1; } }
 @media (min-width: 720px) { .kpi-grid.cols5 { grid-template-columns: repeat(6, minmax(0, 1fr)); } .kpi-grid.cols5 > * { grid-column: span 2; } .kpi-grid.cols5 > :nth-child(n+4) { grid-column: span 3; } }
 @media (min-width: 1180px) { .kpi-grid.cols5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } .kpi-grid.cols5 > *, .kpi-grid.cols5 > :nth-child(n+4) { grid-column: auto; } }
-/* Início: a carteira em aberto em destaque; atraso, mês e contas a pagar ao lado; vendas por último */
+/* Início: a carteira em aberto em destaque; atraso, mês, próximo mês, contas a pagar, vendas e
+   saldo previsto ao lado. Celular: 2 por linha; média: 3 por linha; larga: destaque + 3 × 2. */
 .kpi-grid.inicio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .kpi-grid.inicio > .destaque { grid-column: 1 / -1; }
-@media (min-width: 720px) { .kpi-grid.inicio { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi-grid.inicio > .destaque { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; justify-content: center; } }
-@media (min-width: 1180px) { .kpi-grid.inicio { grid-template-columns: 1.6fr repeat(2, minmax(0, 1fr)); } .kpi-grid.inicio > .destaque { grid-column: 1; grid-row: span 2; } .kpi-grid.inicio > .destaque .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 2.6rem); } }
+@media (min-width: 720px) { .kpi-grid.inicio { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1180px) { .kpi-grid.inicio { grid-template-columns: 1.5fr repeat(3, minmax(0, 1fr)); } .kpi-grid.inicio > .destaque { grid-column: 1; grid-row: span 2; display: flex; flex-direction: column; justify-content: center; } .kpi-grid.inicio > .destaque .val { font-size: clamp(0.72rem, 100cqi / (var(--n, 12) * 0.56), 2.6rem); } }
 .kpi { background: var(--card); border-radius: var(--radius); padding: 16px 18px; border: 1px solid var(--border); min-width: 0; container-type: inline-size; transition: border-color 0.15s ease, background-color 0.15s ease; }
 @media (hover: hover) and (pointer: fine) { .kpi[onclick]:hover { border-color: var(--border-strong); background: var(--surface-2); } }
 .kpi .lbl { font-size: 0.8rem; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 7px; }

@@ -83,9 +83,9 @@ function avisar(o) { return confirmar(Object.assign({ soAviso: true }, typeof o 
 /* "1 parcela", "2 parcelas": no lugar do "parcela(s)". varios padrão = um + "s". */
 function nPlural(n, um, varios) { return `${n} ${n === 1 ? um : (varios || um + 's')}`; }
 function fmtMoneyShort(v) {
-  v = Number(v) || 0; const abs = Math.abs(v);
-  if (abs >= 1e6) return 'R$ ' + (v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi';
-  if (abs >= 1e4) return 'R$ ' + (v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+  v = Number(v) || 0; const abs = Math.abs(v), sinal = v < 0 ? '-' : '';   // negativo como no fmtMoney: -R$ 200 mil
+  if (abs >= 1e6) return sinal + 'R$ ' + (abs / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' mi';
+  if (abs >= 1e4) return sinal + 'R$ ' + (abs / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
   return fmtMoney(v);
 }
 function fmtNum(v, dec = 2) { return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }

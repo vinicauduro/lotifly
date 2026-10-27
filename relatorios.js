@@ -8,6 +8,7 @@ const RELATORIOS = [
   ['espelho', 'Espelho de vendas'],
   ['vendas', 'Vendas'],
   ['receber', 'Contas a receber'],
+  ['fluxo', 'Fluxo de caixa projetado'],
   ['inadimplencia', 'Inadimplência'],
   ['comissoes', 'Comissões'],
   ['despesas', 'Despesas']
@@ -15,7 +16,7 @@ const RELATORIOS = [
 
 function relState() {
   const hoje = todayStr();
-  state.rel = state.rel || { tipo: 'resumo', de: hoje.slice(0, 4) + '-01-01', ate: hoje, agrupar: 'categoria', status: 'todos', categoria: '', fornecedor: '', corretor: '', quadra: '', base: 'competencia', regime: 'caixa', centro: '', colunas: 'mes' };
+  state.rel = state.rel || { tipo: 'resumo', de: hoje.slice(0, 4) + '-01-01', ate: hoje, agrupar: 'categoria', status: 'todos', categoria: '', fornecedor: '', corretor: '', quadra: '', base: 'competencia', regime: 'caixa', centro: '', colunas: 'mes', meses: 12, atrasados: 'fora' };
   return state.rel;
 }
 function relSet(campo, valor) { relState()[campo] = valor; renderRelatorios(); }
@@ -40,15 +41,15 @@ function renderRelatorios() {
   v.innerHTML = `
     <div class="chips">${RELATORIOS.map(([k, l]) => `<div class="chip ${f.tipo === k ? 'active' : ''}" onclick="relSet('tipo','${k}')">${l}</div>`).join('')}</div>
     <div class="card">
-      <div class="frow"><div class="fg"><label>De</label><input type="date" value="${f.de}" onchange="relSet('de',this.value)"></div>
+      ${rel.semPeriodo ? '' : `<div class="frow"><div class="fg"><label>De</label><input type="date" value="${f.de}" onchange="relSet('de',this.value)"></div>
         <div class="fg"><label>Até</label><input type="date" value="${f.ate}" onchange="relSet('ate',this.value)"></div></div>
-      <div class="chips" style="margin-top:6px">${[['mes', 'Este mês'], ['anterior', 'Mês passado'], ['ano', 'Este ano'], ['anoAnterior', 'Ano passado'], ['tudo', 'Tudo']].map(([k, l]) => `<div class="chip" onclick="relPeriodo('${k}')">${l}</div>`).join('')}</div>
+      <div class="chips" style="margin-top:6px">${[['mes', 'Este mês'], ['anterior', 'Mês passado'], ['ano', 'Este ano'], ['anoAnterior', 'Ano passado'], ['tudo', 'Tudo']].map(([k, l]) => `<div class="chip" onclick="relPeriodo('${k}')">${l}</div>`).join('')}</div>`}
       ${rel.filtros || ''}
       <div class="btn-row mt"><button class="btn btn-secondary btn-sm" onclick="imprimirRelatorio()">Imprimir / PDF</button>
         <button class="btn btn-secondary btn-sm" onclick="exportarRelatorioCSV()">CSV</button></div>
     </div>
     ${rel.kpis || ''}
-    ${rel.html}`;
+    ${rel.htmlTela || rel.html}`;
   window.__rel = rel;
 }
 
@@ -80,6 +81,7 @@ function montarRelatorio(tipo, escopo) {
   if (tipo === 'espelho') return relEspelho(escopo);
   if (tipo === 'vendas') return relVendas(escopo);
   if (tipo === 'receber') return relReceber(escopo);
+  if (tipo === 'fluxo') return relFluxo(escopo);
   if (tipo === 'inadimplencia') return relInadimplencia(escopo);
   if (tipo === 'comissoes') return relComissoes(escopo);
   return relDespesas(escopo);
@@ -402,6 +404,105 @@ function relReceber(escopo) {
   };
 }
 
+/* Fluxo de caixa projetado: de hoje para a frente, mês a mês, o que ainda vai entrar e sair.
+   - Parte do saldo de hoje das contas (Caixa e bancos), quando elas estão cadastradas e o
+     relatório é da empresa inteira. O que já entrou ou saiu está nesse saldo, então só conta o
+     que falta.
+   - Entra: o que falta receber das parcelas dos contratos (com correção, quando houver) e das
+     outras receitas, no mês do vencimento.
+   - Sai: as despesas em aberto no mês do vencimento e as comissões ainda não pagas.
+   - Atrasado: despesa vencida e comissão em aberto entram no mês atual (é dinheiro que tem que
+     sair). Parcela atrasada a receber fica fora da conta, a não ser que se escolha contar com ela
+     no mês atual: prever com o atraso é o mais prudente. */
+function fluxoProjetado(escopo, nMeses, atrasados) {
+  const hoje = todayStr(), m0 = mesAtual();
+  const meses = [m0]; while (meses.length < nMeses) meses.push(mesSeguinte(meses[meses.length - 1]));
+  const linha = mes => ({ mes, contratos: 0, receitas: 0, despesas: 0, comissoes: 0 });
+  const porMes = Object.fromEntries(meses.map(m => [m, linha(m)]));
+  const atraso = { contratos: 0, receitas: 0, despesas: 0, nContratos: 0, nDespesas: 0 };
+  const contaComAtraso = atrasados === 'entram';
+  const soma = (campo, data, v) => { const m = monthKey(data); if (porMes[m]) porMes[m][campo] += v; };
+  recebiveisDo(escopo).forEach(r => {
+    const v = recRestante(r); if (v <= 0.005) return;
+    if (r.vencimento < hoje) { atraso.contratos += v; atraso.nContratos++; if (contaComAtraso) porMes[m0].contratos += v; }
+    else soma('contratos', r.vencimento, v);
+  });
+  receitasDo(escopo).filter(x => x.status !== 'recebido').forEach(x => {
+    const v = num(x.valor), data = x.vencimento || x.dataCompetencia; if (v <= 0.005) return;
+    if (!data || data < hoje) { atraso.receitas += v; if (contaComAtraso) porMes[m0].receitas += v; }
+    else soma('receitas', data, v);
+  });
+  custosDo(escopo).filter(c => c.status !== 'pago').forEach(c => {
+    const v = num(c.valor), data = c.vencimento || c.dataCompetencia; if (v <= 0.005) return;
+    if (!data || data < hoje) { atraso.despesas += v; atraso.nDespesas++; porMes[m0].despesas += v; }
+    else soma('despesas', data, v);
+  });
+  const comissoes = vendasDo(escopo).filter(v => v.status !== 'distrato' && !v.comissaoPaga && num(v.comissaoValor) > 0.005);
+  porMes[m0].comissoes = comissoes.reduce((s, v) => s + num(v.comissaoValor), 0);
+  /* Saldo de partida: só faz sentido com as contas cadastradas e para a empresa inteira (a conta
+     do banco não é de um empreendimento só). */
+  const comSaldo = !escopo && typeof caixaLigado === 'function' && caixaLigado();
+  const saldoHoje = comSaldo ? contasCaixaAtivas().reduce((s, c) => s + saldoConta(c, hoje), 0) : 0;
+  let saldo = saldoHoje;
+  const linhas = meses.map(m => {
+    const l = porMes[m];
+    l.entradas = l.contratos + l.receitas; l.saidas = l.despesas + l.comissoes;
+    l.resultado = l.entradas - l.saidas; l.saldoIni = saldo; saldo += l.resultado; l.saldoFim = saldo;
+    return l;
+  });
+  const negativo = linhas.find(l => l.saldoFim < -0.005) || null;
+  return { meses: linhas, comSaldo, saldoHoje, atraso, contaComAtraso, nComissoes: comissoes.length, negativo,
+    entradas: linhas.reduce((s, l) => s + l.entradas, 0), saidas: linhas.reduce((s, l) => s + l.saidas, 0), saldoFinal: saldo };
+}
+function relFluxo(escopo) {
+  const f = relState(); const n = [6, 12, 24].includes(Number(f.meses)) ? Number(f.meses) : 12;
+  const p = fluxoProjetado(escopo, n, f.atrasados);
+  const ult = p.meses[p.meses.length - 1].mes;
+  const temRec = p.meses.some(l => l.receitas > 0.005), temCom = p.meses.some(l => l.comissoes > 0.005);
+  const vermelho = v => v < -0.005 ? ` style="color:var(--danger)"` : '';
+  const dinheiro = v => `<span${vermelho(v)}>${fmtMoney(v)}</span>`;
+  const cols = [{ t: 'Mês' }, { t: 'Parcelas dos contratos', num: true }, ...(temRec ? [{ t: 'Outras receitas', num: true }] : []),
+    { t: 'Despesas', num: true }, ...(temCom ? [{ t: 'Comissões', num: true }] : []), { t: 'Resultado do mês', num: true }, { t: p.comSaldo ? 'Saldo previsto' : 'Sobra acumulada', num: true }];
+  const linhas = p.meses.map((l, i) => ({ cells: [
+    `${monthLabel(l.mes)}${i === 0 ? ' <span class="tiny muted">(de hoje em diante)</span>' : ''}`, fmtMoney(l.contratos), ...(temRec ? [fmtMoney(l.receitas)] : []),
+    fmtMoney(l.despesas), ...(temCom ? [fmtMoney(l.comissoes)] : []), dinheiro(l.resultado), `<b>${dinheiro(l.saldoFim)}</b>`] }));
+  const csv = p.meses.map(l => [monthLabel(l.mes), fmtNum(l.saldoIni), fmtNum(l.contratos), fmtNum(l.receitas), fmtNum(l.despesas), fmtNum(l.comissoes), fmtNum(l.resultado), fmtNum(l.saldoFim)]);
+  const tot = k => p.meses.reduce((s, l) => s + l[k], 0);
+  const rodape = ['Total', fmtMoney(tot('contratos')), ...(temRec ? [fmtMoney(tot('receitas'))] : []), fmtMoney(tot('despesas')), ...(temCom ? [fmtMoney(tot('comissoes'))] : []), dinheiro(tot('resultado')), dinheiro(p.saldoFinal)];
+  const notas = [];
+  notas.push(p.comSaldo
+    ? `Parte do saldo de hoje das contas em Caixa e bancos: <b>${fmtMoney(p.saldoHoje)}</b>. O que já entrou ou saiu está nesse saldo.`
+    : escopo ? 'Relatório de um empreendimento: as contas do banco são da empresa inteira, então a última coluna mostra só a sobra acumulada (entradas − saídas).'
+      : 'Sem contas cadastradas em Caixa e bancos: a última coluna mostra só a sobra acumulada (entradas − saídas). Cadastre as contas para partir do saldo real.');
+  if (p.atraso.contratos > 0.005 || p.atraso.receitas > 0.005) notas.push(p.contaComAtraso
+    ? `As parcelas em atraso (<b>${fmtMoney(p.atraso.contratos + p.atraso.receitas)}</b>) estão contadas em ${monthLabel(p.meses[0].mes)}, como se fossem pagas este mês.`
+    : `Fora da conta: <b>${fmtMoney(p.atraso.contratos + p.atraso.receitas)}</b> em parcelas atrasadas a receber. Se quiser contar com elas, escolha acima.`);
+  if (p.atraso.despesas > 0.005) notas.push(`As despesas vencidas e não pagas (<b>${fmtMoney(p.atraso.despesas)}</b>) estão em ${monthLabel(p.meses[0].mes)}.`);
+  if (temCom) notas.push(`As comissões ainda não pagas (${nPlural(p.nComissoes, 'contrato')}) não têm data: estão em ${monthLabel(p.meses[0].mes)}.`);
+  const notasHtml = `<div class="card"><ul class="help fluxo-notas">${notas.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
+  const alerta = p.negativo
+    ? `<p class="alert fluxo-alerta"><span><b>O caixa fica negativo em ${monthLabel(p.negativo.mes)}</b>: ${fmtMoney(p.negativo.saldoFim)} no fim do mês.</span></p>`
+    : '';
+  return {
+    titulo: 'Fluxo de caixa projetado', semPeriodo: true, periodo: `${monthLabel(p.meses[0].mes)} a ${monthLabel(ult)}`,
+    filtros: `<div class="frow" style="margin-top:8px"><div class="fg"><label for="relFluxoMeses">Meses à frente</label><select id="relFluxoMeses" onchange="relSet('meses',Number(this.value))">${[6, 12, 24].map(k => `<option value="${k}" ${n === k ? 'selected' : ''}>${k} meses</option>`).join('')}</select></div>
+      <div class="fg"><label for="relFluxoAtraso">Parcelas atrasadas a receber</label><select id="relFluxoAtraso" onchange="relSet('atrasados',this.value)">${[['fora', 'Fora da conta (mais prudente)'], ['entram', 'Contar como recebidas este mês']].map(([k, l]) => `<option value="${k}" ${(p.contaComAtraso ? 'entram' : 'fora') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`,
+    kpis: relKpis([
+      { lbl: p.comSaldo ? 'Saldo hoje' : 'Saldo de partida', val: p.comSaldo ? fmtMoneyShort(p.saldoHoje) : '—', sub: p.comSaldo ? 'nas contas' : 'sem contas no relatório', cor: 'c-blue' },
+      { lbl: 'Vai entrar', val: fmtMoneyShort(p.entradas), sub: `em ${n} meses`, cor: 'c-green' },
+      { lbl: 'Vai sair', val: fmtMoneyShort(p.saidas), sub: `em ${n} meses`, cor: 'c-amber' },
+      { lbl: p.comSaldo ? `Saldo em ${monthLabel(ult)}` : `Sobra até ${monthLabel(ult)}`, val: fmtMoneyShort(p.saldoFinal), sub: p.negativo ? `negativo em ${monthLabel(p.negativo.mes)}` : 'no fim do período', cor: p.saldoFinal < -0.005 || p.negativo ? 'c-red' : 'c-primary' }
+    ]),
+    html: `${alerta}${relTabela(cols, linhas, rodape)}${notasHtml}`,
+    /* Na tela, no celular, a tabela larga vira uma lista mês a mês com o saldo à direita */
+    htmlTela: `${alerta}<div class="fluxo-tabela">${relTabela(cols, linhas, rodape)}</div>
+      <div class="card fluxo-lista" style="padding:4px 16px">${p.meses.map((l, i) => `<div class="fl-mes">
+        <div><b>${monthLabel(l.mes)}</b>${i === 0 ? ' <span class="tiny muted">de hoje em diante</span>' : ''}<div class="tiny muted">entra ${fmtMoney(l.entradas)} · sai ${fmtMoney(l.saidas)}</div></div>
+        <div class="fl-saldo"><b>${dinheiro(l.saldoFim)}</b><div class="tiny muted">${p.comSaldo ? 'saldo' : 'sobra'} no fim do mês</div></div></div>`).join('')}</div>${notasHtml}`,
+    cols, csv, csvHead: ['Mês', 'Saldo no início', 'Parcelas dos contratos', 'Outras receitas', 'Despesas', 'Comissões', 'Resultado do mês', p.comSaldo ? 'Saldo previsto' : 'Sobra acumulada']
+  };
+}
+
 function relInadimplencia(escopo) {
   const lista = inadimplentes(escopo);
   const linhas = [], csv = [];
@@ -549,7 +650,7 @@ function orcamentoHtml(escopo, lista) {
 // ---------------------------------------------------------------- saída
 function relCabecalhoImpressao(rel) {
   const lot = escopoAtual() ? getLoteamento(escopoAtual()) : null; const f = relState();
-  const periodo = (f.de === '2000-01-01' && f.ate === '2099-12-31') ? 'todo o período' : `${fmtDate(f.de)} a ${fmtDate(f.ate)}`;
+  const periodo = rel.periodo || ((f.de === '2000-01-01' && f.ate === '2099-12-31') ? 'todo o período' : `${fmtDate(f.de)} a ${fmtDate(f.ate)}`);
   return `${marcaTopoHtml(lot || undefined)}<h1>${esc(db.config.empresa || (lot ? lot.nome : ''))}</h1>
     <div>${lot ? esc(lot.nome) + (lot.cidade ? ' · ' + esc(lot.cidade) : '') : 'Todos os empreendimentos'}</div>
     <h2>${esc(rel.titulo)} — ${esc(periodo)}</h2>`;
