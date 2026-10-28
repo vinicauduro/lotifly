@@ -13,7 +13,7 @@ const DOC_CAMPOS = [
   ['Vendedor', [['vendedor.qualificacao', 'Qualificação de todos'], ['vendedor.nomes', 'Nomes de todos'], ['vendedor.nome', 'Nome / razão social'], ['vendedor.cpf', 'CNPJ/CPF'], ['vendedor.endereco', 'Endereço'], ['vendedor.representante', 'Quem assina'], ['vendedor.repCpf', 'CPF de quem assina']]],
   ['Imóvel', [['imovel.descricao', 'Descrição da matrícula'], ['imovel.identificacao', 'Identificação curta'], ['imovel.matricula', 'Matrícula'], ['imovel.cartorio', 'Cartório de registro'], ['imovel.endereco', 'Endereço do imóvel'], ['imovel.medidas', 'Medidas']]],
   ['Corretor', [['corretor.nome', 'Nome'], ['corretor.creci', 'CRECI'], ['corretor.telefone', 'Telefone'], ['corretor.imobiliaria', 'Imobiliária']]],
-  ['Pagamento', [['pagamento.valorTotal', 'Valor total'], ['pagamento.valorTotalExtenso', 'Valor por extenso'], ['pagamento.entrada', 'Entrada'], ['pagamento.entradaExtenso', 'Entrada por extenso'], ['pagamento.dataEntrada', 'Data da entrada'], ['pagamento.nParcelas', 'Nº de parcelas'], ['pagamento.valorParcela', 'Valor da parcela'], ['pagamento.valorParcelaExtenso', 'Parcela por extenso'], ['pagamento.juros', 'Juros (% a.m.)'], ['pagamento.primeiroVencimento', '1º vencimento'], ['pagamento.saldo', 'Saldo financiado'], ['pagamento.reforcos', 'Reforços'], ['pagamento.indice', 'Índice de correção'], ['pagamento.indiceBase', 'Mês base do índice'], ['pagamento.resumo', 'Resumo em uma linha'], ['pagamento.tabela', 'Tabela de parcelas']]],
+  ['Pagamento', [['pagamento.valorTotal', 'Valor total'], ['pagamento.valorTotalExtenso', 'Valor por extenso'], ['pagamento.entrada', 'Entrada'], ['pagamento.entradaExtenso', 'Entrada por extenso'], ['pagamento.dataEntrada', 'Data da entrada'], ['pagamento.nParcelas', 'Nº de parcelas'], ['pagamento.valorParcela', 'Valor da parcela'], ['pagamento.valorParcelaExtenso', 'Parcela por extenso'], ['pagamento.juros', 'Juros (% a.m.)'], ['pagamento.semJuros', 'Sem juros (só quando não há juros)'], ['pagamento.primeiroVencimento', '1º vencimento'], ['pagamento.saldo', 'Saldo financiado'], ['pagamento.reforcos', 'Reforços'], ['pagamento.indice', 'Índice de correção'], ['pagamento.indiceBase', 'Mês base do índice'], ['pagamento.resumo', 'Resumo em uma linha'], ['pagamento.tabela', 'Tabela de parcelas']]],
   ['Cessão de direitos', [['cedente.qualificacao', 'Cedentes (qualificação)'], ['cedente.nomes', 'Nomes dos cedentes'], ['cessionario.qualificacao', 'Cessionários (qualificação)'], ['cessionario.nomes', 'Nomes dos cessionários'], ['cessao.data', 'Data da cessão'], ['cessao.valor', 'Valor entre as partes'], ['cessao.valorExtenso', 'Valor por extenso'], ['cessao.taxa', 'Taxa de cessão'], ['cessao.parcelasEmAberto', 'Parcelas em aberto'], ['cessao.saldo', 'Saldo em aberto'], ['cessao.saldoExtenso', 'Saldo por extenso'], ['contrato.data', 'Data do contrato original']]],
   ['Distrato', [['distrato.data', 'Data do distrato'], ['distrato.motivo', 'Motivo'], ['distrato.pago', 'Valor pago pelo comprador'], ['distrato.pagoExtenso', 'Valor pago por extenso'], ['distrato.retencaoPct', 'Retenção (%)'], ['distrato.retencao', 'Valor retido'], ['distrato.retencaoExtenso', 'Valor retido por extenso'], ['distrato.outrosDescontos', 'Outros descontos'], ['distrato.outrosDescontosDesc', 'O que são os outros descontos'], ['distrato.devolucao', 'Valor a devolver'], ['distrato.devolucaoExtenso', 'Devolução por extenso'], ['distrato.formaDevolucao', 'Forma da devolução (à vista ou parcelas)']]],
   ['Assinaturas', [['assinaturas.vendedores', 'Linhas dos vendedores'], ['assinaturas.compradores', 'Linhas dos compradores e cônjuges'], ['assinaturas.cedentes', 'Linhas dos cedentes e cônjuges'], ['assinaturas.cessionarios', 'Linhas dos cessionários e cônjuges']]],
@@ -114,7 +114,10 @@ function docContexto(o) {
     'pagamento.entrada': fmtMoney(p.entrada), 'pagamento.entradaExtenso': moedaExtenso(p.entrada),
     'pagamento.dataEntrada': p.dataEntrada ? fmtDate(p.dataEntrada) : '',
     'pagamento.nParcelas': String(p.nParcelas || 0), 'pagamento.valorParcela': fmtMoney(p.valorParcela), 'pagamento.valorParcelaExtenso': moedaExtenso(p.valorParcela),
-    'pagamento.juros': p.jurosMes ? fmtNum(p.jurosMes, 2) + '% ao mês' : 'sem juros',
+    /* Sem juros, o campo fica vazio: o trecho {{#se pagamento.juros}} some do documento (antes saía
+       "incidem juros de sem juros"). Para dizer que não há juros, use {{#se pagamento.semJuros}}. */
+    'pagamento.juros': num(p.jurosMes) > 0 ? fmtNum(p.jurosMes, 2) + '% ao mês' : '',
+    'pagamento.semJuros': num(p.jurosMes) > 0 || !num(p.nParcelas) ? '' : 'sem juros',
     'pagamento.primeiroVencimento': p.primeiroVencimento ? fmtDate(p.primeiroVencimento) : '',
     'pagamento.saldo': fmtMoney(Math.max(0, num(p.valorTotal) - num(p.entrada))),
     'pagamento.indice': p.indiceId && typeof getIndice === 'function' && getIndice(p.indiceId) ? getIndice(p.indiceId).nome : '',
@@ -207,7 +210,7 @@ Loteamento {{loteamento.nome}}{{#se loteamento.cidade}}, em {{loteamento.cidade}
 ## Condições propostas
 Valor total: **{{pagamento.valorTotal}}** ({{pagamento.valorTotalExtenso}}).
 Forma de pagamento: {{pagamento.resumo}}.
-{{#se pagamento.juros}}Juros do parcelamento: {{pagamento.juros}}.{{/se}}
+{{#se pagamento.juros}}Juros do parcelamento: {{pagamento.juros}}.{{/se}}{{#se pagamento.semJuros}}Parcelamento sem juros.{{/se}}
 {{#se pagamento.primeiroVencimento}}Primeiro vencimento em {{pagamento.primeiroVencimento}}.{{/se}}
 
 {{pagamento.tabela}}
@@ -237,7 +240,7 @@ A promitente vendedora promete vender ao promitente comprador o imóvel assim de
 
 ## CLÁUSULA SEGUNDA — DO PREÇO E DA FORMA DE PAGAMENTO
 O preço certo e ajustado é de {{pagamento.valorTotal}} ({{pagamento.valorTotalExtenso}}), pago da seguinte forma: {{pagamento.resumo}}.
-{{#se pagamento.juros}}Sobre o saldo parcelado incidem juros de {{pagamento.juros}}.{{/se}}
+{{#se pagamento.juros}}Sobre o saldo parcelado incidem juros de {{pagamento.juros}}.{{/se}}{{#se pagamento.semJuros}}O saldo parcelado não tem juros.{{/se}}
 {{#se pagamento.primeiroVencimento}}A primeira parcela vence em {{pagamento.primeiroVencimento}} e as demais no mesmo dia dos meses subsequentes.{{/se}}
 
 {{pagamento.tabela}}
