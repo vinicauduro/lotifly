@@ -760,6 +760,29 @@ gaveta no celular sem rolagem lateral. As outras 17 suítes e os testes do banco
 
 ---
 
+## 7z53. Contrato sem juros: frase corrigida (28/10)
+
+Achado ao montar a página de vendas: num contrato sem juros, a cláusula do preço saía *"Sobre o
+saldo parcelado incidem juros de sem juros."*
+
+- **Sem juros**, o trecho dos juros some do contrato e da proposta.
+  - O contrato passa a dizer *"O saldo parcelado não tem juros."*
+  - A proposta diz *"Parcelamento sem juros."*
+- **Com juros**, nada muda: *"incidem juros de 0,80% ao mês."*
+- **Modelos que você já colou ou editou** também ficam certos sem mexer neles: sem juros, o trecho
+  `{{#se pagamento.juros}}` simplesmente não aparece.
+- **Variável nova** para os modelos: `{{pagamento.semJuros}}`. Ela só tem valor quando há parcelas
+  e não há juros, então serve para escrever a frase do seu jeito.
+
+Para você fazer:
+
+- [ ] Se o seu modelo de contrato for próprio e quiser a frase de "sem juros", acrescentar
+  `{{#se pagamento.semJuros}}O saldo parcelado não tem juros.{{/se}}` depois da cláusula dos juros.
+
+`testes/contrato-juros.test.js` (4 casos).
+
+---
+
 ## 7z52. Nome novo: Lotfly, e o domínio lotfly.com.br (27/10)
 
 Você registrou **lotfly.com.br**. Decidido com você:
