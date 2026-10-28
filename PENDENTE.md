@@ -776,36 +776,38 @@ fora do ar nesse meio-tempo.
 
 Para você fazer, nesta ordem:
 
-- [ ] **1. registro.br › lotfly.com.br › DNS › Editar zona.** Criar a entrada:
+- [x] *(feito por você em 28/10)* **1. registro.br › lotfly.com.br › DNS › Editar zona.** Criar a entrada:
   - tipo **CNAME**, nome **app**, valor **vinicauduro.github.io**
   - Depois me avisar. A propagação leva de alguns minutos a algumas horas.
-- [ ] **2. Eu ponho o segundo PR no ar** (ele grava o endereço novo no GitHub). A partir daí,
+- [x] *(feito em 28/10, PR #64)* **2. Eu ponho o segundo PR no ar** (ele grava o endereço novo no GitHub). A partir daí,
   quem abrir o endereço antigo (vinicauduro.github.io/lotifly) cai sozinho no novo.
-- [ ] **3. GitHub › repositório lotifly › Settings › Pages:**
+- [x] *(feito por você em 28/10)* **3. GitHub › repositório lotifly › Settings › Pages:**
   - conferir que aparece **app.lotfly.com.br**;
   - marcar **Enforce HTTPS** quando o GitHub liberar (o certificado sai em até uma hora,
     às vezes um pouco mais).
-- [ ] **4. Supabase › Authentication › URL Configuration:**
+- [x] *(feito por você em 28/10)* **4. Supabase › Authentication › URL Configuration:**
   - *Site URL*: `https://app.lotfly.com.br/`
   - *Redirect URLs*: acrescentar `https://app.lotfly.com.br/` e deixar a antiga por um
     tempo.
   - Sem isso, o e-mail de "esqueci a senha" e o de confirmação levam para o endereço antigo.
-- [ ] **5. Todo mundo entra de novo** no endereço novo, com o mesmo e-mail e senha. O
+- [x] *(avisado em 28/10)* **5. Todo mundo entra de novo** no endereço novo, com o mesmo e-mail e senha. O
   navegador trata o endereço novo como outro site:
   - é preciso fazer login de novo;
   - o ícone do app instalado no celular ou no computador tem que ser instalado de novo.
   - Antes da troca, cada um confere se o app está sincronizado (nada esperando para
     enviar). Os dados ficam na nuvem e não mudam.
-- [ ] **6. (Recomendado) GitHub › seu perfil › Settings › Pages › Add a verified domain:**
+- [x] *(feito por você em 28/10)* **6. (Recomendado) GitHub › seu perfil › Settings › Pages › Add a verified domain:**
   - informar lotfly.com.br;
   - criar no registro.br a entrada TXT que o GitHub mostrar.
   - Isso impede que outra conta do GitHub use o seu domínio.
-- [ ] **7. Endereço principal (lotfly.com.br):** precisa de um repositório pequeno separado no
-  GitHub (por exemplo `lotfly-site`), que hoje leva para o sistema e depois vira a página de
-  vendas. Eu crio quando você autorizar.
+- [x] *(28/10: você criou o repositório `lotfly-site` e eu enviei a página)* **7. Endereço
+  principal (lotfly.com.br):** o repositório `lotfly-site` leva para o sistema e depois vira a
+  página de vendas.
   - Depois disso, no registro.br: quatro entradas **A** no nome em branco (185.199.108.153,
     185.199.109.153, 185.199.110.153, 185.199.111.153) e **CNAME www** para
     **vinicauduro.github.io**.
+- [ ] **8. GitHub › repositório lotfly-site › Settings › Pages:** *Deploy from a branch*,
+  **main**, **/(root)**; conferir **lotfly.com.br** e marcar **Enforce HTTPS** quando liberar.
 - [ ] Busca de marca **Lotfly** no INPI, na classe de software e serviços imobiliários.
 
 ---
